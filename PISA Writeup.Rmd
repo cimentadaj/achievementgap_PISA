@@ -1,0 +1,184 @@
+---
+title: "PISA Writeup"
+author: "Jorge Cimentada"
+date: "3/14/2017"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(
+  warning = T,
+  message = T
+)
+```
+
+```{r, cache = T}
+library(haven)
+library(PISA2000lite)
+library(PISA2003lite)
+library(PISA2006lite)
+library(PISA2009lite)
+library(PISA2012lite)
+library(intsvy)
+library(cimentadaj) # For pisa_countrynames
+library(countrycode) # For region variable
+library(tidyverse)
+library(car)
+library(readr)
+library(SAScii)
+library(ggthemes)
+library(lme4)
+
+# For PISA_2015
+pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
+                                       pvlabelsuff = "READ",
+                                       weightFinal = "W_FSTUWT",
+                                       weightBRR = "W_FSTURWT"),
+                      parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
+                                        percentiles = c(5, 10, 25, 75, 90, 95),
+                                        PVreps = 10,
+                                        BRRreps = 80,
+                                        weights = "BRR",
+                                        replication_scheme = 'pisa')
+)
+
+quantiles <- c(10, 50, 90)
+pisa_merged <- read_rds("./data/pisa_list2.Rdata")
+```
+
+The work of Sean Reardon has caused a great deal of interest in me. It talks about the evolution of cognitive inequalities in the United States. Interestingly, he explores patterns of the cognitive gap between rich and poor children and finds that the gap has been increasing since we have data on it. Although it could be argued that this pattern is an artifact of aggregating statistics, or that the pattern is the product of other things, such as income inequality or the racial gap, he shows convincing evidence in favour that dismisses both explanations.
+
+In an elegant way, Reardon shows how the racial gap has been diminishing since the 1940's (although not at a great pace; other research shows that this gap has decreased little to nothing) while the income cognitive gap has been increasing. Without going into technicalities, I was fascinated with his work. I thought that more research was needed on this topic, specially at a greater scale and not U.S centric.
+
+I had the idea of looking for a similar pattern in the PISA datasets. I know beforehand that this is not at all very similar to Reardon's work for two reasons. First, Reardon has data starting from 1943 to about 2010. The PISA data has only 5 time points, starting in the year 2000 and ending in 2015, every 3 years. Second, Reardon's aggregate pattern includes children from all ages, while the PISA only concentrates on 15 year olds. Despite this, I though it might be an interesting idea to explore this. 
+
+The achievement gap can be measured in very different ways. First, it could be measured simply as the difference in test scores between children coming from parents with ISCED 5-6 (college or above) and children coming from parents with ISCED 1-2 (less than high school). Van der Werfhorst and colleagues
+<!-- Cite Van der Werfhorst correctly -->
+also discuss other ways, such as the gap between the 90th and 10th percentile in the distribution of cognitive skills. In order to stay close to the design of Reardon, I calculate the difference between the 90th and 10th percentile, as well as the 80th and 20th percentile. I also compare these results to the gap of children from high educated parents and children from low educated parents.
+
+***
+
+After discussion of 90/10/80/10/high/low educated gaps.
+
+I then proceeded to disagreggate the pattern even more. Because the no pattern was evidence from above, I updated my beliefs and though that if any pattern was to be evidence, it should in percentiles within class groups. So, for example, I'd like to compare the evolution of the gap of the 90th percentile from the higher educated against the 90th percentile of the lower educated. Furthermore, I'd like to compare the same strategy for: 
+
+Name    High educated - Low educated
+            90              90
+            90              10
+            10              90
+            50              50
+            90              50
+                            50/10
+<!-- Create table with all computed variables -->
+
+These groups compose a pattern of extremes, specially the type of groups that are interesting for policy making, because they are those which need the biggest help. 
+
+```{r}
+unnest_rename <- function(df, col_unnest, var_rename) {
+  unnested <-
+    df %>%
+    unnest_(col_unnest)
+  
+  if(sum(names(unnested) %in% var_rename) > 1) {
+    warning(paste(as.name(var_rename), "not a unique name in unnested df. Renaming the first instance"))
+  }
+  
+  unnested %>%
+    rename_(se_mean = var_rename)
+}
+
+pisa_ci <- function(df, col_unnest, var_rename, mean_var) {
+  dots <- setNames(list(
+    lazyeval::interp(~ x - y, x = as.name(mean_var), y = quote(se_twice)),
+    lazyeval::interp(~ x + y, x = as.name(mean_var), y = quote(se_twice))
+  ), c("low_ci", "upper_ci"))
+  
+  unnest_rename(pisa_merged, col_unnest, var_rename) %>%
+    mutate(
+      se_twice = 2 * se_mean,
+      region = countrycode(country, "country.name", "region"),
+      continent = countrycode(country, "country.name", "continent")
+    ) %>%
+    mutate_(.dots = dots) %>%
+    filter(!is.na(continent))
+}
+
+pisa_quant_ci <-
+  pisa_ci(pisa_merged, "quantile_mean", "`Std. err.`", "Score")
+
+pisa_gaps <-
+  pisa_quant_ci %>%
+  unite(edu_perc, high_edu, Percentiles) %>%
+  select(year:Score) %>%
+  spread(edu_perc, Score) %>%
+  mutate(`srich/spoor` = `3_90` - `1_90`,
+         `srich/dpoor` = `3_90` - `1_10`,
+         `drich/spoor` = `3_10` - `1_90`,
+         `srich/drich` = `3_90` - `3_10`,
+         `avgrich/avgpoor` = `3_50` - `1_50`,
+         `srich/avgpoor` = `3_90` - `1_50`,
+         `avgpoor/dpoor` = `1_50`- `1_10`) %>%
+  select(year, country, contains("rich"), contains("poor")) %>%
+  gather(diff, value, -year, -country)
+
+gap_df <-
+  pisa_gaps %>%
+  mutate(region = countrycode(country, "country.name", "region"),
+         continent = countrycode(country, "country.name", "continent"))
+
+gap_groups <-
+  c("50_poor/10_poor",
+    "90_rich/50_poor",
+    "10_rich/90_poor",
+    "90_rich/50_poor",
+    "90_rich/10_poor",
+    "90_rich/10_rich",
+    "90_rich/90_poor")
+
+gap_df %>%
+  group_by(year, region, diff) %>%
+  summarize(avg = mean(value, na.rm = T)) %>%
+  ggplot(aes(x = year, avg, group = diff, colour = diff)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~ region) +
+  labs(x = "Year", y = "Average difference") +
+  scale_colour_discrete(name = "Gap groups", labels = gap_groups) +
+  theme_minimal()
+```
+One pattern is clearly evident: with the exception of Western Asia, all regions have a plane line. For all of these categories not a lot of changes have ocurred in the last 15 years. There are other interesting patterns such as the gap between the the 50th percentile of the lower educated and the 10th percentile of the lower educated is very similar to the gap between the 90th percentile of the higher educated and the 50th percentile of the lower educated. In a similar vein, the gap between the 90th percentile of both high and low educated are very similar as well. We shouldn't allow this to cause a big surprise because the absolution position of each group in the 'ranking' of scores is probably very different, despite the gaps being very similar.
+
+Even if we take this to the continent level, we find that not that many patterns emerge. One slight exception is the Americas (mostly driven by South America, if we look at the previous plot). Taking a closer look it seems that most gaps have a negative slope, specially the 90th percentile from high educated and the 10th percentile of the low educated. However, because we're not including any confidence intervals we're not sure on how uncertain these estimates are.
+```{r}
+gap_df %>%
+  group_by(year, continent, diff) %>%
+  summarize(avg = mean(value, na.rm = T)) %>%
+  ggplot(aes(x = year, avg, group = diff, colour = diff)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~ continent) +
+  labs(x = "Year", y = "Average difference") +
+  scale_colour_discrete(name = "Gap groups", labels = gap_groups) +
+  theme_minimal()
+```
+
+```{r}
+
+gap_df %>%
+  filter(diff == "drich/spoor") %>%
+  split(.$year, drop = T) %>%
+  map(~ tidy(lmer(value ~ 1 + (1 | region), data = .x))) %>%
+  map(~ .x[grep("sd", .x$term), ]) %>%
+  enframe %>%
+  unnest(value) %>%
+  ggplot(aes(name, estimate, fill = term)) + geom_col(position = "dodge")
+
+```
+
+
+<!-- Do so multilevel exploration -->
+<!-- Adjust for family activities such as reading, etc -->
+<!-- Adjust for gender -->
+<!-- Calculate the gap as percentages. So the gap of this is 50% the gap of the other -->
+<!-- Add confidence intervals -->
+<!-- Take reardon's strategy for prediction in his appendix -->
