@@ -364,9 +364,13 @@
                AGE)
       
       message(paste(unique(.x$wave), "data ready"))
+
+
+      test_vars <- paste0("PV", seq_len(conf$parameters$PVreps), test)
+      .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
       
       # Calculate median math score of all PV's
-      .x$dv <- apply(.x[paste0("PV", seq_len(conf$parameters$PVreps), test)], 1, median, na.rm = T)
+      .x$dv <- apply(.x[test_vars], 1, median, na.rm = T)
       
       # Should I estimate the model separately by country?
       mod1 <- lm(dv ~ AGE,
