@@ -432,7 +432,6 @@
   
   # Graph the gap by using both the top and bottom instead of the absolute diff
   reduced_data %>%
-    # filter(country %in% countries) %>%
     ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
     geom_line() +
@@ -465,7 +464,7 @@
            lower = Mean - 1.96 * se_diff,
            upper = Mean + 1.96 * se_diff)
   
-  walk(countries, ~ {
+  map(countries, ~ {
     reduced %>%
     filter(!is.na(continent), !is.na(region), country == .x) %>%
     ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
