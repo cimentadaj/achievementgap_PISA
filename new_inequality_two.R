@@ -451,9 +451,7 @@
   countries <- c("Chile", "Austria", "Belgium", "Canada", "Czech Republic", "Denmark",
                  "Finland", "France", "Germany", "Italy", "Japan", "Netherlands", "Norway",
                  "Poland", "Spain", "Sweden", "United Kingdom", "United States")
-  
-  countries <- c("United States", "United Kingdom")
-  
+
   reduced_data %>%
     select(country, escs_dummy, Mean, wave) %>%
     spread(key = escs_dummy, value = Mean) %>%
@@ -474,6 +472,23 @@
     coord_cartesian(ylim = c(0, 4)) +
     facet_wrap(~ country) +
     ggtitle("math")
+  
+# Next steps:
+# Making country groups of the graphs showing that some countries are increasing, others are steady
+# While others are decreasing. Do this with a few countries, but end by showing all countries.
+
+# Continue by studying what's happening in those countries where it's increasing/decreasing
+# In the gap graph
+  
+# Continue by doing the multilevel models to see what explains what. Include
+# all indicators from the reardon/russian girl paper.
+  
+# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
+# Specially the 90/10
+
+# Calculate how big is the gap between reading and math
+  
+# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
   
   walk(countries, ~ {
     reduced %>%
