@@ -299,11 +299,11 @@
     
     quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
                                           weights = df_lower[[weights]],
-                                          probs = c(0.90)))
+                                          probs = c(0.10)))
     
     quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
                                     weights = df_upper[[weights]],
-                                    probs = c(0.10)))
+                                    probs = c(0.90)))
     
     if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
       return(c(NA, NA))
@@ -475,9 +475,9 @@
     # geom_smooth(aes(group = continent), colour = "blue", method = "lm") +
     coord_cartesian(ylim = c(0, 2.5)) +
     facet_wrap(~ country) +
-    ggtitle(paste0(.x, "_read"))
+    ggtitle(paste0(.x, "_math"))
     
-    ggsave(paste0(.x, "_read.png"), path = "./plots/")
+    ggsave(paste0(.x, "_math.png"), path = "./plots/")
   })
   
 
