@@ -299,11 +299,11 @@
     
     quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
                                           weights = df_lower[[weights]],
-                                          probs = c(0.90)))
+                                          probs = c(0.30)))
     
     quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
                                     weights = df_upper[[weights]],
-                                    probs = c(0.10)))
+                                    probs = c(0.70)))
     
     if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
       return(c(NA, NA))
@@ -312,7 +312,7 @@
     }
   }
   
-  pisa_all2$value <-
+  adapted_year_data <-
     map(pisa_all2$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
         # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
@@ -321,14 +321,13 @@
           mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
       } else {
         .x <-
-          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `2` = 1)))
+          mutate(.x, new_hisced = as.character(high_edu_broad))
       }
       .x
   })
   
   # Producing the plot to get the difference between the top 5% of the high educated
   # vs the bottom 5% of the low educated.
-  
   test_diff <- function(df, reliability, test) {
   
     map2(df, reliability, function(.x, .y) {
@@ -416,8 +415,8 @@
     })
 }
 
-  results_math <- test_diff(pisa_all2$value, reliability_pisa, "MATH")
-  # results_read <- test_diff(pisa_all2$value, reliability_pisa, "READ")
+  results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+  # results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
   # US is missing for reading
   
   reduced_data <-
@@ -432,6 +431,7 @@
   
   # Graph the gap by using both the top and bottom instead of the absolute diff
   reduced_data %>%
+    filter(country %in% c("United States")) %>%
     ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
     geom_line() +
@@ -443,7 +443,7 @@
     select(country, escs_dummy, wave, s.e.) %>%
     spread(escs_dummy, s.e.) %>%
     transmute(country, wave,
-              se_diff = sqrt(`1`^2 - `0`^2))
+              se_diff = sqrt(abs(`1`^2 - `0`^2)))
   
   # Calculate the different between the gap and together with it's joint s.e graph
   # the absolut difference.
@@ -452,8 +452,9 @@
                  "Finland", "France", "Germany", "Italy", "Japan", "Netherlands", "Norway",
                  "Poland", "Spain", "Sweden", "United Kingdom", "United States")
   
-  reduced <-
-    reduced_data %>%
+  countries <- c("United States", "United Kingdom")
+  
+  reduced_data %>%
     select(country, escs_dummy, Mean, wave) %>%
     spread(key = escs_dummy, value = Mean) %>%
     mutate(diff = `1` - `0`) %>%
@@ -462,7 +463,17 @@
     mutate(continent = countrycode(country, "country.name", "continent"),
            region = countrycode(country, "country.name", "region"),
            lower = Mean - 1.96 * se_diff,
-           upper = Mean + 1.96 * se_diff)
+           upper = Mean + 1.96 * se_diff) %>%
+    filter(!is.na(continent), !is.na(region), country %in% countries) %>%
+    ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+    geom_line() +
+    geom_point(size = 0.5) +
+    scale_colour_discrete(guide = F) +
+    # geom_smooth(aes(group = region), colour = "blue", method = "lm") +
+    coord_cartesian(ylim = c(0, 4)) +
+    facet_wrap(~ country) +
+    ggtitle("math")
   
   walk(countries, ~ {
     reduced %>%
