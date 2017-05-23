@@ -417,11 +417,11 @@
 }
 
   results_math <- test_diff(pisa_all2$value, reliability_pisa, "MATH")
-  results_read <- test_diff(pisa_all2$value, reliability_pisa, "READ")
+  # results_read <- test_diff(pisa_all2$value, reliability_pisa, "READ")
   # US is missing for reading
   
   reduced_data <-
-    map2(results_read, years, function(.x, .y) {
+    map2(results_math, years, function(.x, .y) {
       .x %>%
         mutate(wave = .y) %>%
         filter(!is.na(escs_dummy))
@@ -464,7 +464,7 @@
            lower = Mean - 1.96 * se_diff,
            upper = Mean + 1.96 * se_diff)
   
-  map(countries, ~ {
+  walk(countries, ~ {
     reduced %>%
     filter(!is.na(continent), !is.na(region), country == .x) %>%
     ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
@@ -480,30 +480,30 @@
     ggsave(paste0(.x, "_read.png"), path = "./plots/")
   })
   
-# Increase:  
-# Sweden - Increase in both tests
-# Austria - Increase for math, not sure for reading (2006 is also an outlier, just as in the U.S)
-# Canada - Slight increase in math and static in reading
-# Finland - Sharp increase in both tests but year 2006 needs to be checked out
-# France - Sharpe increase in both, although 2006 problem.
-# Japan - Increase in both tests, although no CI. Whats up?
-# Netherlands - Increase in both tests (2006 problem)
-# Spain - Slight increase in both
-  
-  
-# Decrease:
-# US - slight decrease in math and more pronounced decrease in reading (checkout year 2006, drastic outlier)
-# Chile - slight decrease in math also unstable for reading (2006 as well)
 
+# Increase:  
+# Sweden - steady increase in both tests
+# Austria - increase in math - slight increase in read
+# Finland - very sharp increase in both
+# France - very sharp increase in both
+# Netherlands - sharp increase in both
+
+# Decrease:
+# US - decrease in both tests
+# Chile - decrease in both tests
+  
 # No change:
-# UK - no change in both tests (slight decrease in reading)
-# Belgium - no change but checkout year 2006 for reading (Also belgium and US)
-# Czcheck Republic - unstable
-# Germany - No change although 2006 problem
-# Italy - no change
-# Denmark - slight increase in math but very unstable due to 2006
-# Norway - No change
-# Poland - very unstable
+# Canada - stable red - increase math
+# UK - slight decrease red - stable math
+# Belgium - no change
+# Czech republic - no change
+# Denmark no change
+# Germany - no change
+# ITaly - no change
+# Japan -  no change
+# Norway - no change
+# Poland - no change
+# Spain - no change
   
 # Exploratory section
 library(inequalityintsvy)
