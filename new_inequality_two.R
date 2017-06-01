@@ -490,6 +490,10 @@
   
 # Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
   
+# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
+
+# Should I add the parent's education in the lm model to see how trends change adjusted for that?
+  
   walk(countries, ~ {
     reduced %>%
     filter(!is.na(continent), !is.na(region), country == .x) %>%
