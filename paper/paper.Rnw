@@ -50,6 +50,8 @@
   library(lme4)
   library(modelr)
   
+  # source("./transform_data.R")
+
   # Conf for PISA_2015
   pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
                                          pvlabelsuff = "READ",
@@ -65,7 +67,7 @@
 
 @
 
-<<>>=
+<<loading_data/recoding, echo = F, cache = TRUE>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
   
@@ -101,4 +103,202 @@ reliability_pisa <-
   
 @
 
+<<escs_trend, echo = F, cache = TRUE>>=
+  # Rescaled trend ESCS data to merge.
+  # This only has data for seq(2000, 2012, 3) because
+  # PISA 2015 has the ESCS trend variable.
+  dir <- tempdir()
+  file_name <- "escs_trend.zip"
+  download.file("http://vs-web-fs-1.oecd.org/pisa/trend_escs_SPSS.zip",
+                destfile = file.path(dir, file_name))
+  unzip(file.path(dir, file_name), exdir = dir)
+  escs_trend <- map(file.path(dir, list.files(dir, pattern = ".sav")), haven::read_spss)
+  file.remove(file.path(dir, list.files(dir)))
+  
+  escs_trend <-
+    map(escs_trend, ~ {
+    mutate(.x, cnt = pisa_countrynames[cnt]) %>%
+    rename(country = cnt)
+  })
+
+@
+
+<<merge_escs_pisa, echo = F, cache = TRUE>>=
+   # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
+  # 2015) doesn't need to be merged so I exclude it with this vector
+  exclude <- -6
+  
+  # Loop in parallel to the PISA data, the ESCS data and the year vector (which is seq(2012, 2015, 3))
+  pisa_all2$value[exclude] <-
+    pmap(list(pisa_all2$value[exclude], escs_trend, years[exclude]), function(.x, .y, .z) {
+    
+    # The escs data needs to have the key variables the same class as the
+    # same data.
+    escs <-
+      .y %>% mutate(schoolid = as.numeric(schoolid),
+                    stidstd = as.numeric(stidstd))
+    
+    # .z is the corresponding year that will be created as a column
+    # And perform the same transformation of the key variables as in the ESCS data
+    data_trend <-
+      .x %>%
+        mutate(
+          year = .z,
+          schoolid = as.numeric(as.character(SCHOOLID)),
+          stidstd = as.numeric(as.character(STIDSTD))
+          ) %>%
+   left_join(escs,
+              by = c("country", "schoolid", "stidstd"))
+    
+    message(paste(unique(.x$wave), "done"))
+    
+    data_trend
+  })
+  
+  pisa_all2$value[[6]] <-
+    pisa_all2$value[[6]] %>%
+    rename(escs_trend = ESCS)
+@
+
+<<functions_for_modelling, echo = F, cache = TRUE>>=
+  
+# Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
+# for the top educated. If the quantiles can't be estimated, it returns two NA's instead
+quantile_missing <- function(df, weights) {
+    
+    df_lower <- filter(df, new_hisced == 1)
+    df_upper <- filter(df, new_hisced == 7)
+    
+    
+    quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
+                                          weights = df_lower[[weights]],
+                                          probs = c(0.30)))
+    
+    quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
+                                    weights = df_upper[[weights]],
+                                    probs = c(0.70)))
+    
+    if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
+      return(c(NA, NA))
+      } else {
+     return(c(quan_lower[1], quan_upper[1]))
+    }
+}
+  
+# Producing the plot to get the difference between the top 30% of the high educated
+# vs the bottom 30% of the low educated. This function loops through each dataset/country
+# and survey reliability and estimates the difference while also calculating the
+# joint standard error of the difference.
+  
+# It returns a dataframe for each survey with all countries and respective coefficients and
+# standard errors.
+test_diff <- function(df, reliability, test) {
+  
+    map2(df, reliability, function(.x, .y) {
+      
+      conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
+      
+      country_split <- split(.x, .x$country)
+      
+      country_list <- map(country_split, function(country) {
+        print(unique(country$country))
+        
+        # In some countries the quan can't be estimated because of very few obs.
+        # The function doesn't stop but returns two NA's.
+        quan <- quantile_missing(country, weights_var)
+        
+        # It's very important to create a variable that returns the number of observations of this dummy
+        # For each country. Possibly to weight by the number of observations.
+        country$escs_dummy <-
+          with(country, case_when(escs_trend >= quan[2] ~ 1,
+                                  escs_trend <= quan[1] ~ 0))
+        country
+      })
+      
+      .x <-
+        enframe(country_list) %>%
+        unnest(value)
+      
+      .x <-
+        .x %>%
+        select(wave, matches(paste0("^PV.*", test, "$")), escs_dummy,
+               country, one_of(weights_var),
+               AGE)
+      
+      message(paste(unique(.x$wave), "data ready"))
+
+
+      test_vars <- paste0("PV", seq_len(conf$parameters$PVreps), test)
+      .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
+      
+      # Calculate median math score of all PV's
+      .x$dv <- apply(.x[test_vars], 1, median, na.rm = T)
+      
+      # Should I estimate the model separately by country?
+      mod1 <- lm(dv ~ AGE,
+                 weights = .x[[weights_var]],
+                 data = .x,
+                 na.action = "na.exclude")
+      
+      # Take residuals of model and divide by rmse. Multiply that by
+      # 1 / sqrt(reliability of each survey), which is .y in the loop.
+      .x$adj_pvnum <- resid(mod1)/rmse(mod1, .x) * 1 / sqrt(.y)
+      
+      mod2 <-
+        lmer(adj_pvnum ~ escs_dummy + (1 + escs_dummy | country),
+             data = .x,
+             weights = .x[[weights_var]])
+      
+      # Take the country coefficients (absolute coefficients)
+      country_coef <-
+        coef(mod2)$country %>%
+        rownames_to_column() %>%
+        gather(escs_dummy, Mean, -rowname) %>%
+        mutate(escs_dummy = dplyr::recode(escs_dummy,
+                                          `(Intercept)` = "0",
+                                          `escs_dummy` = "1"))
+      
+      # Take the absolute country standard errors
+      se <-
+        se.coef(mod2)$country %>%
+        as.data.frame() %>%
+        rownames_to_column() %>%
+        gather(escs_dummy, s.e., -rowname) %>%
+        mutate(escs_dummy = dplyr::recode(escs_dummy,
+                                          `(Intercept)` = "0",
+                                          `escs_dummy` = "1"))
+      
+      results <-
+        inner_join(country_coef, se, by = c("rowname", "escs_dummy")) %>%
+        rename(country = rowname) %>%
+        arrange(country, escs_dummy)
+      
+      message(paste0(unique(.x$wave), " modeling done"))
+      results
+    })
+}
+@
+
+<<modelling, echo = F, cache = T>>=
+adapted_year_data <-
+    map(pisa_all2$value, ~ {
+      if (unique(.x$wave) == "pisa2000") {
+        # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
+        # is 7 and the bottom is 1
+        .x <- 
+          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
+      } else {
+        .x <-
+          mutate(.x, new_hisced = as.character(high_edu_broad))
+      }
+      .x
+})
+
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+# US is missing for reading
+
+
+@
 \end{document}
