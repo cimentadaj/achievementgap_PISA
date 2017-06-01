@@ -1,0 +1,104 @@
+\documentclass[11pt, a4paper]{article}
+\bibliographystyle{apalike}
+\pagestyle{headings}
+
+\usepackage{pdflscape}
+\usepackage{subcaption}
+\usepackage{graphics}
+\usepackage{graphicx}
+\usepackage[round, colon]{natbib}
+\usepackage[colorlinks]{hyperref}
+\AtBeginDocument{%
+  \hypersetup{
+    citecolor=blue,
+    linkcolor=blue,   
+    urlcolor=blue}}
+
+\title{First paper - Draft}
+\author{Jorge Cimentada}
+
+
+\begin{document}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{1em}
+\showboxdepth=5
+\showboxbreadth=5
+
+\maketitle
+
+\tableofcontents
+
+\section{Analysis}
+
+<<packages_conf, echo = F>>=
+  library(arm)
+  library(saves)
+  library(haven)
+  library(PISA2000lite)
+  library(PISA2003lite)
+  library(PISA2006lite)
+  library(PISA2009lite)
+  library(PISA2012lite)
+  library(intsvy)
+  library(cimentadaj) # For pisa_countrynames
+  library(countrycode) # For region variable
+  library(tidyverse)
+  library(car)
+  library(readr)
+  library(SAScii)
+  library(inequalityintsvy)
+  library(lme4)
+  library(modelr)
+  
+  # Conf for PISA_2015
+  pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
+                                         pvlabelsuff = "READ",
+                                         weightFinal = "W_FSTUWT",
+                                         weightBRR = "W_FSTURWT"),
+                        parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
+                                          percentiles = c(5, 10, 25, 75, 90, 95),
+                                          PVreps = 10,
+                                          BRRreps = 80,
+                                          weights = "BRR",
+                                          replication_scheme = 'pisa')
+  )
+
+@
+
+<<>>=
+pisa_all <- read_rds("./data/pisa_listcol.Rdata")
+pisa_all2 <- pisa_all
+  
+years <- seq(2000, 2015, 3)
+countries <- c("Germany", "United States", "Denmark", "Sweden", "United Kingdom",
+                 "Spain", "Italy", "Canada", "Australia")
+  
+db <- paste0("pisa", years)
+pisa_all2$value <- map2(pisa_all2$value, db, ~ { .x$wave <- .y; .x})
+pisa_all2$value[[1]]$CNT <- pisa_all2$value[[1]]$COUNTRY
+  
+pisa_all2$value <- map(pisa_all2$value, ~ {
+  .x$father_edu <- car::recode(as.numeric(.x$FISCED), "8:9 = NA")
+  .x$mother_edu <- car::recode(as.numeric(.x$MISCED), "8:9 = NA")
+  .x$high_edu_broad <- pmax(.x$father_edu, .x$mother_edu)
+  .x$country <- pisa_countrynames[as.character(.x$CNT)]
+  
+  if (any(unique(.x$wave) %in% c("pisa2012", "pisa2015"))) {
+    .x$father_edu <- .x$father_edu + 1
+    .x$mother_edu <- .x$mother_edu + 1
+    .x$high_edu_broad <- .x$high_edu_broad + 1
+  }
+  .x
+})
+  
+reliability_pisa <-
+  c("2000" = 0.81,
+    "2003" = 0.85,
+    "2006" = 0.78,
+    "2009" = 0.74,
+    "2012" = 0.82,
+    "2015" = 0.74) # 2015 imputed
+  
+@
+
+\end{document}
