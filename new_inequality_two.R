@@ -17,6 +17,8 @@
   library(lme4)
   library(modelr)
   
+  source("./transform_data.R")
+  
   # Conf for PISA_2015
   pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
                                          pvlabelsuff = "READ",
@@ -237,57 +239,57 @@
   #     results
   #   })
   
-  df_lower <-
-    pisa_all2$value[[1]] %>%
-    mutate(new_hisced = as.character(dplyr::recode(as.numeric(HISCED),
-                                                   `0` = 1))) %>%
-    filter(country == "United States", new_hisced == 1)
-  
-  df_upper <- 
-    pisa_all2$value[[6]] %>%
-    mutate(new_hisced = as.character(dplyr::recode(as.numeric(HISCED),
-                                                   `0` = 1))) %>%
-    filter(country == "United States", new_hisced == 6)
-  
-  qp_lower <- Hmisc::wtd.quantile(df_lower$hisei,
-                      weights = df_lower[["spftw0"]],
-                      probs = c(0.10))
-  
-  qp_upper <- Hmisc::wtd.quantile(df_upper$hisei,
-                                  weights = df_upper[["spftw0"]],
-                                  probs = c(0.95))
-  
-  df %>%
-    ggplot(aes(hisei, colour = as.character(new_hisced))) +
-    geom_freqpoly() +
-    geom_vline(xintercept = c(qp_lower, qp_upper)) +
-    scale_x_continuous(breaks = seq(min(df$hisei, na.rm = T),
-                                    max(df$hisei, na.rm = T), 2))
-  
-  df %>%
-    mutate(really_high_really_low = case_when(.$hisei >= qp_upper[1] ~ "1",
-                                              .$hisei <= qp_lower[1] ~ "0")) %>%
-    count(country, really_high_really_low) %>%
-    filter(!is.na(really_high_really_low)) %>%
-    arrange(n)
-  
-  qp <- Hmisc::wtd.quantile(df$escs_trend,
-                            weights = df[["spftw0"]],
-                            probs = c(0.05, 0.95))
-  
-  df %>%
-    ggplot(aes(escs_trend, colour = new_hisced)) +
-    geom_freqpoly() +
-    geom_vline(xintercept = qp) +
-    scale_x_continuous(breaks = seq(min(pisa_all2$value[[6]]$escs_trend, na.rm = T),
-                                    max(pisa_all2$value[[6]]$escs_trend, na.rm = T), 2))
-  
-  df %>%
-    mutate(really_high_really_low = case_when(.$escs_trend >= qp[2] ~ "1",
-                                              .$escs_trend <= qp[1] ~ "0")) %>%
-    count(country, really_high_really_low) %>%
-    filter(!is.na(really_high_really_low)) %>%
-    arrange(n)
+  # df_lower <-
+  #   pisa_all2$value[[1]] %>%
+  #   mutate(new_hisced = as.character(dplyr::recode(as.numeric(HISCED),
+  #                                                  `0` = 1))) %>%
+  #   filter(country == "United States", new_hisced == 1)
+  # 
+  # df_upper <- 
+  #   pisa_all2$value[[6]] %>%
+  #   mutate(new_hisced = as.character(dplyr::recode(as.numeric(HISCED),
+  #                                                  `0` = 1))) %>%
+  #   filter(country == "United States", new_hisced == 6)
+  # 
+  # qp_lower <- Hmisc::wtd.quantile(df_lower$hisei,
+  #                     weights = df_lower[["spftw0"]],
+  #                     probs = c(0.10))
+  # 
+  # qp_upper <- Hmisc::wtd.quantile(df_upper$hisei,
+  #                                 weights = df_upper[["spftw0"]],
+  #                                 probs = c(0.95))
+  # 
+  # df %>%
+  #   ggplot(aes(hisei, colour = as.character(new_hisced))) +
+  #   geom_freqpoly() +
+  #   geom_vline(xintercept = c(qp_lower, qp_upper)) +
+  #   scale_x_continuous(breaks = seq(min(df$hisei, na.rm = T),
+  #                                   max(df$hisei, na.rm = T), 2))
+  # 
+  # df %>%
+  #   mutate(really_high_really_low = case_when(.$hisei >= qp_upper[1] ~ "1",
+  #                                             .$hisei <= qp_lower[1] ~ "0")) %>%
+  #   count(country, really_high_really_low) %>%
+  #   filter(!is.na(really_high_really_low)) %>%
+  #   arrange(n)
+  # 
+  # qp <- Hmisc::wtd.quantile(df$escs_trend,
+  #                           weights = df[["spftw0"]],
+  #                           probs = c(0.05, 0.95))
+  # 
+  # df %>%
+  #   ggplot(aes(escs_trend, colour = new_hisced)) +
+  #   geom_freqpoly() +
+  #   geom_vline(xintercept = qp) +
+  #   scale_x_continuous(breaks = seq(min(pisa_all2$value[[6]]$escs_trend, na.rm = T),
+  #                                   max(pisa_all2$value[[6]]$escs_trend, na.rm = T), 2))
+  # 
+  # df %>%
+  #   mutate(really_high_really_low = case_when(.$escs_trend >= qp[2] ~ "1",
+  #                                             .$escs_trend <= qp[1] ~ "0")) %>%
+  #   count(country, really_high_really_low) %>%
+  #   filter(!is.na(really_high_really_low)) %>%
+  #   arrange(n)
   
   # Function calculates the bottom 5th quantile for the bottom educated and the 95th quantile
   # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
@@ -472,8 +474,9 @@
     coord_cartesian(ylim = c(0, 4)) +
     facet_wrap(~ country) +
     ggtitle("math")
-  
+
 # Next steps:
+
 # Making country groups of the graphs showing that some countries are increasing, others are steady
 # While others are decreasing. Do this with a few countries, but end by showing all countries.
 
