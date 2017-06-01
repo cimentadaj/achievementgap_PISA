@@ -160,7 +160,7 @@ reliability_pisa <-
     rename(escs_trend = ESCS)
 @
 
-<<functions_for_modelling, echo = F, cache = TRUE>>=
+<<functions_for_modelling, echo = F>>=
   
 # Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
@@ -187,8 +187,8 @@ quantile_missing <- function(df, weights) {
   
 # Producing the plot to get the difference between the top 30% of the high educated
 # vs the bottom 30% of the low educated. This function loops through each dataset/country
-# and survey reliability and estimates the difference while also calculating the
-# joint standard error of the difference.
+# and survey reliability and estimates the difference while also extracting the s.e. of each
+# difference.
   
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
@@ -298,7 +298,123 @@ adapted_year_data <-
 results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
 results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
 # US is missing for reading
+@
 
+<<ci_for_difference, echo = F>>=
+reduced_data <-
+    map2(results_math, years, function(.x, .y) {
+      .x %>%
+        mutate(wave = .y) %>%
+        filter(!is.na(escs_dummy))
+    }) %>%
+    bind_rows() %>%
+    mutate(lower = Mean - 1.96 * s.e.,
+           upper = Mean + 1.96 * s.e.)
+@
+
+<<graphin differences>>=
+  reduced_data %>%
+    filter(country %in% c("United States")) %>%
+    ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+    geom_line() +
+    facet_wrap(~ country)
+@
+
+<<>>=
+# Calculate the joint standard error of the different
+  se_data <-
+    reduced_data %>%
+    select(country, escs_dummy, wave, s.e.) %>%
+    spread(escs_dummy, s.e.) %>%
+    transmute(country, wave,
+              se_diff = sqrt(abs(`1`^2 - `0`^2)))
 
 @
+
+<<>>=
+
+# Calculate the different between the gap and together with it's joint s.e graph
+# the absolut difference.
+  
+countries <- c("Chile", "Austria", "Belgium", "Canada", "Czech Republic", "Denmark",
+                 "Finland", "France", "Germany", "Italy", "Japan", "Netherlands", "Norway",
+                 "Poland", "Spain", "Sweden", "United Kingdom", "United States")
+
+reduced_data %>%
+    select(country, escs_dummy, Mean, wave) %>%
+    spread(key = escs_dummy, value = Mean) %>%
+    mutate(diff = `1` - `0`) %>%
+    gather(escs_dummy, Mean, -country, -wave, -`1`, -`0`) %>%
+    left_join(se_data) %>%
+    mutate(continent = countrycode(country, "country.name", "continent"),
+           region = countrycode(country, "country.name", "region"),
+           lower = Mean - 1.96 * se_diff,
+           upper = Mean + 1.96 * se_diff) %>%
+    filter(!is.na(continent), !is.na(region), country %in% countries) %>%
+    ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+    geom_line() +
+    geom_point(size = 0.5) +
+    scale_colour_discrete(guide = F) +
+    # geom_smooth(aes(group = region), colour = "blue", method = "lm") +
+    coord_cartesian(ylim = c(0, 4)) +
+    facet_wrap(~ country) +
+    ggtitle("math")
+
+# Increase:  
+# Sweden - steady increase in both tests
+# Austria - increase in math - slight increase in read
+# Finland - very sharp increase in both
+# France - very sharp increase in both
+# Netherlands - sharp increase in both
+
+# Decrease:
+# US - decrease in both tests
+# Chile - decrease in both tests
+  
+# No change:
+# Canada - stable red - increase math
+# UK - slight decrease red - stable math
+# Belgium - no change
+# Czech republic - no change
+# Denmark no change
+# Germany - no change
+# ITaly - no change
+# Japan -  no change
+# Norway - no change
+# Poland - no change
+# Spain - no change
+
+@
+
+<<>>=
+# Next steps:
+
+# Show country patterns with reading and math together into one graph
+
+# Making country groups of the graphs showing that some countries are increasing, others are steady
+# While others are decreasing. Do this with a few countries, but end by showing all countries.
+
+# Continue by studying what's happening in those countries where it's increasing/decreasing
+# In the gap graph
+  
+# Continue by doing the multilevel models to see what explains what. Include
+# all indicators from the reardon/russian girl paper.
+  
+# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
+# Specially the 90/10
+
+# Calculate how big is the gap between reading and math
+  
+# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
+  
+# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
+
+# Should I add the parent's education in the lm model to see how trends change adjusted for that?
+ 
+@
+
+
+Try one!
 \end{document}
