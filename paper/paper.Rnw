@@ -79,7 +79,7 @@ opts_chunk$set(echo = F,
 
 \section{Analysis}
 
-<<loading_data-recoding, cache = TRUE>>=
+<<loading_data-recoding>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
 
@@ -292,24 +292,113 @@ test_diff <- function(df, reliability, test) {
 }
 @
 
-<<modeling, cache = T>>=
-adapted_year_data <-
-    map(pisa_all2$value, ~ {
-      if (unique(.x$wave) == "pisa2000") {
-        # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
-        # is 7 and the bottom is 1
-        .x <- 
-          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
-      } else {
-        .x <-
-          mutate(.x, new_hisced = as.character(high_edu_broad))
-      }
+<<modeling>>=
+# adapted_year_data <-
+#     map(pisa_all2$value, ~ {
+#       if (unique(.x$wave) == "pisa2000") {
+#         # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
+#         # is 7 and the bottom is 1
+#         .x <- 
+#           mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
+#       } else {
+#         .x <-
+#           mutate(.x, new_hisced = as.character(high_edu_broad))
+#       }
+#       .x
+# })
+# 
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+# US is missing for reading
+
+# Cache is not working properly for the code above, so I just load the saved cached file
+load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
+
+@
+
+<<>>=
+i <- 3
+vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
+
+while (i < 7) {
+  vals <- intersect(vals, unique(adapted_year_data[[i]]$country))
+  i <- i + 1
+}
+
+subset_cnts <- map(adapted_year_data, ~ filter(.x, country %in% vals))
+
+cnt_to_bind <-
+  map(subset_cnts, function(df) {
+      
+      print(unique(df$wave))
+      conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
+      
+      split_df <- split(df, df$country)
+      
+      split_df_two <-
+        map(split_df, ~ {
+      # In some countries the quan can't be estimated because of very few obs.
+      # The function doesn't stop but returns two NA's.
+      quan <- quantile_missing(.x, weights_var)
+      
+      # It's very important to create a variable that returns the number of observations of this dummy
+      # For each country. Possibly to weight by the number of observations.
+      .x$escs_dummy <-
+        with(.x, case_when(escs_trend >= quan[2] ~ 1,
+                                  escs_trend <= quan[1] ~ 0))
       .x
+    })
+  unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
+  unsplit_df
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
-# US is missing for reading
+selected_cnt <- map(cnt_to_bind, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
+
+full_cnt <- 
+  selected_cnt %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate(year = as.character(dplyr::recode(.$name,
+                `1` = 2000,
+                `2` = 2003,
+                `3` = 2006,
+                `4` = 2009,
+                `5` = 2012,
+                `6` = 2015)),
+         escs_dummy = as.character(escs_dummy))
+
+sample_size <-
+  full_cnt %>%
+  count(year, country)
+
+high_low_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced) %>%
+  filter(new_hisced %in% c(1, 7)) %>%
+  spread(new_hisced, n) %>%
+  rename(low_isced = `1`, high_isced = `7`)
+
+ses_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced, escs_dummy) %>%
+  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
+  ungroup() %>%
+  select(-new_hisced) %>%
+  spread(escs_dummy, n) %>%
+  rename(low_low_isced = `0`, high__high_isced = `1`)
+
+left_join(sample_size, high_low_sample) %>%
+  left_join(ses_sample)
+
+@
+
+<<eval = F>>=
+# In this chunk you can join reading and math datasets
+descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
+descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
+
+map2(results_math, results_read, inner_join, by = "country")
 @
 
 <<ci_for_difference>>=
