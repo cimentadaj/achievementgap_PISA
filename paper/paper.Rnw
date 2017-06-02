@@ -178,13 +178,13 @@ reliability_pisa <-
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
 quantile_missing <- function(df, weights) {
     
-    df_lower <- filter(df, new_hisced == 1)
+    df_lower <- filter(df, new_hisced %in% c(1, 2))
     df_upper <- filter(df, new_hisced == 7)
     
     
     quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
                                           weights = df_lower[[weights]],
-                                          probs = c(0.30)))
+                                          probs = c(0.50)))
     
     quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
                                     weights = df_upper[[weights]],
@@ -388,8 +388,9 @@ ses_sample <-
   spread(escs_dummy, n) %>%
   rename(low_low_isced = `0`, high__high_isced = `1`)
 
-left_join(sample_size, high_low_sample) %>%
-  left_join(ses_sample)
+m <- left_join(sample_size, high_low_sample) %>%
+  left_join(ses_sample) %>%
+  arrange(country, year)
 
 @
 
