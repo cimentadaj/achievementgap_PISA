@@ -26,11 +26,19 @@
 
 \maketitle
 
-\tableofcontents
+<<working directory, echo = F>>=
+opts_knit$set(root.dir = '..')
 
-\section{Analysis}
+opts_chunk$set(echo = F,
+               message = F,
+               warning = F,
+               include = F,
+               cache.lazy = F,
+               results = 'asis')
+@
 
 <<packages_conf, echo = F>>=
+  library(knitr)
   library(arm)
   library(saves)
   library(haven)
@@ -42,13 +50,13 @@
   library(intsvy)
   library(cimentadaj) # For pisa_countrynames
   library(countrycode) # For region variable
-  library(tidyverse)
   library(car)
   library(readr)
   library(SAScii)
   library(inequalityintsvy)
   library(lme4)
   library(modelr)
+  library(tidyverse)
   
   # source("./transform_data.R")
 
@@ -57,7 +65,7 @@
                                          pvlabelsuff = "READ",
                                          weightFinal = "W_FSTUWT",
                                          weightBRR = "W_FSTURWT"),
-                        parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
+          parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
                                           percentiles = c(5, 10, 25, 75, 90, 95),
                                           PVreps = 10,
                                           BRRreps = 80,
@@ -67,10 +75,14 @@
 
 @
 
-<<loading_data/recoding, echo = F, cache = TRUE>>=
+\tableofcontents
+
+\section{Analysis}
+
+<<loading_data-recoding, cache = TRUE>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
-  
+
 years <- seq(2000, 2015, 3)
 countries <- c("Germany", "United States", "Denmark", "Sweden", "United Kingdom",
                  "Spain", "Italy", "Canada", "Australia")
@@ -100,10 +112,10 @@ reliability_pisa <-
     "2009" = 0.74,
     "2012" = 0.82,
     "2015" = 0.74) # 2015 imputed
-  
+
 @
 
-<<escs_trend, echo = F, cache = TRUE>>=
+<<escs_trend, cache = TRUE>>=
   # Rescaled trend ESCS data to merge.
   # This only has data for seq(2000, 2012, 3) because
   # PISA 2015 has the ESCS trend variable.
@@ -123,7 +135,7 @@ reliability_pisa <-
 
 @
 
-<<merge_escs_pisa, echo = F, cache = TRUE>>=
+<<merge_escs_pisa, cache = TRUE>>=
    # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
   # 2015) doesn't need to be merged so I exclude it with this vector
   exclude <- -6
@@ -160,7 +172,7 @@ reliability_pisa <-
     rename(escs_trend = ESCS)
 @
 
-<<functions_for_modelling, echo = F>>=
+<<functions_for_modelling>>=
   
 # Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
@@ -280,7 +292,7 @@ test_diff <- function(df, reliability, test) {
 }
 @
 
-<<modelling, echo = F, cache = T>>=
+<<modeling, cache = T>>=
 adapted_year_data <-
     map(pisa_all2$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
@@ -300,7 +312,7 @@ results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
 # US is missing for reading
 @
 
-<<ci_for_difference, echo = F>>=
+<<ci_for_difference>>=
 reduced_data <-
     map2(results_math, years, function(.x, .y) {
       .x %>%
@@ -312,7 +324,7 @@ reduced_data <-
            upper = Mean + 1.96 * s.e.)
 @
 
-<<graphin differences>>=
+<<graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
   reduced_data %>%
     filter(country %in% c("United States")) %>%
     ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
@@ -332,7 +344,7 @@ reduced_data <-
 
 @
 
-<<>>=
+<<include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 
 # Calculate the different between the gap and together with it's joint s.e graph
 # the absolut difference.
@@ -413,8 +425,25 @@ reduced_data %>%
 
 # Should I add the parent's education in the lm model to see how trends change adjusted for that?
  
+# The gap between the top 90th and the 50th, did it grow?
+# The gap between the top 50th and the 10th, did it grow?
+
+# A weak welfare system, together with income inequality, what's their pattern?
+# What if we put the school differentiation/tracking aspect in? Are there country groups based on these
+# patterns.
+
+# Show that within top and bottom educated categories, there is reasonable variation of SES index (to justify that your approach of suing the top and bottom percentiles within each category is the right approach)
+
+# In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
+
 @
 
+Recent research on educational inequality has found that differences in test peformance between High-SES and Low-SES kids has been growing quickly over the years. The vast literature on educational inequality has mainly concentrated on the United States (reardon here). First, because it is the only country where cognitive testing is very widespread across surveys. And secondly, this trend has allowed to have testing records as early as 1940 (check reardon) until present day. Using this information, Reardon (2011) is the first to investigate the evolution of the cognitive gap and the results are very surprising. Not only has the cognitive gap between the 90th income percentile and the 10th income percentile grown over time, but it has grown faster and to be wider than the highly contested white-black gap (cite study of white-black gap).
 
-Try one!
+The widening of the achievement gap has been happening in parallel to the growth of income inequality. Although very suggestive, it is hard to link both things causally. The downside of this research study is that it is mainly US-based, and not a lot of evidence is available in an international context. To the best of my knowledge, the only attempt to take this to an international context is the work by Chmielewski and Reardon (2016). They find that there is considerable variation in the achievement gap between top and bottom earning families. However, their design is quite different from the one from Reardon (2011). Reardon (2011) takes studies in the U.S starting from the 1940's until 2015 \footnote{Each study is independent of each other meaning that the it might've been given to 6 year olds as well as to 12 year olds. Although the author adjusts for age, the trends can't be generalized to age-specific, but rather in overall terms.} and makes them comparable across time. That is, he builds a trend of achievement gap. Chmielewski and Reardon (2016) use the international surveys PISA and PIRLS to compare the achievement gap across countries. Unfortunately, very few countries can be compared across time in PISA.
+
+This paper introduces one novelty in the literature which is to evaluate the evolution of the High/Low SES achievement gap in the past 15 years for all PISA participant countries. This is different from previous work because it concentrates solely on 15 year old children, and it attempts to capture the evolution of the achievement gap for each country. 
+
+Do we need to distinguish between age-group achievement gaps?
+
 \end{document}
