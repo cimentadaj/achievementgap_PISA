@@ -7,7 +7,7 @@ library(tidyverse)
 library(car)
 library(readr)
 
-# source("./transform_data.R")
+source("./transform_data.R")
 
 # For PISA_2015
 pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
