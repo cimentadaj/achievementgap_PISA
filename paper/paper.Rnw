@@ -178,7 +178,7 @@ reliability_pisa <-
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
 quantile_missing <- function(df, weights) {
     
-    df_lower <- filter(df, new_hisced %in% c(1, 2))
+    df_lower <- filter(df, new_hisced %in% 1)
     df_upper <- filter(df, new_hisced == 7)
     
     
@@ -293,42 +293,54 @@ test_diff <- function(df, reliability, test) {
 @
 
 <<modeling>>=
-# adapted_year_data <-
-#     map(pisa_all2$value, ~ {
-#       if (unique(.x$wave) == "pisa2000") {
-#         # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
-#         # is 7 and the bottom is 1
-#         .x <- 
-#           mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
-#       } else {
-#         .x <-
-#           mutate(.x, new_hisced = as.character(high_edu_broad))
-#       }
-#       .x
-# })
-# 
-# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+adapted_year_data <-
+    map(pisa_all2$value, ~ {
+      if (unique(.x$wave) == "pisa2000") {
+        # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
+        # is 7 and the bottom is 1
+        .x <-
+          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
+      } else {
+        .x <-
+          mutate(.x, new_hisced = as.character(high_edu_broad))
+      }
+      .x
+})
+
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
 # results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
-load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
+# load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
 
 @
 
 <<>>=
-i <- 3
-vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
+vals <- c("Australia",
+          "Germany",
+          "Denmark",
+          "Spain",
+          "France",
+          "Italy",
+          "Netherlands",
+          "Sweden",
+          "United States")
+# i <- 3
+# vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
 
-while (i < 7) {
-  vals <- intersect(vals, unique(adapted_year_data[[i]]$country))
-  i <- i + 1
-}
+# while (i < 7) {
+#   vals <- intersect(vals, unique(adapted_year_data[[i]]$country))
+#   i <- i + 1
+# }
 
-subset_cnts <- map(adapted_year_data, ~ filter(.x, country %in% vals))
+sample_size_calc <- function(df, selected = F, cnts) {
+
+if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
+
 
 cnt_to_bind <-
-  map(subset_cnts, function(df) {
+  map(df, function(df) {
       
       print(unique(df$wave))
       conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
@@ -388,9 +400,64 @@ ses_sample <-
   spread(escs_dummy, n) %>%
   rename(low_low_isced = `0`, high__high_isced = `1`)
 
-m <- left_join(sample_size, high_low_sample) %>%
+selected_cnts <-
+  left_join(sample_size, high_low_sample) %>%
   left_join(ses_sample) %>%
-  arrange(country, year)
+  arrange(year, country)
+
+selected_cnts
+}
+
+selected_cnts <- sample_size_calc(adapted_year_data, vals)  
+xtable::xtable(selected_cnts)
+@
+
+<<>>=
+all_cnts <- sample_size_calc(adapted_year_data)
+@
+
+
+
+<<>>=
+selected_cnt <- map(adapted_year_data, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
+
+full_cnt <- 
+  selected_cnt %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate(year = as.character(dplyr::recode(.$name,
+                `1` = 2000,
+                `2` = 2003,
+                `3` = 2006,
+                `4` = 2009,
+                `5` = 2012,
+                `6` = 2015)),
+         escs_dummy = as.character(escs_dummy))
+
+sample_size <-
+  full_cnt %>%
+  count(year, country)
+
+high_low_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced) %>%
+  filter(new_hisced %in% c(1, 7)) %>%
+  spread(new_hisced, n) %>%
+  rename(low_isced = `1`, high_isced = `7`)
+
+ses_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced, escs_dummy) %>%
+  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
+  ungroup() %>%
+  select(-new_hisced) %>%
+  spread(escs_dummy, n) %>%
+  rename(low_low_isced = `0`, high__high_isced = `1`)
+
+selected_cnts <-
+  left_join(sample_size, high_low_sample) %>%
+  left_join(ses_sample) %>%
+  arrange(year, country)
 
 @
 
@@ -415,8 +482,8 @@ reduced_data <-
 @
 
 <<graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
-  reduced_data %>%
-    filter(country %in% c("United States")) %>%
+reduced_data %>%
+    filter(country %in% c("United Kingdom")) %>%
     ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
     geom_line() +
@@ -453,7 +520,7 @@ reduced_data %>%
            region = countrycode(country, "country.name", "region"),
            lower = Mean - 1.96 * se_diff,
            upper = Mean + 1.96 * se_diff) %>%
-    filter(!is.na(continent), !is.na(region), country %in% countries) %>%
+    filter(!is.na(continent), !is.na(region), country %in% vals) %>%
     ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
     geom_line() +
