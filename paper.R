@@ -387,7 +387,8 @@ countries_subset <- c("Australia",
           "Italy",
           "Netherlands",
           "Sweden",
-          "United States")
+          "United States",
+          "United Kingdom")
 # i <- 3
 # vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
 
@@ -604,26 +605,62 @@ se_data <- left_join(math_se_data, read_se_data)
 # Calculate the different between the gap and together with it's joint s.e graph
 # the absolut difference.
 
-reduced_data %>%
-    select(country, escs_dummy, Mean, wave) %>%
-    spread(key = escs_dummy, value = Mean) %>%
-    mutate(diff = `1` - `0`) %>%
-    gather(escs_dummy, Mean, -country, -wave, -`1`, -`0`) %>%
-    left_join(se_data) %>%
-    mutate(continent = countrycode(country, "country.name", "continent"),
-           region = countrycode(country, "country.name", "region"),
-           lower = Mean - 1.96 * se_diff,
-           upper = Mean + 1.96 * se_diff) %>%
-    filter(!is.na(continent), !is.na(region), country %in% vals) %>%
-    ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
+math_diff <-
+  reduced_data %>%
+  select(wave, country, escs_dummy, mean_math) %>%
+  spread(escs_dummy, mean_math) %>%
+  transmute(wave, country, diff_math = `1` - `0`)
+
+read_diff <-
+  reduced_data %>%
+  select(wave, country, escs_dummy, mean_read) %>%
+  spread(escs_dummy, mean_read) %>%
+  transmute(wave, country, diff_read = `1` - `0`)
+
+data_summaries <-
+  math_diff %>%
+  left_join(read_diff) %>%
+  left_join(se_data) %>%
+  transmute(wave, country, diff_math, diff_read,
+           lower_math = diff_math - 1.96 * se_diff_math,
+           lower_read = diff_read - 1.96 * se_diff_read,
+           upper_math = diff_math + 1.96 * se_diff_math,
+           upper_read = diff_read + 1.96 * se_diff_read)
+
+differences <-
+  data_summaries %>%
+  select(wave, country, diff_math, diff_read) %>%
+  gather(test, difference, starts_with("diff")) %>%
+  mutate(type_test = ifelse(.$test == "diff_math", "math", "read"))
+
+
+bounds_lower <-
+  data_summaries %>%
+  select(wave, country, contains("lower")) %>%
+  gather(lower_bound, lower, lower_math, lower_read) %>%
+  mutate(type_test = ifelse(grepl("math", .$lower_bound), "math", "read"))
+
+bounds_upper <-
+  data_summaries %>%
+  select(wave, country, contains("upper")) %>%
+  gather(upper_bound, upper, upper_math, upper_read) %>%
+  mutate(type_test = ifelse(grepl("math", .$upper_bound), "math", "read"))
+
+complete_data <-
+  left_join(differences, bounds_lower) %>%
+  left_join(bounds_upper)
+
+
+complete_data %>%
+  mutate(continent = countrycode(country, "country.name", "continent"),
+           region = countrycode(country, "country.name", "region")) %>%
+    filter(!is.na(continent), !is.na(region), country %in% countries_subset) %>%
+    ggplot(aes(as.factor(wave), difference, group = test, colour = test)) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
     geom_line() +
     geom_point(size = 0.5) +
-    scale_colour_discrete(guide = F) +
-    # geom_smooth(aes(group = region), colour = "blue", method = "lm") +
     coord_cartesian(ylim = c(0, 4)) +
-    facet_wrap(~ country) +
-    ggtitle("math")
+    facet_wrap(~ country)
 
 # Increase:  
 # Sweden - steady increase in both tests
