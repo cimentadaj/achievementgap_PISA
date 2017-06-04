@@ -1,0 +1,648 @@
+## ----working directory, echo = F-----------------------------------------
+opts_knit$set(root.dir = '..')
+
+opts_chunk$set(echo = F,
+               message = F,
+               warning = F,
+               include = F,
+               cache.lazy = F,
+               results = 'asis')
+
+## ----packages_conf, echo = F---------------------------------------------
+  library(knitr)
+  library(arm)
+  library(saves)
+  library(haven)
+  library(PISA2000lite)
+  library(PISA2003lite)
+  library(PISA2006lite)
+  library(PISA2009lite)
+  library(PISA2012lite)
+  library(intsvy)
+  library(cimentadaj) # For pisa_countrynames
+  library(countrycode) # For region variable
+  library(car)
+  library(readr)
+  library(SAScii)
+  library(inequalityintsvy)
+  library(lme4)
+  library(modelr)
+  library(tidyverse)
+  
+  # source("./transform_data.R")
+
+  # Conf for PISA_2015
+  pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
+                                         pvlabelsuff = "READ",
+                                         weightFinal = "W_FSTUWT",
+                                         weightBRR = "W_FSTURWT"),
+          parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
+                                          percentiles = c(5, 10, 25, 75, 90, 95),
+                                          PVreps = 10,
+                                          BRRreps = 80,
+                                          weights = "BRR",
+                                          replication_scheme = 'pisa')
+  )
+
+
+## ----loading_data-recoding-----------------------------------------------
+pisa_all <- read_rds("./data/pisa_listcol.Rdata")
+pisa_all2 <- pisa_all
+
+years <- seq(2000, 2015, 3)
+countries <- c("Germany", "United States", "Denmark", "Sweden", "United Kingdom",
+                 "Spain", "Italy", "Canada", "Australia")
+  
+db <- paste0("pisa", years)
+pisa_all2$value <- map2(pisa_all2$value, db, ~ { .x$wave <- .y; .x})
+pisa_all2$value[[1]]$CNT <- pisa_all2$value[[1]]$COUNTRY
+  
+pisa_all2$value <- map(pisa_all2$value, ~ {
+  
+# 2000 to 2015
+# The coding is from 0 to 6, where 0 is no schooling and 6 is
+# BA or above.
+
+# When turning 0:6 to numeric, it becomes 1:7 that's why
+# I recode 8:9 to NA. This, however, didn't work for last two surveys
+  
+  .x$father_edu <- car::recode(as.numeric(.x$FISCED), "8:9 = NA")
+  .x$mother_edu <- car::recode(as.numeric(.x$MISCED), "8:9 = NA")
+  .x$high_edu_broad <- pmax(.x$father_edu, .x$mother_edu)
+  .x$country <- pisa_countrynames[as.character(.x$CNT)]
+  
+  if (any(unique(.x$wave) %in% c("pisa2012", "pisa2015"))) {
+    # These two surveys were from 0:6 so I had to add + 1
+    # so that it equals 1:7 as all other surveys.
+    .x$father_edu <- .x$father_edu + 1
+    .x$mother_edu <- .x$mother_edu + 1
+    .x$high_edu_broad <- .x$high_edu_broad + 1
+  }
+  .x
+})
+  
+reliability_pisa <-
+  c("2000" = 0.81,
+    "2003" = 0.85,
+    "2006" = 0.78,
+    "2009" = 0.74,
+    "2012" = 0.82,
+    "2015" = 0.74) # 2015 imputed
+
+
+## ----escs_trend, cache = TRUE--------------------------------------------
+  # Rescaled trend ESCS data to merge.
+  # This only has data for seq(2000, 2012, 3) because
+  # PISA 2015 has the ESCS trend variable.
+  dir <- tempdir()
+  file_name <- "escs_trend.zip"
+  download.file("http://vs-web-fs-1.oecd.org/pisa/trend_escs_SPSS.zip",
+                destfile = file.path(dir, file_name))
+  unzip(file.path(dir, file_name), exdir = dir)
+  escs_trend <- map(file.path(dir, list.files(dir, pattern = ".sav")), haven::read_spss)
+  file.remove(file.path(dir, list.files(dir)))
+  
+  escs_trend <-
+    map(escs_trend, ~ {
+    mutate(.x, cnt = pisa_countrynames[cnt]) %>%
+    rename(country = cnt)
+  })
+
+
+## ----merge_escs_pisa, cache = TRUE---------------------------------------
+   # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
+  # 2015) doesn't need to be merged so I exclude it with this vector
+  exclude <- -6
+  
+  # Loop in parallel to the PISA data, the ESCS data and the year vector (which is seq(2012, 2015, 3))
+  pisa_all2$value[exclude] <-
+    pmap(list(pisa_all2$value[exclude], escs_trend, years[exclude]), function(.x, .y, .z) {
+    
+    # The escs data needs to have the key variables the same class as the
+    # same data.
+    escs <-
+      .y %>% mutate(schoolid = as.numeric(schoolid),
+                    stidstd = as.numeric(stidstd))
+    
+    # .z is the corresponding year that will be created as a column
+    # And perform the same transformation of the key variables as in the ESCS data
+    data_trend <-
+      .x %>%
+        mutate(
+          year = .z,
+          schoolid = as.numeric(as.character(SCHOOLID)),
+          stidstd = as.numeric(as.character(STIDSTD))
+          ) %>%
+   left_join(escs,
+              by = c("country", "schoolid", "stidstd"))
+    
+    message(paste(unique(.x$wave), "done"))
+    
+    data_trend
+  })
+  
+  pisa_all2$value[[6]] <-
+    pisa_all2$value[[6]] %>%
+    rename(escs_trend = ESCS)
+
+## ----functions_for_modelling---------------------------------------------
+
+# Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
+# for the top educated. If the quantiles can't be estimated, it returns two NA's instead
+quantile_missing <- function(df, weights) {
+    
+    df_lower <- filter(df, new_hisced == 1)
+    df_upper <- filter(df, new_hisced == 7)
+    
+    
+    quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
+                                          weights = df_lower[[weights]],
+                                          probs = c(0.50)))
+    
+    quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
+                                    weights = df_upper[[weights]],
+                                    probs = c(0.70)))
+    
+    if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
+      return(c(NA, NA))
+      } else {
+     return(c(quan_lower[1], quan_upper[1]))
+    }
+}
+  
+# Producing the plot to get the difference between the top 30% of the high educated
+# vs the bottom 30% of the low educated. This function loops through each dataset/country
+# and survey reliability and estimates the difference while also extracting the s.e. of each
+# difference.
+  
+# It returns a dataframe for each survey with all countries and respective coefficients and
+# standard errors.
+test_diff <- function(df, reliability, test) {
+  
+    map2(df, reliability, function(.x, .y) {
+      
+      conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
+      
+      country_split <- split(.x, .x$country)
+      
+      country_list <- map(country_split, function(country) {
+        print(unique(country$country))
+        
+        # In some countries the quan can't be estimated because of very few obs.
+        # The function doesn't stop but returns two NA's.
+        quan <- quantile_missing(country, weights_var)
+        
+        # It's very important to create a variable that returns the number of observations of this dummy
+        # For each country. Possibly to weight by the number of observations.
+        country$escs_dummy <-
+          with(country, case_when(escs_trend >= quan[2] ~ 1,
+                                  escs_trend <= quan[1] ~ 0))
+        country
+      })
+      
+      .x <-
+        enframe(country_list) %>%
+        unnest(value)
+      
+      .x <-
+        .x %>%
+        select(wave, matches(paste0("^PV.*", test, "$")), escs_dummy,
+               country, one_of(weights_var),
+               AGE)
+      
+      message(paste(unique(.x$wave), "data ready"))
+
+
+      test_vars <- paste0("PV", seq_len(conf$parameters$PVreps), test)
+      .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
+      
+      # Calculate median math score of all PV's
+      .x$dv <- apply(.x[test_vars], 1, median, na.rm = T)
+      
+      # Should I estimate the model separately by country?
+      mod1 <- lm(dv ~ AGE,
+                 weights = .x[[weights_var]],
+                 data = .x,
+                 na.action = "na.exclude")
+      
+      # Take residuals of model and divide by rmse. Multiply that by
+      # 1 / sqrt(reliability of each survey), which is .y in the loop.
+      .x$adj_pvnum <- resid(mod1)/rmse(mod1, .x) * 1 / sqrt(.y)
+      
+      mod2 <-
+        lmer(adj_pvnum ~ escs_dummy + (1 + escs_dummy | country),
+             data = .x,
+             weights = .x[[weights_var]])
+      
+      # Take the country coefficients (absolute coefficients)
+      country_coef <-
+        coef(mod2)$country %>%
+        rownames_to_column() %>%
+        gather(escs_dummy, Mean, -rowname) %>%
+        mutate(escs_dummy = dplyr::recode(escs_dummy,
+                                          `(Intercept)` = "0",
+                                          `escs_dummy` = "1"))
+      
+      # Take the absolute country standard errors
+      se <-
+        se.coef(mod2)$country %>%
+        as.data.frame() %>%
+        rownames_to_column() %>%
+        gather(escs_dummy, s.e., -rowname) %>%
+        mutate(escs_dummy = dplyr::recode(escs_dummy,
+                                          `(Intercept)` = "0",
+                                          `escs_dummy` = "1"))
+      
+      results <-
+        inner_join(country_coef, se, by = c("rowname", "escs_dummy")) %>%
+        rename(country = rowname) %>%
+        arrange(country, escs_dummy)
+      
+      message(paste0(unique(.x$wave), " modeling done"))
+      results
+    })
+}
+
+## ----modeling------------------------------------------------------------
+adapted_year_data <-
+    map(pisa_all2$value, ~ {
+      if (unique(.x$wave) == "pisa2000") {
+        # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
+        # is 7 and the bottom is 1
+        .x <-
+          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
+      } else {
+        .x <-
+          mutate(.x, new_hisced = as.character(high_edu_broad))
+      }
+      .x
+})
+
+## ----distributions---------
+theme_pub <- function (base_size = 12, base_family = "") {
+  
+  theme_grey(base_size = base_size, 
+             base_family = base_family) %+replace% 
+    
+    theme(# Set text size
+      plot.title = element_text(size = 18),
+      axis.title.x = element_text(size = 16),
+      axis.title.y = element_text(size = 16, 
+                                  angle = 90),
+      
+      axis.text.x = element_text(size = 14),
+      axis.text.y = element_text(size = 14),
+      
+      strip.text.x = element_text(size = 15),
+      strip.text.y = element_text(size = 15,
+                                  angle = -90),
+      
+      # Legend text
+      legend.title = element_text(size = 15),
+      legend.text = element_text(size = 15),
+      
+      # Configure lines and axes
+      axis.ticks.x = element_line(colour = "black"), 
+      axis.ticks.y = element_line(colour = "black"), 
+      
+      # Plot background
+      panel.background = element_rect(fill = "white"),
+      panel.grid.major = element_line(colour = "grey83",
+                                      size = 0.2),
+      # panel.grid.minor = element_line(colour = "grey88", 
+      #                                 size = 0.5), 
+      
+      # Facet labels        
+      legend.key = element_rect(colour = "grey80"), 
+      strip.background = element_rect(fill = "grey80", 
+                                      colour = "grey50", 
+                                      size = 0.2))
+}
+
+yearly_quantiles <-
+  map(adapted_year_data, ~ {
+  conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
+  weights_var <- conf$variables$weightFinal
+  quantile_missing(.x, weights_var)
+})
+
+yearly_quantiles <-
+  yearly_quantiles %>%
+  setNames(seq(2000, 2015, 3)) %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate(bands = rep(c("lower", "upper"), 6))
+
+data_to_plot <- 
+  map(adapted_year_data, ~ select(.x, new_hisced, escs_trend)) %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate(name = as.factor(dplyr::recode(name,
+                              `1` = 2000,
+                              `2` = 2003,
+                              `3` = 2006,
+                              `4` = 2009,
+                              `5` = 2012,
+                              `6` = 2015))) %>%
+  filter(new_hisced %in% c(1, 7)) %>%
+  left_join(yearly_quantiles)
+
+data_to_annotate <- tibble(name = factor(c(2000, 2000), levels = seq(2000, 2015, 3)),
+                           new_hisced = c(1, 7),
+                           escs_trend = c(-4.5, 2.2),
+                           y = rep(0.65, 2),
+                           textlabs  = c("50% quantile", "70% quantile"))
+
+p <-
+  data_to_plot %>%
+  ggplot(aes(escs_trend, fill = new_hisced)) +
+  geom_density(alpha = 0.7) +
+  geom_vline(aes(xintercept = value), linetype = "longdash") +
+  geom_text(data = data_to_annotate,
+            mapping = aes(x = escs_trend, y = y,  label = textlabs), inherit.aes = FALSE) +
+  scale_fill_grey(name = "Parent's education",
+                  labels = c("No schooling", "BA or above")) +
+  labs(x = "Index of economic, social and cultural status",
+       y= "Density") +
+  coord_cartesian(expand = FALSE) +
+  facet_wrap(~ name) +
+  theme_pub()
+
+
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+# US is missing for reading
+
+# Cache is not working properly for the code above, so I just load the saved cached file
+# load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
+
+
+## ------------------------------------------------------------------------
+vals <- c("Australia",
+          "Germany",
+          "Denmark",
+          "Spain",
+          "France",
+          "Italy",
+          "Netherlands",
+          "Sweden",
+          "United States")
+# i <- 3
+# vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
+
+# while (i < 7) {
+#   vals <- intersect(vals, unique(adapted_year_data[[i]]$country))
+#   i <- i + 1
+# }
+
+sample_size_calc <- function(df, selected = F, cnts) {
+
+if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
+
+
+cnt_to_bind <-
+  map(df, function(df) {
+      
+      print(unique(df$wave))
+      conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
+      
+      split_df <- split(df, df$country)
+      
+      split_df_two <-
+        map(split_df, ~ {
+      # In some countries the quan can't be estimated because of very few obs.
+      # The function doesn't stop but returns two NA's.
+      quan <- quantile_missing(.x, weights_var)
+      
+      # It's very important to create a variable that returns the number of observations of this dummy
+      # For each country. Possibly to weight by the number of observations.
+      .x$escs_dummy <-
+        with(.x, case_when(escs_trend >= quan[2] ~ 1,
+                                  escs_trend <= quan[1] ~ 0))
+      .x
+    })
+  unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
+  unsplit_df
+})
+
+selected_cnt <- map(cnt_to_bind, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
+
+full_cnt <- 
+  selected_cnt %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate(year = as.character(dplyr::recode(.$name,
+                `1` = 2000,
+                `2` = 2003,
+                `3` = 2006,
+                `4` = 2009,
+                `5` = 2012,
+                `6` = 2015)),
+         escs_dummy = as.character(escs_dummy))
+
+sample_size <-
+  full_cnt %>%
+  count(year, country)
+
+high_low_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced) %>%
+  filter(new_hisced %in% c(1, 7)) %>%
+  spread(new_hisced, n) %>%
+  rename(low_isced = `1`, high_isced = `7`)
+
+ses_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced, escs_dummy) %>%
+  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
+  ungroup() %>%
+  select(-new_hisced) %>%
+  spread(escs_dummy, n) %>%
+  rename(low_low_isced = `0`, high__high_isced = `1`)
+
+selected_cnts <-
+  left_join(sample_size, high_low_sample) %>%
+  left_join(ses_sample) %>%
+  arrange(year, country)
+
+selected_cnts
+}
+
+selected_cnts <- sample_size_calc(adapted_year_data, vals)  
+xtable::xtable(selected_cnts)
+
+## ------------------------------------------------------------------------
+all_cnts <- sample_size_calc(adapted_year_data)
+
+## ------------------------------------------------------------------------
+selected_cnt <- map(adapted_year_data, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
+
+full_cnt <- 
+  selected_cnt %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate(year = as.character(dplyr::recode(.$name,
+                `1` = 2000,
+                `2` = 2003,
+                `3` = 2006,
+                `4` = 2009,
+                `5` = 2012,
+                `6` = 2015)),
+         escs_dummy = as.character(escs_dummy))
+
+sample_size <-
+  full_cnt %>%
+  count(year, country)
+
+high_low_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced) %>%
+  filter(new_hisced %in% c(1, 7)) %>%
+  spread(new_hisced, n) %>%
+  rename(low_isced = `1`, high_isced = `7`)
+
+ses_sample <-
+  full_cnt %>%
+  count(year, country, new_hisced, escs_dummy) %>%
+  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
+  ungroup() %>%
+  select(-new_hisced) %>%
+  spread(escs_dummy, n) %>%
+  rename(low_low_isced = `0`, high__high_isced = `1`)
+
+selected_cnts <-
+  left_join(sample_size, high_low_sample) %>%
+  left_join(ses_sample) %>%
+  arrange(year, country)
+
+
+## ----eval = F------------------------------------------------------------
+## # In this chunk you can join reading and math datasets
+## descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
+## descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
+## 
+## map2(results_math, results_read, inner_join, by = "country")
+
+## ----ci_for_difference---------------------------------------------------
+reduced_data <-
+    map2(results_math, years, function(.x, .y) {
+      .x %>%
+        mutate(wave = .y) %>%
+        filter(!is.na(escs_dummy))
+    }) %>%
+    bind_rows() %>%
+    mutate(lower = Mean - 1.96 * s.e.,
+           upper = Mean + 1.96 * s.e.)
+
+## ----graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
+reduced_data %>%
+    filter(country %in% c("United Kingdom")) %>%
+    ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+    geom_line() +
+    facet_wrap(~ country)
+
+## ------------------------------------------------------------------------
+# Calculate the joint standard error of the different
+  se_data <-
+    reduced_data %>%
+    select(country, escs_dummy, wave, s.e.) %>%
+    spread(escs_dummy, s.e.) %>%
+    transmute(country, wave,
+              se_diff = sqrt(abs(`1`^2 - `0`^2)))
+
+
+## ----include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
+
+# Calculate the different between the gap and together with it's joint s.e graph
+# the absolut difference.
+  
+countries <- c("Chile", "Austria", "Belgium", "Canada", "Czech Republic", "Denmark",
+                 "Finland", "France", "Germany", "Italy", "Japan", "Netherlands", "Norway",
+                 "Poland", "Spain", "Sweden", "United Kingdom", "United States")
+
+reduced_data %>%
+    select(country, escs_dummy, Mean, wave) %>%
+    spread(key = escs_dummy, value = Mean) %>%
+    mutate(diff = `1` - `0`) %>%
+    gather(escs_dummy, Mean, -country, -wave, -`1`, -`0`) %>%
+    left_join(se_data) %>%
+    mutate(continent = countrycode(country, "country.name", "continent"),
+           region = countrycode(country, "country.name", "region"),
+           lower = Mean - 1.96 * se_diff,
+           upper = Mean + 1.96 * se_diff) %>%
+    filter(!is.na(continent), !is.na(region), country %in% vals) %>%
+    ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+    geom_line() +
+    geom_point(size = 0.5) +
+    scale_colour_discrete(guide = F) +
+    # geom_smooth(aes(group = region), colour = "blue", method = "lm") +
+    coord_cartesian(ylim = c(0, 4)) +
+    facet_wrap(~ country) +
+    ggtitle("math")
+
+# Increase:  
+# Sweden - steady increase in both tests
+# Austria - increase in math - slight increase in read
+# Finland - very sharp increase in both
+# France - very sharp increase in both
+# Netherlands - sharp increase in both
+
+# Decrease:
+# US - decrease in both tests
+# Chile - decrease in both tests
+  
+# No change:
+# Canada - stable red - increase math
+# UK - slight decrease red - stable math
+# Belgium - no change
+# Czech republic - no change
+# Denmark no change
+# Germany - no change
+# ITaly - no change
+# Japan -  no change
+# Norway - no change
+# Poland - no change
+# Spain - no change
+
+
+## ------------------------------------------------------------------------
+# Next steps:
+
+# Show country patterns with reading and math together into one graph
+
+# Making country groups of the graphs showing that some countries are increasing, others are steady
+# While others are decreasing. Do this with a few countries, but end by showing all countries.
+
+# Continue by studying what's happening in those countries where it's increasing/decreasing
+# In the gap graph
+  
+# Continue by doing the multilevel models to see what explains what. Include
+# all indicators from the reardon/russian girl paper.
+  
+# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
+# Specially the 90/10
+
+# Calculate how big is the gap between reading and math
+  
+# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
+  
+# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
+
+# Should I add the parent's education in the lm model to see how trends change adjusted for that?
+ 
+# The gap between the top 90th and the 50th, did it grow?
+# The gap between the top 50th and the 10th, did it grow?
+
+# A weak welfare system, together with income inequality, what's their pattern?
+# What if we put the school differentiation/tracking aspect in? Are there country groups based on these
+# patterns.
+
+# Show that within top and bottom educated categories, there is reasonable variation of SES index (to justify that your approach of suing the top and bottom percentiles within each category is the right approach)
+
+# In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
+
+
