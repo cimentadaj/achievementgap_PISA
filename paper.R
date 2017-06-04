@@ -379,7 +379,7 @@ results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
 
 
 ## ------------------------------------------------------------------------
-vals <- c("Australia",
+countries_subset <- c("Australia",
           "Germany",
           "Denmark",
           "Spain",
@@ -470,8 +470,8 @@ selected_cnts <-
 selected_cnts
 }
 
-selected_cnts <- sample_size_calc(adapted_year_data, vals)  
-xtable::xtable(selected_cnts)
+selected_cnts <- sample_size_calc(adapted_year_data, selected = TRUE, countries_subset)  
+# xtable::xtable(selected_cnts)
 
 ## ------------------------------------------------------------------------
 all_cnts <- sample_size_calc(adapted_year_data)
@@ -519,49 +519,90 @@ selected_cnts <-
 
 
 ## ----eval = F------------------------------------------------------------
-## # In this chunk you can join reading and math datasets
-## descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
-## descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
-## 
-## map2(results_math, results_read, inner_join, by = "country")
+# In this chunk you can join reading and math datasets
+descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
+descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
+
+both_tests <- map2(descrip_math, descrip_read, inner_join, by = c("country", "escs_dummy"))
 
 ## ----ci_for_difference---------------------------------------------------
 reduced_data <-
-    map2(results_math, years, function(.x, .y) {
+    map2(both_tests, years, function(.x, .y) {
       .x %>%
         mutate(wave = .y) %>%
         filter(!is.na(escs_dummy))
     }) %>%
     bind_rows() %>%
-    mutate(lower = Mean - 1.96 * s.e.,
-           upper = Mean + 1.96 * s.e.)
+    as_tibble() %>%
+    mutate(lower_math = mean_math - 1.96 * se_math,
+           upper_math = mean_math + 1.96 * se_math,
+           lower_read = mean_read - 1.96 * se_read,
+           upper_read = mean_read + 1.96 * se_read)
+
+test_data <-
+  reduced_data %>%
+  select(country, wave, escs_dummy, contains("mean")) %>%
+  gather(test, score, contains("mean"))
+
+math_data <-
+  reduced_data %>%
+  select(country, wave, escs_dummy, contains("math")) %>%
+  gather(test_bound, bound, contains("lower"), contains("upper")) %>%
+  select(-contains("math")) %>%
+  right_join(filter(test_data, test == "mean_math"))
+
+read_data <-
+  reduced_data %>%
+  select(country, wave, escs_dummy, contains("read")) %>%
+  gather(test_bound, bound, contains("lower"), contains("upper")) %>%
+  select(-contains("read")) %>%
+  right_join(filter(test_data, test == "mean_read"))
+
+all_data <- bind_rows(math_data, read_data)
 
 ## ----graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
-reduced_data %>%
-    filter(country %in% c("United Kingdom")) %>%
-    ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
-    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
-    geom_line() +
-    facet_wrap(~ country)
+
+# to visualize the gap use the specific read_*, math_* datasets.
+
+math_data %>%
+  spread(test_bound, bound) %>%
+  filter(country %in% c("United Kingdom")) %>%
+  ggplot(aes(as.character(wave), score, group = escs_dummy, colour = escs_dummy)) +
+  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.2) +
+  geom_line() +
+  facet_wrap(~ country)
+
+read_data %>%
+  spread(test_bound, bound) %>%
+  filter(country %in% c("United Kingdom")) %>%
+  ggplot(aes(as.character(wave), score, group = escs_dummy, colour = escs_dummy)) +
+  geom_errorbar(aes(ymin = lower_read, ymax = upper_read), width = 0.2) +
+  geom_line() +
+  facet_wrap(~ country)
 
 ## ------------------------------------------------------------------------
 # Calculate the joint standard error of the different
-  se_data <-
-    reduced_data %>%
-    select(country, escs_dummy, wave, s.e.) %>%
-    spread(escs_dummy, s.e.) %>%
+math_se_data <-
+  reduced_data %>%
+  select(country, escs_dummy, wave, se_math) %>%
+  spread(escs_dummy, se_math) %>%
     transmute(country, wave,
-              se_diff = sqrt(abs(`1`^2 - `0`^2)))
+              se_diff_math = sqrt(abs(`1`^2 - `0`^2)))
+
+read_se_data <-
+  reduced_data %>%
+  select(country, escs_dummy, wave, se_read) %>%
+  spread(escs_dummy, se_read) %>%
+  transmute(country, wave,
+            se_diff_read = sqrt(abs(`1`^2 - `0`^2)))
+
+se_data <- left_join(math_se_data, read_se_data)
 
 
 ## ----include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
 
 # Calculate the different between the gap and together with it's joint s.e graph
 # the absolut difference.
-  
-countries <- c("Chile", "Austria", "Belgium", "Canada", "Czech Republic", "Denmark",
-                 "Finland", "France", "Germany", "Italy", "Japan", "Netherlands", "Norway",
-                 "Poland", "Spain", "Sweden", "United Kingdom", "United States")
 
 reduced_data %>%
     select(country, escs_dummy, Mean, wave) %>%
