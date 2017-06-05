@@ -152,17 +152,17 @@ reliability_pisa <-
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
 quantile_missing <- function(df, weights) {
     
-    df_lower <- filter(df, new_hisced == 1)
+    df_lower <- filter(df, new_hisced %in% c(1, 2))
     df_upper <- filter(df, new_hisced == 7)
     
     
     quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
                                           weights = df_lower[[weights]],
-                                          probs = c(0.50)))
+                                          probs = c(0.10)))
     
     quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
                                     weights = df_upper[[weights]],
-                                    probs = c(0.70)))
+                                    probs = c(0.90)))
     
     if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
       return(c(NA, NA))
@@ -280,99 +280,8 @@ adapted_year_data <-
       .x
 })
 
-## ----distributions---------
-theme_pub <- function (base_size = 12, base_family = "") {
-  
-  theme_grey(base_size = base_size, 
-             base_family = base_family) %+replace% 
-    
-    theme(# Set text size
-      plot.title = element_text(size = 18),
-      axis.title.x = element_text(size = 16),
-      axis.title.y = element_text(size = 16, 
-                                  angle = 90),
-      
-      axis.text.x = element_text(size = 14),
-      axis.text.y = element_text(size = 14),
-      
-      strip.text.x = element_text(size = 15),
-      strip.text.y = element_text(size = 15,
-                                  angle = -90),
-      
-      # Legend text
-      legend.title = element_text(size = 15),
-      legend.text = element_text(size = 15),
-      
-      # Configure lines and axes
-      axis.ticks.x = element_line(colour = "black"), 
-      axis.ticks.y = element_line(colour = "black"), 
-      
-      # Plot background
-      panel.background = element_rect(fill = "white"),
-      panel.grid.major = element_line(colour = "grey83",
-                                      size = 0.2),
-      # panel.grid.minor = element_line(colour = "grey88", 
-      #                                 size = 0.5), 
-      
-      # Facet labels        
-      legend.key = element_rect(colour = "grey80"), 
-      strip.background = element_rect(fill = "grey80", 
-                                      colour = "grey50", 
-                                      size = 0.2))
-}
-
-yearly_quantiles <-
-  map(adapted_year_data, ~ {
-  conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
-  weights_var <- conf$variables$weightFinal
-  quantile_missing(.x, weights_var)
-})
-
-yearly_quantiles <-
-  yearly_quantiles %>%
-  setNames(seq(2000, 2015, 3)) %>%
-  enframe() %>%
-  unnest(value) %>%
-  mutate(bands = rep(c("lower", "upper"), 6))
-
-data_to_plot <- 
-  map(adapted_year_data, ~ select(.x, new_hisced, escs_trend)) %>%
-  enframe() %>%
-  unnest(value) %>%
-  mutate(name = as.factor(dplyr::recode(name,
-                              `1` = 2000,
-                              `2` = 2003,
-                              `3` = 2006,
-                              `4` = 2009,
-                              `5` = 2012,
-                              `6` = 2015))) %>%
-  filter(new_hisced %in% c(1, 7)) %>%
-  left_join(yearly_quantiles)
-
-data_to_annotate <- tibble(name = factor(c(2000, 2000), levels = seq(2000, 2015, 3)),
-                           new_hisced = c(1, 7),
-                           escs_trend = c(-4.5, 2.2),
-                           y = rep(0.65, 2),
-                           textlabs  = c("50% quantile", "70% quantile"))
-
-p <-
-  data_to_plot %>%
-  ggplot(aes(escs_trend, fill = new_hisced)) +
-  geom_density(alpha = 0.7) +
-  geom_vline(aes(xintercept = value), linetype = "longdash") +
-  geom_text(data = data_to_annotate,
-            mapping = aes(x = escs_trend, y = y,  label = textlabs), inherit.aes = FALSE) +
-  scale_fill_grey(name = "Parent's education",
-                  labels = c("No schooling", "BA or above")) +
-  labs(x = "Index of economic, social and cultural status",
-       y= "Density") +
-  coord_cartesian(expand = FALSE) +
-  facet_wrap(~ name) +
-  theme_pub()
-
-
 results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -391,147 +300,15 @@ countries_subset <- c("Australia",
           "Finland",
           "United States",
           "United Kingdom")
-# i <- 3
-# vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
-
-# while (i < 7) {
-#   vals <- intersect(vals, unique(adapted_year_data[[i]]$country))
-#   i <- i + 1
-# }
-
-sample_size_calc <- function(df, selected = F, cnts) {
-
-if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
-
-
-cnt_to_bind <-
-  map(df, function(df) {
-      
-      print(unique(df$wave))
-      conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
-      weights_var <- conf$variables$weightFinal
-      
-      split_df <- split(df, df$country)
-      
-      split_df_two <-
-        map(split_df, ~ {
-      # In some countries the quan can't be estimated because of very few obs.
-      # The function doesn't stop but returns two NA's.
-      quan <- quantile_missing(.x, weights_var)
-      
-      # It's very important to create a variable that returns the number of observations of this dummy
-      # For each country. Possibly to weight by the number of observations.
-      .x$escs_dummy <-
-        with(.x, case_when(escs_trend >= quan[2] ~ 1,
-                                  escs_trend <= quan[1] ~ 0))
-      .x
-    })
-  unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
-  unsplit_df
-})
-
-selected_cnt <- map(cnt_to_bind, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
-
-full_cnt <- 
-  selected_cnt %>%
-  enframe() %>%
-  unnest(value) %>%
-  mutate(year = as.character(dplyr::recode(.$name,
-                `1` = 2000,
-                `2` = 2003,
-                `3` = 2006,
-                `4` = 2009,
-                `5` = 2012,
-                `6` = 2015)),
-         escs_dummy = as.character(escs_dummy))
-
-sample_size <-
-  full_cnt %>%
-  count(year, country)
-
-high_low_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced) %>%
-  filter(new_hisced %in% c(1, 7)) %>%
-  spread(new_hisced, n) %>%
-  rename(low_isced = `1`, high_isced = `7`)
-
-ses_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced, escs_dummy) %>%
-  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
-  ungroup() %>%
-  select(-new_hisced) %>%
-  spread(escs_dummy, n) %>%
-  rename(low_low_isced = `0`, high__high_isced = `1`)
-
-selected_cnts <-
-  left_join(sample_size, high_low_sample) %>%
-  left_join(ses_sample) %>%
-  arrange(year, country)
-
-selected_cnts
-}
-
-selected_cnts <- sample_size_calc(adapted_year_data, selected = TRUE, countries_subset)  
-# xtable::xtable(selected_cnts)
-
-## ------------------------------------------------------------------------
-all_cnts <- sample_size_calc(adapted_year_data)
-
-## ------------------------------------------------------------------------
-selected_cnt <- map(adapted_year_data, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
-
-full_cnt <- 
-  selected_cnt %>%
-  enframe() %>%
-  unnest(value) %>%
-  mutate(year = as.character(dplyr::recode(.$name,
-                `1` = 2000,
-                `2` = 2003,
-                `3` = 2006,
-                `4` = 2009,
-                `5` = 2012,
-                `6` = 2015)),
-         escs_dummy = as.character(escs_dummy))
-
-sample_size <-
-  full_cnt %>%
-  count(year, country)
-
-high_low_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced) %>%
-  filter(new_hisced %in% c(1, 7)) %>%
-  spread(new_hisced, n) %>%
-  rename(low_isced = `1`, high_isced = `7`)
-
-ses_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced, escs_dummy) %>%
-  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
-  ungroup() %>%
-  select(-new_hisced) %>%
-  spread(escs_dummy, n) %>%
-  rename(low_low_isced = `0`, high__high_isced = `1`)
-
-selected_cnts <-
-  left_join(sample_size, high_low_sample) %>%
-  left_join(ses_sample) %>%
-  arrange(year, country)
-
 
 ## ----eval = F------------------------------------------------------------
 # In this chunk you can join reading and math datasets
 descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
-descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
-
-both_tests <- map2(descrip_math, descrip_read, inner_join, by = c("country", "escs_dummy"))
-
+# descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
 
 ## -- correlation with indicators --------
 reduced_data <-
-  map2(both_tests, years, function(.x, .y) {
+  map2(descrip_math, years, function(.x, .y) {
     .x %>%
       mutate(wave = .y) %>%
       filter(!is.na(escs_dummy))
@@ -539,9 +316,7 @@ reduced_data <-
   bind_rows() %>%
   as_tibble() %>%
   mutate(lower_math = mean_math - 1.96 * se_math,
-         upper_math = mean_math + 1.96 * se_math,
-         lower_read = mean_read - 1.96 * se_read,
-         upper_read = mean_read + 1.96 * se_read)
+         upper_math = mean_math + 1.96 * se_math)
 
 # When leaving the GINI and the avg difference as is, no correlation
 reduced_data %>%
@@ -782,9 +557,6 @@ mutate(full_data, diff = high_increase - low_increase)
 # Gap is closing at an average of the variable diff per year.
 
 ## ------------------------------------------------------------------------
-
-
-## ------------------------------------------------------------------------
 # Next steps:
 
 # Continue by doing the multilevel models to see what explains what. Include
@@ -807,8 +579,6 @@ mutate(full_data, diff = high_increase - low_increase)
 # A weak welfare system, together with income inequality, what's their pattern?
 # What if we put the school differentiation/tracking aspect in? Are there country groups based on these
 # patterns.
-
-# Show that within top and bottom educated categories, there is reasonable variation of SES index (to justify that your approach of suing the top and bottom percentiles within each category is the right approach)
 
 # In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
 
