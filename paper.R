@@ -28,6 +28,7 @@ opts_chunk$set(echo = F,
   library(lme4)
   library(modelr)
   library(tidyverse)
+  library(ggrepel)
   
   # source("./transform_data.R")
 
@@ -387,6 +388,7 @@ countries_subset <- c("Australia",
           "Italy",
           "Netherlands",
           "Sweden",
+          "Finland",
           "United States",
           "United Kingdom")
 # i <- 3
@@ -526,19 +528,24 @@ descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.)
 
 both_tests <- map2(descrip_math, descrip_read, inner_join, by = c("country", "escs_dummy"))
 
-## ----ci_for_difference---------------------------------------------------
+
+## -- correlation with indicators --------
 reduced_data <-
-    map2(both_tests, years, function(.x, .y) {
-      .x %>%
-        mutate(wave = .y) %>%
-        filter(!is.na(escs_dummy))
-    }) %>%
-    bind_rows() %>%
-    as_tibble() %>%
-    mutate(lower_math = mean_math - 1.96 * se_math,
-           upper_math = mean_math + 1.96 * se_math,
-           lower_read = mean_read - 1.96 * se_read,
-           upper_read = mean_read + 1.96 * se_read)
+  map2(both_tests, years, function(.x, .y) {
+    .x %>%
+      mutate(wave = .y) %>%
+      filter(!is.na(escs_dummy))
+  }) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  mutate(lower_math = mean_math - 1.96 * se_math,
+         upper_math = mean_math + 1.96 * se_math,
+         lower_read = mean_read - 1.96 * se_read,
+         upper_read = mean_read + 1.96 * se_read)
+
+
+## ----ci_for_difference---------------------------------------------------
+
 
 test_data <-
   reduced_data %>%
@@ -560,26 +567,6 @@ read_data <-
   right_join(filter(test_data, test == "mean_read"))
 
 all_data <- bind_rows(math_data, read_data)
-
-## ----graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
-
-# to visualize the gap use the specific read_*, math_* datasets.
-
-math_data %>%
-  spread(test_bound, bound) %>%
-  filter(country %in% c("United Kingdom")) %>%
-  ggplot(aes(as.character(wave), score, group = escs_dummy, colour = escs_dummy)) +
-  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.2) +
-  geom_line() +
-  facet_wrap(~ country)
-
-read_data %>%
-  spread(test_bound, bound) %>%
-  filter(country %in% c("United Kingdom")) %>%
-  ggplot(aes(as.character(wave), score, group = escs_dummy, colour = escs_dummy)) +
-  geom_errorbar(aes(ymin = lower_read, ymax = upper_read), width = 0.2) +
-  geom_line() +
-  facet_wrap(~ country)
 
 ## ------------------------------------------------------------------------
 # Calculate the joint standard error of the different
@@ -657,10 +644,12 @@ complete_data %>%
     filter(!is.na(continent), !is.na(region), country %in% countries_subset) %>%
     ggplot(aes(as.factor(wave), difference, group = test, colour = test)) +
     geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+    geom_smooth(aes(as.factor(wave), difference, group = 1), se = FALSE, method = "lm") +
     geom_line() +
     geom_point(size = 0.5) +
     coord_cartesian(ylim = c(0, 4)) +
-    facet_wrap(~ country)
+    facet_wrap(~ country) +
+    theme_pub()
 
 # Increase:  
 # Sweden - steady increase in both tests
@@ -686,18 +675,89 @@ complete_data %>%
 # Poland - no change
 # Spain - no change
 
+## ----graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
+
+# to visualize the gap use the specific read_*, math_* datasets.
+
+math_data %>%
+  spread(test_bound, bound) %>%
+  filter(country %in% countries_subset) %>%
+  ggplot(aes(as.character(wave), score, group = escs_dummy, colour = escs_dummy)) +
+  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.2) +
+  geom_line() +
+  facet_wrap(~ country)
+
+## ------------------------------------------------------------------------
+# Rate of change
+avg_increase_fun <- function(df, class) {
+m <- math_data %>%
+  spread(test_bound, bound) %>%
+  filter(escs_dummy == class) %>%
+  select(country, wave, score) %>%
+  filter(country %in% countries_subset) %>%
+  split(.$country) %>%
+  map(~ mutate(.,
+               diff = c(diff(score, lag = 1), NA),
+               perc = round(diff / score, 2) * 100,
+               perc_pos = mean(perc > 0, na.rm = T)))
+
+data_ready <-
+  m %>%
+  enframe() %>%
+  unnest(value)
+
+# Average standard deviation increase
+  data_ready %>%
+  group_by(country) %>%
+  summarize(avg_diff = mean(diff, na.rm = T))
+}
+
+avg_sd_increase_high <- avg_increase_fun(math_data, 1)
+avg_sd_increase_low <- avg_increase_fun(math_data, 0)
+
+full_data <- left_join(avg_sd_increase_high, avg_sd_increase_low, by = "country")
+colnames(full_data) <- c("country", "high_increase", "low_increase")
+
+lims <- list(xlim = c(-0.15, 0.20), ylim = c(-0.27, 0.25))
+
+rect_data <- tibble(xst = c(lims$xlim[1], 0),
+                    xen = c(0.0, lims$xlim[2]),
+                    yst = c(0.0, lims$ylim[1]),
+                    yen = c(lims$ylim[2], 0),
+                    colour = c("red", "green"))
+
+ggplot(full_data, aes(low_increase, high_increase)) +
+  geom_rect(data = rect_data, aes(xmin = xst,
+                                  xmax = xen,
+                                  ymin = yst,
+                                  ymax = yen),
+            fill = rect_data$colour,
+            alpha = 0.2,
+            inherit.aes = FALSE) +
+  geom_smooth(colour = "blue", method = "lm", se = F) +
+  geom_point() +
+  geom_text_repel(aes(label = country)) +
+  geom_vline(xintercept = 0, alpha = 0.5) +
+  geom_hline(yintercept = 0, alpha = 0.5) +
+  coord_cartesian(xlim = lims$xlim, ylim = lims$ylim, expand = FALSE) +
+  annotate(geom = "text", x = 0.05, y = -0.2, label = "Gap is closing", fontface = 2, size = 5) +
+  annotate(geom = "text", x = -0.05, y = 0.20, label = "Gap is increasing", fontface = 2, size = 5) +
+  labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
+  theme_pub()
+
+## ------------------------------------------------------------------------
+
+# Show the rates at which is increasing/decreasing
+mutate(full_data, diff = high_increase - low_increase)
+
+# Gap is closing at an average of the variable diff per year.
+
+## ------------------------------------------------------------------------
+
 
 ## ------------------------------------------------------------------------
 # Next steps:
 
-# Show country patterns with reading and math together into one graph
-
-# Making country groups of the graphs showing that some countries are increasing, others are steady
-# While others are decreasing. Do this with a few countries, but end by showing all countries.
-
-# Continue by studying what's happening in those countries where it's increasing/decreasing
-# In the gap graph
-  
 # Continue by doing the multilevel models to see what explains what. Include
 # all indicators from the reardon/russian girl paper.
   
