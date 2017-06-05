@@ -543,9 +543,38 @@ reduced_data <-
          lower_read = mean_read - 1.96 * se_read,
          upper_read = mean_read + 1.96 * se_read)
 
+# When leaving the GINI and the avg difference as is, no correlation
+reduced_data %>%
+  select(country, wave, escs_dummy, mean_math) %>%
+  spread(escs_dummy, mean_math) %>%
+  transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
+  left_join(inequality_data, by = c("wave" = "year", "country")) %>%
+  filter(indicators == "GINI") %>%
+  group_by(country) %>%
+  summarize(avg_diff = mean(avg_diff, na.rm = T),
+            avg_value = mean(value, na.rm = T)) %>%
+  ggplot(aes(avg_value, avg_diff)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+
+# But if I eclude some outliers, the relationship is non linear
+reduced_data %>%
+  select(country, wave, escs_dummy, mean_math) %>%
+  spread(escs_dummy, mean_math) %>%
+  transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
+  left_join(inequality_data, by = c("wave" = "year", "country")) %>%
+  filter(indicators == "GINI") %>%
+  group_by(country) %>%
+  summarize(avg_diff = mean(avg_diff, na.rm = T),
+            avg_value = mean(value, na.rm = T),
+            high_value = avg_value > 0.3) %>%
+  filter(avg_diff <= 2.7) %>%
+  ggplot(aes(avg_value, avg_diff, colour = high_value)) +
+  geom_point() +
+  geom_smooth(method = "lm")
 
 ## ----ci_for_difference---------------------------------------------------
-
 
 test_data <-
   reduced_data %>%
