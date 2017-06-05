@@ -1,13 +1,3 @@
-## ----working directory, echo = F-----------------------------------------
-opts_knit$set(root.dir = '..')
-
-opts_chunk$set(echo = F,
-               message = F,
-               warning = F,
-               include = F,
-               cache.lazy = F,
-               results = 'asis')
-
 ## ----packages_conf, echo = F---------------------------------------------
   library(knitr)
   library(arm)
