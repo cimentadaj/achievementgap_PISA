@@ -140,24 +140,18 @@ reliability_pisa <-
 
 # Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
-quantile_missing <- function(df, weights) {
+quantile_missing <- function(df, weights, probs) {
     
-    df_lower <- filter(df, new_hisced %in% c(1, 2))
-    df_upper <- filter(df, new_hisced == 7)
-    
-    
-    quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
-                                          weights = df_lower[[weights]],
-                                          probs = c(0.10)))
-    
-    quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
-                                    weights = df_upper[[weights]],
-                                    probs = c(0.90)))
-    
-    if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
+    quan <- try(Hmisc::wtd.quantile(
+      df$escs_trend,
+      weights = df[[weights]],
+      probs = probs
+      ))
+
+    if (any("try-error" %in% class(quan))) {
       return(c(NA, NA))
       } else {
-     return(c(quan_lower[1], quan_upper[1]))
+     return(c(quan[1], quan[2]))
     }
 }
   
@@ -168,21 +162,19 @@ quantile_missing <- function(df, weights) {
   
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
-test_diff <- function(df, reliability, test) {
+test_diff <- function(df, reliability, test, probs) {
   
     map2(df, reliability, function(.x, .y) {
       
       conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
       weights_var <- conf$variables$weightFinal
-      
+
       country_split <- split(.x, .x$country)
       
       country_list <- map(country_split, function(country) {
         print(unique(country$country))
         
-        # In some countries the quan can't be estimated because of very few obs.
-        # The function doesn't stop but returns two NA's.
-        quan <- quantile_missing(country, weights_var)
+        quan <- quantile_missing(country, weights_var, probs)
         
         # It's very important to create a variable that returns the number of observations of this dummy
         # For each country. Possibly to weight by the number of observations.
@@ -195,12 +187,15 @@ test_diff <- function(df, reliability, test) {
       .x <-
         enframe(country_list) %>%
         unnest(value)
-      
+
       .x <-
         .x %>%
-        select(wave, matches(paste0("^PV.*", test, "$")), escs_dummy,
-               country, one_of(weights_var),
-               AGE)
+        dplyr::select(wave,
+                      matches(paste0("^PV.*", test, "$")),
+                      escs_dummy,
+                      country,
+                      one_of(weights_var),
+                      AGE)
       
       message(paste(unique(.x$wave), "data ready"))
 
@@ -270,8 +265,18 @@ adapted_year_data <-
       .x
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
 # results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+results_math <- read_rds("./data/delete.Rdata")
+results_read <- read_rds("./data/delete_read.Rdata")
+
+results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+
+results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+
+
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -293,11 +298,14 @@ countries_subset <- c("Australia",
 
 ## ----eval = F------------------------------------------------------------
 # In this chunk you can join reading and math datasets
+
+pisa_preparer <- function(df_math, df_read) {
+
 descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
-# descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
+descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
 
 ## -- correlation with indicators --------
-reduced_data <-
+reduced_data_math <-
   map2(descrip_math, years, function(.x, .y) {
     .x %>%
       mutate(wave = .y) %>%
@@ -308,36 +316,49 @@ reduced_data <-
   mutate(lower_math = mean_math - 1.96 * se_math,
          upper_math = mean_math + 1.96 * se_math)
 
-# When leaving the GINI and the avg difference as is, no correlation
-reduced_data %>%
-  select(country, wave, escs_dummy, mean_math) %>%
-  spread(escs_dummy, mean_math) %>%
-  transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
-  left_join(inequality_data, by = c("wave" = "year", "country")) %>%
-  filter(indicators == "GINI") %>%
-  group_by(country) %>%
-  summarize(avg_diff = mean(avg_diff, na.rm = T),
-            avg_value = mean(value, na.rm = T)) %>%
-  ggplot(aes(avg_value, avg_diff)) +
-  geom_point() +
-  geom_smooth(method = "lm")
+reduced_data_read <-
+  map2(descrip_read, years, function(.x, .y) {
+    .x %>%
+      mutate(wave = .y) %>%
+      filter(!is.na(escs_dummy))
+  }) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  mutate(lower_read = mean_read - 1.96 * se_read,
+         upper_read = mean_read + 1.96 * se_read)
 
+reduced_data <- left_join(reduced_data_math,
+                          reduced_data_read, by = c("country", "escs_dummy", "wave"))
 
-# But if I eclude some outliers, the relationship is non linear
-reduced_data %>%
-  select(country, wave, escs_dummy, mean_math) %>%
-  spread(escs_dummy, mean_math) %>%
-  transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
-  left_join(inequality_data, by = c("wave" = "year", "country")) %>%
-  filter(indicators == "GINI") %>%
-  group_by(country) %>%
-  summarize(avg_diff = mean(avg_diff, na.rm = T),
-            avg_value = mean(value, na.rm = T),
-            high_value = avg_value > 0.3) %>%
-  filter(avg_diff <= 2.7) %>%
-  ggplot(aes(avg_value, avg_diff, colour = high_value)) +
-  geom_point() +
-  geom_smooth(method = "lm")
+# reduced_data %>%
+#   dplyr::select(country, wave, escs_dummy, mean_math) %>%
+#   spread(escs_dummy, mean_math) %>%
+#   transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
+#   left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
+#   filter(indicators == "GINI") %>%
+#   group_by(country) %>%
+#   summarize(avg_diff = mean(avg_diff, na.rm = T),
+#             avg_value = mean(value, na.rm = T)) %>%
+#   ggplot(aes(avg_value, avg_diff)) +
+#   geom_point() +
+#   geom_smooth(method = "lm")
+# 
+# 
+# # But if I eclude some outliers, the relationship is non linear
+# reduced_data %>%
+#   select(country, wave, escs_dummy, mean_math) %>%
+#   spread(escs_dummy, mean_math) %>%
+#   transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
+#   left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
+#   filter(indicators == "GINI") %>%
+#   group_by(country) %>%
+#   summarize(avg_diff = mean(avg_diff, na.rm = T),
+#             avg_value = mean(value, na.rm = T),
+#             high_value = avg_value > 0.3) %>%
+#   filter(avg_diff <= 2.7) %>%
+#   ggplot(aes(avg_value, avg_diff, colour = high_value)) +
+#   geom_point() +
+#   geom_smooth(method = "lm")
 
 ## ----ci_for_difference---------------------------------------------------
 
@@ -398,6 +419,14 @@ read_diff <-
   spread(escs_dummy, mean_read) %>%
   transmute(wave, country, diff_read = `1` - `0`)
 
+
+# data_summaries <-
+#   math_diff %>%
+#   left_join(math_se_data) %>%
+#   transmute(wave, country, diff_math,
+#             lower_math = diff_math - 1.96 * se_diff_math,
+#             upper_math = diff_math + 1.96 * se_diff_math)
+
 data_summaries <-
   math_diff %>%
   left_join(read_diff) %>%
@@ -414,6 +443,10 @@ differences <-
   gather(test, difference, starts_with("diff")) %>%
   mutate(type_test = ifelse(.$test == "diff_math", "math", "read"))
 
+# differences <-
+#   data_summaries %>%
+#   select(wave, country, diff_math) %>%
+#   gather(test, difference, starts_with("diff"))
 
 bounds_lower <-
   data_summaries %>%
@@ -421,29 +454,46 @@ bounds_lower <-
   gather(lower_bound, lower, lower_math, lower_read) %>%
   mutate(type_test = ifelse(grepl("math", .$lower_bound), "math", "read"))
 
+# bounds_lower <-
+#   data_summaries %>%
+#   select(wave, country, contains("lower")) %>%
+#   gather(lower_bound, lower, lower_math)
+
 bounds_upper <-
   data_summaries %>%
   select(wave, country, contains("upper")) %>%
   gather(upper_bound, upper, upper_math, upper_read) %>%
   mutate(type_test = ifelse(grepl("math", .$upper_bound), "math", "read"))
 
+# bounds_upper <-
+#   data_summaries %>%
+#   select(wave, country, contains("upper")) %>%
+#   gather(upper_bound, upper, upper_math)
+
 complete_data <-
   left_join(differences, bounds_lower) %>%
   left_join(bounds_upper)
+}
+
+complete_data_topbottom <- pisa_preparer(results_math, results_read)
+complete_data_topmid <- pisa_preparer(results_math_topmid, results_read_topmid)
+complete_data_midbottom <- pisa_preparer(results_math_midbottom, results_read_midbottom)
+
+complete_data_topbottom <- mutate(complete_data_topbottom, type = "90th/10th SES gap")
+complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
+complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
 
 
-complete_data %>%
-  mutate(continent = countrycode(country, "country.name", "continent"),
-           region = countrycode(country, "country.name", "region")) %>%
-    filter(!is.na(continent), !is.na(region), country %in% countries_subset) %>%
-    ggplot(aes(as.factor(wave), difference, group = test, colour = test)) +
-    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
-    geom_smooth(aes(as.factor(wave), difference, group = 1), se = FALSE, method = "lm") +
-    geom_line() +
-    geom_point(size = 0.5) +
-    coord_cartesian(ylim = c(0, 4)) +
-    facet_wrap(~ country) +
-    theme_pub()
+complete_data_topbottom %>%
+  bind_rows(complete_data_topmid) %>%
+  bind_rows(midbottom) %>%
+  filter(country %in% c("United States", "Denmark")) %>%
+  ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_line() +
+  geom_point(size = 0.5) +
+  coord_cartesian(ylim = c(0, 4)) +
+  facet_grid(country ~ type)
 
 # Increase:  
 # Sweden - steady increase in both tests
