@@ -720,11 +720,21 @@ perc_increase_fun <- function(df) {
         summarise(yr_avaible = sum(!is.na(val))) %>%
         pull(yr_avaible)
       
+      year_sd <-
+        .x %>%
+        gather(year, val, -(country:type_test)) %>%
+        group_by(type_test) %>%
+        summarise(sd_year = mad(val, na.rm = T)) %>%
+        pull(sd_year)
+      
       .x %>%
         ungroup() %>%
         transmute(type_test,
                   country,
                   diff = round(((!!last_year) - (!!first_year)) / (!!first_year) * 100, 1),
+                  sd_year = year_sd,
+                  diff_lower = diff - 1 * year_sd * 100,
+                  diff_upper = diff + 1 * year_sd * 100,
                   years_available = years_available)
     })
   data_ready
