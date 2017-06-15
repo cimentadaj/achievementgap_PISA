@@ -278,7 +278,9 @@ results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
 results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
 results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
 results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
+# US is missing for reading
 
+# Get sample counts for each dummy
 sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
   
   stopifnot(selected & !is.null(NULL))
@@ -319,9 +321,7 @@ sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
     enframe() %>%
     unnest()
 }
-
 sample_tables <- sample_size_calc(adapted_year_data, c(.1, .9), selected = TRUE, countries)
-# US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
 # load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
