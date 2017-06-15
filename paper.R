@@ -267,14 +267,17 @@ adapted_year_data <-
 
 # results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
 # results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+
 results_math <- read_rds("./data/delete.Rdata")
 results_read <- read_rds("./data/delete_read.Rdata")
-
-results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-
-results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 
 
 # US is missing for reading
@@ -298,8 +301,6 @@ countries_subset <- c("Australia",
 
 ## ----eval = F------------------------------------------------------------
 # In this chunk you can join reading and math datasets
-df_math <- results_math
-df_read <- results_read
 
 pisa_preparer <- function(df_math, df_read) {
 
@@ -473,11 +474,6 @@ bounds_upper <-
 #   gather(upper_bound, upper, upper_math)
 
 # Getting the original data in
-df %>% 
-  gather(variable, value, -(month:student)) %>%
-  unite(temp, student, variable) %>%
-  spread(temp, value)
-
 original_math <-
   reduced_data_math %>%
   select(wave, everything(), -se_math) %>%
@@ -560,9 +556,7 @@ complete_data_topbottom %>%
   facet_grid(country ~ type)
 
 # Show table with % increase decrease over time
-# Show plot comparing coefficients of which countries is the top decreasing/increasing faster
 # Get sample size for these calculations
-# Save top/mid datasets for not having to load them again
 
 # Increase:  
 # Sweden - steady increase in both tests
