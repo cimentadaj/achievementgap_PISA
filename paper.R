@@ -301,8 +301,8 @@ countries_subset <- c("Australia",
 
 pisa_preparer <- function(df_math, df_read) {
 
-descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
-descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
+descrip_math <- map(df_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
+descrip_read <- map(df_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
 
 ## -- correlation with indicators --------
 reduced_data_math <-
@@ -486,14 +486,25 @@ complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES
 
 complete_data_topbottom %>%
   bind_rows(complete_data_topmid) %>%
-  bind_rows(midbottom) %>%
-  filter(country %in% c("United States", "Denmark")) %>%
+  bind_rows(complete_data_midbottom) %>%
+  filter(country %in% c("United States", "Denmark", "France")) %>%
+  mutate(type = factor(type,
+                       levels = c("90th/10th SES gap", "90th/50th SES gap", "50th/10th SES gap"),
+                       ordered = TRUE)) %>%
   ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
   geom_line() +
   geom_point(size = 0.5) +
-  coord_cartesian(ylim = c(0, 4)) +
+  coord_cartesian(ylim = c(-0.5, 3)) +
   facet_grid(country ~ type)
+
+# Show plot for selected countries
+# Show plot of gaps evolving for even more selected countries
+# Show table with % increase decrease over time
+# Show plot comparing coefficients of which countries is the top decreasing/increasing faster
+# Get sample size for these calculations
+# Save top/mid datasets for not having to load them again
 
 # Increase:  
 # Sweden - steady increase in both tests
