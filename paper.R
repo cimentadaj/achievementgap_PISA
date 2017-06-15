@@ -279,8 +279,9 @@ results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
 results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
 results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 
-sample_size_calc <- function(df, probs, selected = F, cnts) {
+sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
   
+  stopifnot(selected & !is.null(NULL))
   if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
   
   cnt_to_bind <-
@@ -306,11 +307,20 @@ sample_size_calc <- function(df, probs, selected = F, cnts) {
           .x
         })
       unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
-      unsplit_df
+      
+      unsplit_df %>%
+        count(country, escs_dummy) %>%
+        filter(!is.na(escs_dummy)) %>%
+        left_join(summarize(group_by(unsplit_df, country), total_n = n()), by = "country") %>%
+        mutate(perc = paste0(round(n / total_n * 100, 0), "%")) %>%
+        select(-total_n)
     })
+  setNames(cnt_to_bind, seq(2000, 2015, 3)) %>%
+    enframe() %>%
+    unnest()
 }
 
-sample_tables <- sample_size_calc(adapted_year_data, c(.1, .9))
+sample_tables <- sample_size_calc(adapted_year_data, c(.1, .9), selected = TRUE, countries)
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
