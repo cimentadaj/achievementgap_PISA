@@ -279,7 +279,38 @@ results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
 results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
 results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 
+sample_size_calc <- function(df, probs, selected = F, cnts) {
+  
+  if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
+  
+  cnt_to_bind <-
+    map(df, function(df) {
+      
+      print(unique(df$wave))
+      conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
+      
+      split_df <- split(df, df$country)
+      
+      split_df_two <-
+        map(split_df, ~ {
+          # In some countries the quan can't be estimated because of very few obs.
+          # The function doesn't stop but returns two NA's.
+          quan <- quantile_missing(.x, weights_var, probs)
+          
+          # It's very important to create a variable that returns the number of observations of this dummy
+          # For each country. Possibly to weight by the number of observations.
+          .x$escs_dummy <-
+            with(.x, case_when(escs_trend >= quan[2] ~ 1,
+                               escs_trend <= quan[1] ~ 0))
+          .x
+        })
+      unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
+      unsplit_df
+    })
+}
 
+sample_tables <- sample_size_calc(adapted_year_data, c(.1, .9))
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -636,7 +667,7 @@ full_data %>%
             fill = rect_data$colour,
             alpha = 0.2,
             inherit.aes = FALSE) +
-  geom_line(stat="smooth", method = "lm", se = FALSE, alpha = 0.2, colour = "blue", size = 1) +
+  geom_line(stat="smooth", method = "lm", se = FALSE, alpha = 0.5, colour = "grey", size = 1) +
   geom_point(alpha = 0.2) +
   geom_point(data = filter(full_data, continent == "my_cnt"), colour = "red", alpha = 0.7) +
   geom_text_repel(data = filter(full_data, continent == "my_cnt"), aes(label = country), box.padding = unit(2.7, "lines")) +
