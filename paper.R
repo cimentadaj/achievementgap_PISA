@@ -597,7 +597,6 @@ complete_data_topbottom %>%
   facet_grid(country ~ type)
 
 # Show table with % increase decrease over time
-# Get sample size for these calculations
 
 # Increase:  
 # Sweden - steady increase in both tests
@@ -694,7 +693,46 @@ full_data %>%
 ## ------------------------------------------------------------------------
 
 # Show the rates at which is increasing/decreasing
-mutate(full_data, diff = high_increase - low_increase)
+perc_increase_fun <- function(df) {
+  
+  # Average standard deviation increase
+  data_ready <-
+    df %>%
+    select(wave, country, type_test, difference) %>%
+    group_by(type_test) %>%
+    split(.$country) %>%
+    map(~ {
+      .x <-
+        spread(.x, wave, difference) %>%
+        ungroup()
+  
+      year_vars <- sum(map_dbl(.x, is.numeric)) - 1
+      years_subtract <- names(.x)[c(ncol(.x) - year_vars, ncol(.x))]
+      years_subtract <- lapply(years_subtract, as.name)
+
+      last_year <- rlang::new_quosure(years_subtract[[2]], env = .GlobalEnv)
+      first_year <- rlang::new_quosure(years_subtract[[1]], env = .GlobalEnv)
+      
+      years_available <-
+        .x %>%
+        gather(year, val, -(country:type_test)) %>%
+        group_by(type_test) %>%
+        summarise(yr_avaible = sum(!is.na(val))) %>%
+        pull(yr_avaible)
+      
+      .x %>%
+        ungroup() %>%
+        transmute(type_test,
+                  country,
+                  diff = round(((!!last_year) - (!!first_year)) / (!!first_year) * 100, 1),
+                  years_available = years_available)
+    })
+  data_ready
+}
+
+top_bottom_perc <- perc_increase_fun(complete_data_topbottom)
+top_mid_perc <- perc_increase_fun(complete_data_topmid)
+
 
 # Gap is closing at an average of the variable diff per year.
 
