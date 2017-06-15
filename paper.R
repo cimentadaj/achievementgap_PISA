@@ -298,6 +298,8 @@ countries_subset <- c("Australia",
 
 ## ----eval = F------------------------------------------------------------
 # In this chunk you can join reading and math datasets
+df_math <- results_math
+df_read <- results_read
 
 pisa_preparer <- function(df_math, df_read) {
 
@@ -470,9 +472,34 @@ bounds_upper <-
 #   select(wave, country, contains("upper")) %>%
 #   gather(upper_bound, upper, upper_math)
 
+# Getting the original data in
+df %>% 
+  gather(variable, value, -(month:student)) %>%
+  unite(temp, student, variable) %>%
+  spread(temp, value)
+
+original_math <-
+  reduced_data_math %>%
+  select(wave, everything(), -se_math) %>%
+  gather(metric, value, -(wave:escs_dummy)) %>%
+  unite(combination, escs_dummy, metric, sep = "_") %>%
+  spread(combination, value) %>%
+  mutate(type_test = "math")
+
+original_read <-
+  reduced_data_read %>%
+  select(wave, everything(), -se_read) %>%
+  gather(metric, value, -(wave:escs_dummy)) %>%
+  unite(combination, escs_dummy, metric, sep = "_") %>%
+  spread(combination, value) %>%
+  mutate(type_test = "read")
+
+# final data
 complete_data <-
   left_join(differences, bounds_lower) %>%
-  left_join(bounds_upper)
+  left_join(bounds_upper) %>%
+  left_join(original_math) %>%
+  left_join(original_read)
 }
 
 complete_data_topbottom <- pisa_preparer(results_math, results_read)
@@ -484,6 +511,19 @@ complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
 complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
 
 
+# 90/10 gaps acros countries
+complete_data_topbottom %>%
+  filter(country %in% c("United States", "Netherlands", "France",
+                        "Germany", "Poland", "Finland")) %>%
+  ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
+  geom_line() +
+  geom_point(size = 0.5) +
+  coord_cartesian(ylim = c(-0.5, 3)) +
+  facet_wrap(~ country)
+
+# Comparing gaps across countries
 complete_data_topbottom %>%
   bind_rows(complete_data_topmid) %>%
   bind_rows(complete_data_midbottom) %>%
@@ -499,8 +539,26 @@ complete_data_topbottom %>%
   coord_cartesian(ylim = c(-0.5, 3)) +
   facet_grid(country ~ type)
 
-# Show plot for selected countries
-# Show plot of gaps evolving for even more selected countries
+# Comparing gaps across countries
+complete_data_topbottom %>%
+  bind_rows(complete_data_topmid) %>%
+  bind_rows(complete_data_midbottom) %>%
+  filter(country %in% c("Germany", "Denmark", "France"), type_test == "math") %>%
+  select(wave, country, type_test, type, contains("math")) %>%
+  mutate(type = factor(type,
+                       levels = c("90th/10th SES gap", "90th/50th SES gap", "50th/10th SES gap"),
+                       ordered = TRUE)) %>%
+  gather(score, value, -(wave:type)) %>%
+  separate(score, c("ses", "score"), sep = 2) %>%
+  spread(score, value) %>%
+  ggplot(aes(as.factor(wave), mean_math, group = ses, colour = ses)) +
+  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
+  geom_line() +
+  geom_point(size = 0.5) +
+  coord_cartesian(ylim = c(-0.5, 3)) +
+  facet_grid(country ~ type)
+
 # Show table with % increase decrease over time
 # Show plot comparing coefficients of which countries is the top decreasing/increasing faster
 # Get sample size for these calculations
@@ -530,50 +588,44 @@ complete_data_topbottom %>%
 # Poland - no change
 # Spain - no change
 
-## ----graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
-
-# to visualize the gap use the specific read_*, math_* datasets.
-
-math_data %>%
-  spread(test_bound, bound) %>%
-  filter(country %in% countries_subset) %>%
-  ggplot(aes(as.character(wave), score, group = escs_dummy, colour = escs_dummy)) +
-  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.2) +
-  geom_line() +
-  facet_wrap(~ country)
-
 ## ------------------------------------------------------------------------
 # Rate of change
-avg_increase_fun <- function(df, class) {
-m <- math_data %>%
-  spread(test_bound, bound) %>%
-  filter(escs_dummy == class) %>%
-  select(country, wave, score) %>%
-  filter(country %in% countries_subset) %>%
-  split(.$country) %>%
-  map(~ mutate(.,
-               diff = c(diff(score, lag = 1), NA),
-               perc = round(diff / score, 2) * 100,
-               perc_pos = mean(perc > 0, na.rm = T)))
 
-data_ready <-
-  m %>%
-  enframe() %>%
-  unnest(value)
+  
+avg_increase_fun <- function(df, class) {
 
 # Average standard deviation increase
-  data_ready %>%
-  group_by(country) %>%
-  summarize(avg_diff = mean(diff, na.rm = T))
+  data_ready <-
+    df %>%
+    select(wave, country, type_test, contains("mean_math")) %>%
+    gather(metric, value, -(wave:type_test)) %>%
+    separate(metric, c("ses", "test"), sep = 2) %>%
+    spread(test, value) %>%
+    mutate(ses = gsub("_", "", ses)) %>%
+    filter(type_test == "math", ses == class) %>%
+    split(.$country) %>%
+    map(~ mutate(.,
+                 diff = c(diff(mean_math, lag = 1), NA),
+                 perc = round(diff / mean_math, 2) * 100,
+                 perc_pos = mean(perc > 0, na.rm = T))) %>%
+    enframe() %>%
+    unnest(value) %>%
+    group_by(country) %>%
+    summarize(avg_diff = mean(diff, na.rm = T))
+  
+  data_ready
 }
 
-avg_sd_increase_high <- avg_increase_fun(math_data, 1)
-avg_sd_increase_low <- avg_increase_fun(math_data, 0)
+avg_sd_increase_high <- avg_increase_fun(complete_data_topbottom, 1)
+avg_sd_increase_low <- avg_increase_fun(complete_data_topbottom, 0)
 
-full_data <- left_join(avg_sd_increase_high, avg_sd_increase_low, by = "country")
-colnames(full_data) <- c("country", "high_increase", "low_increase")
+full_data <-
+  left_join(avg_sd_increase_high, avg_sd_increase_low, by = "country") %>%
+  mutate(continent = ifelse(country %in% c(countries, "France"), "my_cnt", "other_cnt"))
 
-lims <- list(xlim = c(-0.15, 0.20), ylim = c(-0.27, 0.25))
+colnames(full_data) <- c("country", "high_increase", "low_increase", "continent")
+
+lims <- list(xlim = c(-0.15, 0.25), ylim = c(-0.25, 0.25))
 
 rect_data <- tibble(xst = c(lims$xlim[1], 0),
                     xen = c(0.0, lims$xlim[2]),
@@ -581,7 +633,8 @@ rect_data <- tibble(xst = c(lims$xlim[1], 0),
                     yen = c(lims$ylim[2], 0),
                     colour = c("red", "green"))
 
-ggplot(full_data, aes(low_increase, high_increase)) +
+full_data %>%
+  ggplot(aes(low_increase, high_increase), alpha = 0.2) +
   geom_rect(data = rect_data, aes(xmin = xst,
                                   xmax = xen,
                                   ymin = yst,
@@ -589,16 +642,19 @@ ggplot(full_data, aes(low_increase, high_increase)) +
             fill = rect_data$colour,
             alpha = 0.2,
             inherit.aes = FALSE) +
-  geom_smooth(colour = "blue", method = "lm", se = F) +
-  geom_point() +
-  geom_text_repel(aes(label = country)) +
+  geom_line(stat="smooth", method = "lm", se = FALSE, alpha = 0.2, colour = "blue", size = 1) +
+  geom_point(alpha = 0.2) +
+  geom_point(data = filter(full_data, continent == "my_cnt"), colour = "red", alpha = 0.7) +
+  geom_text_repel(data = filter(full_data, continent == "my_cnt"), aes(label = country), box.padding = unit(2.7, "lines")) +
   geom_vline(xintercept = 0, alpha = 0.5) +
   geom_hline(yintercept = 0, alpha = 0.5) +
-  coord_cartesian(xlim = lims$xlim, ylim = lims$ylim, expand = FALSE) +
-  annotate(geom = "text", x = 0.05, y = -0.2, label = "Gap is closing", fontface = 2, size = 5) +
-  annotate(geom = "text", x = -0.05, y = 0.20, label = "Gap is increasing", fontface = 2, size = 5) +
+  xlim(lims$xlim) +
+  ylim(lims$ylim) +
+  coord_cartesian(expand = FALSE) +
+  annotate(geom = "text", x = 0.15, y = -0.2, label = "Low SES are catching up \n faster than High SES", fontface = 2, size = 3) +
+  annotate(geom = "text", x = -0.1, y = 0.20, label = "High SES are increasing  \n faster than Low SES", fontface = 2, size = 3) +
   labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
-  theme_pub()
+  theme_minimal()
 
 ## ------------------------------------------------------------------------
 
