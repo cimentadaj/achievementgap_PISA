@@ -37,7 +37,7 @@ opts_chunk$set(echo = F,
                results = 'asis')
 @
 
-<<packages_conf, echo = F>>=
+<<default_conf>>=
   library(knitr)
   library(arm)
   library(saves)
@@ -57,6 +57,7 @@ opts_chunk$set(echo = F,
   library(lme4)
   library(modelr)
   library(tidyverse)
+  library(ggrepel)
   
   # source("./transform_data.R")
 
@@ -72,32 +73,53 @@ opts_chunk$set(echo = F,
                                           weights = "BRR",
                                           replication_scheme = 'pisa')
   )
-
+  
+  countries <- c("Australia",
+                 "Germany",
+                 "Denmark",
+                 "Spain",
+                 "France",
+                 "Italy",
+                 "Netherlands",
+                 "Sweden",
+                 "Finland",
+                 "United States",
+                 "United Kingdom")
 @
+
+
 
 \tableofcontents
 
 \section{Analysis}
 
-<<loading_data-recoding>>=
+<<loading_data-recoding, cache = TRUE>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
 
 years <- seq(2000, 2015, 3)
-countries <- c("Germany", "United States", "Denmark", "Sweden", "United Kingdom",
-                 "Spain", "Italy", "Canada", "Australia")
   
 db <- paste0("pisa", years)
 pisa_all2$value <- map2(pisa_all2$value, db, ~ { .x$wave <- .y; .x})
 pisa_all2$value[[1]]$CNT <- pisa_all2$value[[1]]$COUNTRY
   
 pisa_all2$value <- map(pisa_all2$value, ~ {
+  
+# 2000 to 2015
+# The coding is from 0 to 6, where 0 is no schooling and 6 is
+# BA or above.
+
+# When turning 0:6 to numeric, it becomes 1:7 that's why
+# I recode 8:9 to NA. This, however, didn't work for last two surveys
+  
   .x$father_edu <- car::recode(as.numeric(.x$FISCED), "8:9 = NA")
   .x$mother_edu <- car::recode(as.numeric(.x$MISCED), "8:9 = NA")
   .x$high_edu_broad <- pmax(.x$father_edu, .x$mother_edu)
   .x$country <- pisa_countrynames[as.character(.x$CNT)]
   
   if (any(unique(.x$wave) %in% c("pisa2012", "pisa2015"))) {
+    # These two surveys were from 0:6 so I had to add + 1
+    # so that it equals 1:7 as all other surveys.
     .x$father_edu <- .x$father_edu + 1
     .x$mother_edu <- .x$mother_edu + 1
     .x$high_edu_broad <- .x$high_edu_broad + 1
@@ -112,7 +134,6 @@ reliability_pisa <-
     "2009" = 0.74,
     "2012" = 0.82,
     "2015" = 0.74) # 2015 imputed
-
 @
 
 <<escs_trend, cache = TRUE>>=
@@ -132,7 +153,6 @@ reliability_pisa <-
     mutate(.x, cnt = pisa_countrynames[cnt]) %>%
     rename(country = cnt)
   })
-
 @
 
 <<merge_escs_pisa, cache = TRUE>>=
@@ -173,27 +193,21 @@ reliability_pisa <-
 @
 
 <<functions_for_modelling>>=
-  
+
 # Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
 # for the top educated. If the quantiles can't be estimated, it returns two NA's instead
-quantile_missing <- function(df, weights) {
+quantile_missing <- function(df, weights, probs) {
     
-    df_lower <- filter(df, new_hisced %in% 1)
-    df_upper <- filter(df, new_hisced == 7)
-    
-    
-    quan_lower <- try(Hmisc::wtd.quantile(df_lower$escs_trend,
-                                          weights = df_lower[[weights]],
-                                          probs = c(0.50)))
-    
-    quan_upper <- try(Hmisc::wtd.quantile(df_upper$escs_trend,
-                                    weights = df_upper[[weights]],
-                                    probs = c(0.70)))
-    
-    if (any("try-error" %in% c(class(quan_lower), class(quan_upper)))) {
+    quan <- try(Hmisc::wtd.quantile(
+      df$escs_trend,
+      weights = df[[weights]],
+      probs = probs
+      ))
+
+    if (any("try-error" %in% class(quan))) {
       return(c(NA, NA))
       } else {
-     return(c(quan_lower[1], quan_upper[1]))
+     return(c(quan[1], quan[2]))
     }
 }
   
@@ -204,21 +218,19 @@ quantile_missing <- function(df, weights) {
   
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
-test_diff <- function(df, reliability, test) {
+test_diff <- function(df, reliability, test, probs) {
   
     map2(df, reliability, function(.x, .y) {
       
       conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
       weights_var <- conf$variables$weightFinal
-      
+
       country_split <- split(.x, .x$country)
       
       country_list <- map(country_split, function(country) {
         print(unique(country$country))
         
-        # In some countries the quan can't be estimated because of very few obs.
-        # The function doesn't stop but returns two NA's.
-        quan <- quantile_missing(country, weights_var)
+        quan <- quantile_missing(country, weights_var, probs)
         
         # It's very important to create a variable that returns the number of observations of this dummy
         # For each country. Possibly to weight by the number of observations.
@@ -231,12 +243,15 @@ test_diff <- function(df, reliability, test) {
       .x <-
         enframe(country_list) %>%
         unnest(value)
-      
+
       .x <-
         .x %>%
-        select(wave, matches(paste0("^PV.*", test, "$")), escs_dummy,
-               country, one_of(weights_var),
-               AGE)
+        dplyr::select(wave,
+                      matches(paste0("^PV.*", test, "$")),
+                      escs_dummy,
+                      country,
+                      one_of(weights_var),
+                      AGE)
       
       message(paste(unique(.x$wave), "data ready"))
 
@@ -290,7 +305,31 @@ test_diff <- function(df, reliability, test) {
       results
     })
 }
+
+
+# Adapted from: https://github.com/jtleek/slipper/blob/master/R/slipper.R
+# Returns a tibble with the actual expr + the bootstrapped expr.
+bootstrapper <- function(df, expr, B = 100, n = nrow(df), replacement = TRUE) {
+  bootstrapper_(df, lazyeval::lazy(expr), B, n, replacement)
+}
+
+bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
+  obs_val = lazyeval::lazy_eval(expr, data = df)
+  boot_val = replicate(B, {
+    newdata = sample_n(df, n, replace = replacement)
+    lazyeval::lazy_eval(expr, data = newdata)
+  })
+  out = tibble(type = c("observed", "bootstrap"), 
+               value = c(obs_val, mean(boot_val, na.rm = T)))
+  return(out)
+}
+
+# For example
+# bootstrapper(mtcars, mean(mpg), B = 200)
 @
+
+% This chunk needs to have cache = TRUE once you want to run it for like 2 hours until 
+% the results_* models have been created once and the cache can save them
 
 <<modeling>>=
 adapted_year_data <-
@@ -307,40 +346,37 @@ adapted_year_data <-
       .x
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
 # results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
+# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+
+results_math <- read_rds("./data/delete.Rdata")
+results_read <- read_rds("./data/delete_read.Rdata")
+results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
 # load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
-
 @
 
-<<>>=
-vals <- c("Australia",
-          "Germany",
-          "Denmark",
-          "Spain",
-          "France",
-          "Italy",
-          "Netherlands",
-          "Sweden",
-          "United States")
-# i <- 3
-# vals <- intersect(unique(adapted_year_data[[1]]$country), unique(adapted_year_data[[2]]$country))
+% Figure out how to ouput data frames as latex tables.
+<<sample_size>>=
 
-# while (i < 7) {
-#   vals <- intersect(vals, unique(adapted_year_data[[i]]$country))
-#   i <- i + 1
-# }
-
-sample_size_calc <- function(df, selected = F, cnts) {
-
-if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
-
-
-cnt_to_bind <-
-  map(df, function(df) {
+# Get sample counts for each dummy
+sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
+  
+  stopifnot(selected & !is.null(cnts))
+  
+  if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
+  
+  cnt_to_bind <-
+    map(df, function(df) {
       
       print(unique(df$wave))
       conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
@@ -350,72 +386,35 @@ cnt_to_bind <-
       
       split_df_two <-
         map(split_df, ~ {
-      # In some countries the quan can't be estimated because of very few obs.
-      # The function doesn't stop but returns two NA's.
-      quan <- quantile_missing(.x, weights_var)
+          # In some countries the quan can't be estimated because of very few obs.
+          # The function doesn't stop but returns two NA's.
+          quan <- quantile_missing(.x, weights_var, probs)
+          
+          # It's very important to create a variable that returns the number of observations of this dummy
+          # For each country. Possibly to weight by the number of observations.
+          .x$escs_dummy <-
+            with(.x, case_when(escs_trend >= quan[2] ~ 1,
+                               escs_trend <= quan[1] ~ 0))
+          .x
+        })
+      unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
       
-      # It's very important to create a variable that returns the number of observations of this dummy
-      # For each country. Possibly to weight by the number of observations.
-      .x$escs_dummy <-
-        with(.x, case_when(escs_trend >= quan[2] ~ 1,
-                                  escs_trend <= quan[1] ~ 0))
-      .x
+      unsplit_df %>%
+        count(country, escs_dummy) %>%
+        filter(!is.na(escs_dummy)) %>%
+        left_join(summarize(group_by(unsplit_df, country), total_n = n()), by = "country") %>%
+        mutate(perc = paste0(round(n / total_n * 100, 0), "%")) %>%
+        select(-total_n)
     })
-  unsplit_df <- split_df_two %>% enframe() %>% unnest(value)
-  unsplit_df
-})
-
-selected_cnt <- map(cnt_to_bind, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
-
-full_cnt <- 
-  selected_cnt %>%
-  enframe() %>%
-  unnest(value) %>%
-  mutate(year = as.character(dplyr::recode(.$name,
-                `1` = 2000,
-                `2` = 2003,
-                `3` = 2006,
-                `4` = 2009,
-                `5` = 2012,
-                `6` = 2015)),
-         escs_dummy = as.character(escs_dummy))
-
-sample_size <-
-  full_cnt %>%
-  count(year, country)
-
-high_low_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced) %>%
-  filter(new_hisced %in% c(1, 7)) %>%
-  spread(new_hisced, n) %>%
-  rename(low_isced = `1`, high_isced = `7`)
-
-ses_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced, escs_dummy) %>%
-  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
-  ungroup() %>%
-  select(-new_hisced) %>%
-  spread(escs_dummy, n) %>%
-  rename(low_low_isced = `0`, high__high_isced = `1`)
-
-selected_cnts <-
-  left_join(sample_size, high_low_sample) %>%
-  left_join(ses_sample) %>%
-  arrange(year, country)
-
-selected_cnts
+  setNames(cnt_to_bind, seq(2000, 2015, 3)) %>%
+    enframe() %>%
+    unnest()
 }
 
-selected_cnts <- sample_size_calc(adapted_year_data, vals)  
-xtable::xtable(selected_cnts)
+sample_tables_topbottom <- sample_size_calc(adapted_year_data, c(.1, .9), selected = TRUE, countries)
+sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected = TRUE, countries)
+sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
 @
-
-<<>>=
-all_cnts <- sample_size_calc(adapted_year_data)
-@
-
 
 
 <<>>=
