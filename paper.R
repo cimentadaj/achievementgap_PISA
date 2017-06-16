@@ -35,6 +35,21 @@
                                           replication_scheme = 'pisa')
   )
 
+# Adapted from: https://github.com/jtleek/slipper/blob/master/R/slipper.R
+bootstrapper <- function(df, expr, B = 100, n = nrow(df), replacement = TRUE) {
+  bootstrapper_(df, lazyeval::lazy(expr), B, n, replacement)
+}
+bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
+  obs_val = lazyeval::lazy_eval(expr, data = df)
+  boot_val = replicate(B, {
+    newdata = sample_n(df, n, replace = replacement)
+    lazyeval::lazy_eval(expr, data = newdata)
+  })
+  out = tibble(type = c("observed", "bootstrap"), 
+                   value = c(obs_val, mean(boot_val, na.rm = T)))
+  return(out)
+}
+
 
 ## ----loading_data-recoding-----------------------------------------------
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
@@ -723,18 +738,18 @@ perc_increase_fun <- function(df) {
       year_sd <-
         .x %>%
         gather(year, val, -(country:type_test)) %>%
-        group_by(type_test) %>%
-        summarise(sd_year = mad(val, na.rm = T)) %>%
-        pull(sd_year)
+        split(.$type_test) %>%
+        map_dbl(~ bootstrapper(.x, mad(val, na.rm = T), B = 100) %>% .[[2, 2]]) %>%
+        round(2) * 100
+
       
       .x %>%
-        ungroup() %>%
         transmute(type_test,
                   country,
-                  diff = round(((!!last_year) - (!!first_year)) / (!!first_year) * 100, 1),
+                  perc_diff = round(((!!last_year) - (!!first_year)) / (!!first_year) * 100, 1),
                   sd_year = year_sd,
-                  diff_lower = diff - 1 * year_sd * 100,
-                  diff_upper = diff + 1 * year_sd * 100,
+                  diff_lower = perc_diff - 1 * year_sd,
+                  diff_upper = perc_diff + 1 * year_sd,
                   years_available = years_available)
     })
   data_ready
@@ -742,7 +757,7 @@ perc_increase_fun <- function(df) {
 
 top_bottom_perc <- perc_increase_fun(complete_data_topbottom)
 top_mid_perc <- perc_increase_fun(complete_data_topmid)
-
+mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
 
 # Gap is closing at an average of the variable diff per year.
 
