@@ -48,6 +48,7 @@
                  "United Kingdom")
 
 
+
 ## ----loading_data-recoding-----------------------------------------------
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
@@ -92,6 +93,7 @@ reliability_pisa <-
 
 
 
+
 ## ----escs_trend, cache = TRUE--------------------------------------------
   # Rescaled trend ESCS data to merge.
   # This only has data for seq(2000, 2012, 3) because
@@ -109,6 +111,7 @@ reliability_pisa <-
     mutate(.x, cnt = pisa_countrynames[cnt]) %>%
     rename(country = cnt)
   })
+
 
 
 
@@ -147,6 +150,7 @@ reliability_pisa <-
   pisa_all2$value[[6]] <-
     pisa_all2$value[[6]] %>%
     rename(escs_trend = ESCS)
+
 
 
 ## ----functions_for_modelling---------------------------------------------
@@ -284,6 +288,7 @@ bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
 # bootstrapper(mtcars, mean(mpg), B = 200)
 
 
+
 ## ----modeling, echo = F------------------------------------------------------------
 adapted_year_data <-
     map(pisa_all2$value, ~ {
@@ -316,6 +321,7 @@ results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 
 # Cache is not working properly for the code above, so I just load the saved cached file
 # load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
+
 
 
 ## ----sample_size, echo = F------------------------------------------------------------
@@ -365,6 +371,7 @@ sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
 sample_tables_topbottom <- sample_size_calc(adapted_year_data, c(.1, .9), selected = TRUE, countries)
 sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected = TRUE, countries)
 sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
+
 
 
 ## ----merge_math_read, echo = F------------------------------------------------------------
@@ -523,6 +530,7 @@ complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
 complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
 
 
+
 ## ----correlation_incomeineq, echo = F------------------------------------------------------------
 
 complete_data_topbottom %>%
@@ -549,6 +557,7 @@ complete_data_topbottom %>%
   ggplot(aes(avg_value, avg_diff)) +
   geom_point() +
   geom_smooth(method = "lm", formula = y ~ splines::ns(x, 2), linetype = "longdash", se = F)
+
 
 
 ## ----graphing_gaps, echo = F------------------------------------------------------------
@@ -626,6 +635,7 @@ complete_data_topbottom %>%
 # Spain - no change
 
 
+
 ## ----rate_change, echo = F------------------------------------------------------------
 
 df <- complete_data_topbottom
@@ -679,6 +689,7 @@ avg_sd_increase_high <- avg_increase_fun(complete_data_topbottom, 1)
 avg_sd_increase_low <- avg_increase_fun(complete_data_topbottom, 0)
 
 
+
 ## ----rate_change_graph, echo = F------------------------------------------------------------
 
 full_data <-
@@ -717,6 +728,7 @@ full_data %>%
   annotate(geom = "text", x = -0.05, y = 0.20, label = "High SES are increasing  \n faster than Low SES", fontface = 2, size = 3) +
   labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
   theme_minimal()
+
 
 
 
@@ -775,6 +787,7 @@ top_mid_perc <- perc_increase_fun(complete_data_topmid)
 mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
 
 # Gap is closing at an average of the variable diff per year.
+
 
 
 
