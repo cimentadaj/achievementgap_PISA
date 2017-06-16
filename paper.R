@@ -1,4 +1,4 @@
-## ----packages_conf, echo = F---------------------------------------------
+## ----default_conf, echo = F---------------------------------------------
   library(knitr)
   library(arm)
   library(saves)
@@ -34,14 +34,25 @@
                                           weights = "BRR",
                                           replication_scheme = 'pisa')
   )
+  
+  countries <- c("Australia",
+                 "Germany",
+                 "Denmark",
+                 "Spain",
+                 "France",
+                 "Italy",
+                 "Netherlands",
+                 "Sweden",
+                 "Finland",
+                 "United States",
+                 "United Kingdom")
+
 
 ## ----loading_data-recoding-----------------------------------------------
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
 
 years <- seq(2000, 2015, 3)
-countries <- c("Germany", "United States", "Denmark", "Sweden", "United Kingdom",
-                 "Spain", "Italy", "Canada", "Australia")
   
 db <- paste0("pisa", years)
 pisa_all2$value <- map2(pisa_all2$value, db, ~ { .x$wave <- .y; .x})
@@ -80,6 +91,7 @@ reliability_pisa <-
     "2015" = 0.74) # 2015 imputed
 
 
+
 ## ----escs_trend, cache = TRUE--------------------------------------------
   # Rescaled trend ESCS data to merge.
   # This only has data for seq(2000, 2012, 3) because
@@ -97,6 +109,7 @@ reliability_pisa <-
     mutate(.x, cnt = pisa_countrynames[cnt]) %>%
     rename(country = cnt)
   })
+
 
 
 ## ----merge_escs_pisa, cache = TRUE---------------------------------------
@@ -134,6 +147,7 @@ reliability_pisa <-
   pisa_all2$value[[6]] <-
     pisa_all2$value[[6]] %>%
     rename(escs_trend = ESCS)
+
 
 ## ----functions_for_modelling---------------------------------------------
 
@@ -249,7 +263,28 @@ test_diff <- function(df, reliability, test, probs) {
     })
 }
 
-## ----modeling------------------------------------------------------------
+
+# Adapted from: https://github.com/jtleek/slipper/blob/master/R/slipper.R
+# Returns a tibble with the actual expr + the bootstrapped expr.
+bootstrapper <- function(df, expr, B = 100, n = nrow(df), replacement = TRUE) {
+  bootstrapper_(df, lazyeval::lazy(expr), B, n, replacement)
+}
+bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
+  obs_val = lazyeval::lazy_eval(expr, data = df)
+  boot_val = replicate(B, {
+    newdata = sample_n(df, n, replace = replacement)
+    lazyeval::lazy_eval(expr, data = newdata)
+  })
+  out = tibble(type = c("observed", "bootstrap"), 
+               value = c(obs_val, mean(boot_val, na.rm = T)))
+  return(out)
+}
+
+# For example
+# bootstrapper(mtcars, mean(mpg), B = 200)
+
+
+## ----modeling, echo = F------------------------------------------------------------
 adapted_year_data <-
     map(pisa_all2$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
@@ -279,10 +314,17 @@ results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
 results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
+# Cache is not working properly for the code above, so I just load the saved cached file
+# load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
+
+
+## ----sample_size, echo = F------------------------------------------------------------
+
 # Get sample counts for each dummy
 sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
   
-  stopifnot(selected & !is.null(NULL))
+  stopifnot(selected & !is.null(cnts))
+  
   if (selected) df <- map(df, ~ filter(.x, country %in% cnts))
   
   cnt_to_bind <-
@@ -320,34 +362,26 @@ sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
     enframe() %>%
     unnest()
 }
-sample_tables <- sample_size_calc(adapted_year_data, c(.1, .9), selected = TRUE, countries)
+sample_tables_topbottom <- sample_size_calc(adapted_year_data, c(.1, .9), selected = TRUE, countries)
+sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected = TRUE, countries)
+sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
 
-# Cache is not working properly for the code above, so I just load the saved cached file
-# load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
 
+## ----merge_math_read, echo = F------------------------------------------------------------
 
-## ------------------------------------------------------------------------
-countries_subset <- c("Australia",
-          "Germany",
-          "Denmark",
-          "Spain",
-          "France",
-          "Italy",
-          "Netherlands",
-          "Sweden",
-          "Finland",
-          "United States",
-          "United Kingdom")
+# Function does a lot of things, but in short,
 
-## ----eval = F------------------------------------------------------------
-# In this chunk you can join reading and math datasets
+# Calculate the difference between the gap and together with it's joint s.e
+# Also uncertainty intervals and returns a tibble with the difference between
+# SES gaps with the adjusted SE difference + uncertainty intervals + the original
+# data (the absolute numbers before the differences)
 
 pisa_preparer <- function(df_math, df_read) {
 
 descrip_math <- map(df_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
 descrip_read <- map(df_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
 
-## -- correlation with indicators --------
+
 reduced_data_math <-
   map2(descrip_math, years, function(.x, .y) {
     .x %>%
@@ -373,38 +407,7 @@ reduced_data_read <-
 reduced_data <- left_join(reduced_data_math,
                           reduced_data_read, by = c("country", "escs_dummy", "wave"))
 
-# reduced_data %>%
-#   dplyr::select(country, wave, escs_dummy, mean_math) %>%
-#   spread(escs_dummy, mean_math) %>%
-#   transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
-#   left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
-#   filter(indicators == "GINI") %>%
-#   group_by(country) %>%
-#   summarize(avg_diff = mean(avg_diff, na.rm = T),
-#             avg_value = mean(value, na.rm = T)) %>%
-#   ggplot(aes(avg_value, avg_diff)) +
-#   geom_point() +
-#   geom_smooth(method = "lm")
-# 
-# 
-# # But if I eclude some outliers, the relationship is non linear
-# reduced_data %>%
-#   select(country, wave, escs_dummy, mean_math) %>%
-#   spread(escs_dummy, mean_math) %>%
-#   transmute(country, wave = as.character(wave), avg_diff = `1` - `0`) %>%
-#   left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
-#   filter(indicators == "GINI") %>%
-#   group_by(country) %>%
-#   summarize(avg_diff = mean(avg_diff, na.rm = T),
-#             avg_value = mean(value, na.rm = T),
-#             high_value = avg_value > 0.3) %>%
-#   filter(avg_diff <= 2.7) %>%
-#   ggplot(aes(avg_value, avg_diff, colour = high_value)) +
-#   geom_point() +
-#   geom_smooth(method = "lm")
-
-## ----ci_for_difference---------------------------------------------------
-
+# Merging math and reading data
 test_data <-
   reduced_data %>%
   select(country, wave, escs_dummy, contains("mean")) %>%
@@ -426,8 +429,7 @@ read_data <-
 
 all_data <- bind_rows(math_data, read_data)
 
-## ------------------------------------------------------------------------
-# Calculate the joint standard error of the different
+# Calculate the joint standard error of the difference
 math_se_data <-
   reduced_data %>%
   select(country, escs_dummy, wave, se_math) %>%
@@ -444,9 +446,6 @@ read_se_data <-
 
 se_data <- left_join(math_se_data, read_se_data)
 
-
-## ----include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'----
-
 # Calculate the different between the gap and together with it's joint s.e graph
 # the absolut difference.
 
@@ -461,14 +460,6 @@ read_diff <-
   select(wave, country, escs_dummy, mean_read) %>%
   spread(escs_dummy, mean_read) %>%
   transmute(wave, country, diff_read = `1` - `0`)
-
-
-# data_summaries <-
-#   math_diff %>%
-#   left_join(math_se_data) %>%
-#   transmute(wave, country, diff_math,
-#             lower_math = diff_math - 1.96 * se_diff_math,
-#             upper_math = diff_math + 1.96 * se_diff_math)
 
 data_summaries <-
   math_diff %>%
@@ -486,32 +477,17 @@ differences <-
   gather(test, difference, starts_with("diff")) %>%
   mutate(type_test = ifelse(.$test == "diff_math", "math", "read"))
 
-# differences <-
-#   data_summaries %>%
-#   select(wave, country, diff_math) %>%
-#   gather(test, difference, starts_with("diff"))
-
 bounds_lower <-
   data_summaries %>%
   select(wave, country, contains("lower")) %>%
   gather(lower_bound, lower, lower_math, lower_read) %>%
   mutate(type_test = ifelse(grepl("math", .$lower_bound), "math", "read"))
 
-# bounds_lower <-
-#   data_summaries %>%
-#   select(wave, country, contains("lower")) %>%
-#   gather(lower_bound, lower, lower_math)
-
 bounds_upper <-
   data_summaries %>%
   select(wave, country, contains("upper")) %>%
   gather(upper_bound, upper, upper_math, upper_read) %>%
   mutate(type_test = ifelse(grepl("math", .$upper_bound), "math", "read"))
-
-# bounds_upper <-
-#   data_summaries %>%
-#   select(wave, country, contains("upper")) %>%
-#   gather(upper_bound, upper, upper_math)
 
 # Getting the original data in
 original_math <-
@@ -546,6 +522,36 @@ complete_data_topbottom <- mutate(complete_data_topbottom, type = "90th/10th SES
 complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
 complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
 
+
+## ----correlation_incomeineq, echo = F------------------------------------------------------------
+
+complete_data_topbottom %>%
+  mutate(wave = as.character(wave)) %>%
+  left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
+  filter(indicators == "GINI") %>%
+  group_by(country) %>%
+  summarize(avg_diff = mean(difference, na.rm = T),
+            avg_value = mean(value, na.rm = T)) %>%
+  filter(avg_value < 8) %>%
+  ggplot(aes(avg_value, avg_diff)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ splines::ns(x, 2), linetype = "longdash", se = F)
+
+
+complete_data_topbottom %>%
+  mutate(wave = as.character(wave)) %>%
+  left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
+  filter(indicators == "P90P10") %>%
+  group_by(country) %>%
+  summarize(avg_diff = mean(difference, na.rm = T),
+            avg_value = mean(value, na.rm = T)) %>%
+  filter(avg_value < 8) %>%
+  ggplot(aes(avg_value, avg_diff)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ splines::ns(x, 2), linetype = "longdash", se = F)
+
+
+## ----graphing_gaps, echo = F------------------------------------------------------------
 
 # 90/10 gaps acros countries
 complete_data_topbottom %>%
@@ -595,8 +601,6 @@ complete_data_topbottom %>%
   coord_cartesian(ylim = c(-0.5, 3)) +
   facet_grid(country ~ type)
 
-# Show table with % increase decrease over time
-
 # Increase:  
 # Sweden - steady increase in both tests
 # Austria - increase in math - slight increase in read
@@ -621,10 +625,12 @@ complete_data_topbottom %>%
 # Poland - no change
 # Spain - no change
 
-## ------------------------------------------------------------------------
-# Rate of change
 
-  
+## ----rate_change, echo = F------------------------------------------------------------
+
+df <- complete_data_topbottom
+class <- 1
+
 avg_increase_fun <- function(df, class) {
 
 # Average standard deviation increase
@@ -643,18 +649,41 @@ avg_increase_fun <- function(df, class) {
                  perc_pos = mean(perc > 0, na.rm = T))) %>%
     enframe() %>%
     unnest(value) %>%
-    group_by(country) %>%
-    summarize(avg_diff = mean(diff, na.rm = T))
+    split(.$country)
   
-  data_ready
+    map2(data_ready, names(data_ready), ~ {
+
+      print(.y)
+      
+      mean_df <-
+        bootstrapper(.x, mean(diff, na.rm = T), B = 500) %>%
+        filter(type == "bootstrap") %>%
+        rename(mean = value)
+
+      sd_df <-
+        bootstrapper(.x, sd(diff, na.rm = T), B = 500) %>%
+        filter(type == "bootstrap") %>%
+        rename(sd = value)
+      
+      suppressMessages(
+        left_join(mean_df, sd_df) %>%
+        mutate(lower_bound = mean - 1 * sd,
+               upper_bound = mean + 1 * sd)
+      )
+    }) %>%
+    enframe() %>%
+    unnest(value)
 }
 
 avg_sd_increase_high <- avg_increase_fun(complete_data_topbottom, 1)
 avg_sd_increase_low <- avg_increase_fun(complete_data_topbottom, 0)
 
+
+## ----rate_change_graph, echo = F------------------------------------------------------------
+
 full_data <-
   left_join(avg_sd_increase_high, avg_sd_increase_low, by = "country") %>%
-  mutate(continent = ifelse(country %in% c(countries, "France"), "my_cnt", "other_cnt"))
+  mutate(continent = ifelse(country %in% countries, "my_cnt", "other_cnt"))
 
 colnames(full_data) <- c("country", "high_increase", "low_increase", "continent")
 
@@ -685,11 +714,13 @@ full_data %>%
   ylim(lims$ylim) +
   coord_cartesian(expand = FALSE) +
   annotate(geom = "text", x = 0.15, y = -0.2, label = "Low SES are catching up \n faster than High SES", fontface = 2, size = 3) +
-  annotate(geom = "text", x = -0.1, y = 0.20, label = "High SES are increasing  \n faster than Low SES", fontface = 2, size = 3) +
+  annotate(geom = "text", x = -0.05, y = 0.20, label = "High SES are increasing  \n faster than Low SES", fontface = 2, size = 3) +
   labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
   theme_minimal()
 
-## ------------------------------------------------------------------------
+
+
+## ----perc_increase_tables, echo = F------------------------------------------------------------
 
 # Show the rates at which is increasing/decreasing
 perc_increase_fun <- function(df) {
@@ -745,7 +776,9 @@ mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
 
 # Gap is closing at an average of the variable diff per year.
 
-## ------------------------------------------------------------------------
+
+
+## ----next_steps, echo = F------------------------------------------------------------
 # Next steps:
 
 # Continue by doing the multilevel models to see what explains what. Include
