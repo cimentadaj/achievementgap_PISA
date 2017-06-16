@@ -49,6 +49,7 @@
 
 
 
+  
 ## ----loading_data-recoding-----------------------------------------------
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
@@ -90,6 +91,7 @@ reliability_pisa <-
     "2009" = 0.74,
     "2012" = 0.82,
     "2015" = 0.74) # 2015 imputed
+
 
 
 
@@ -376,7 +378,7 @@ sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), select
 
 ## ----merge_math_read, echo = F------------------------------------------------------------
 
-# Function does a lot of things, but in short,
+# Function does a lot of things, but in short:
 
 # Calculate the difference between the gap and together with it's joint s.e
 # Also uncertainty intervals and returns a tibble with the difference between

@@ -48,12 +48,12 @@ opts_chunk$set(echo = F,
   library(PISA2009lite)
   library(PISA2012lite)
   library(intsvy)
-  library(cimentadaj) # For pisa_countrynames
+  library(cimentadaj) # # devtools::install_github("cimentadaj/cimentadaj")
   library(countrycode) # For region variable
   library(car)
   library(readr)
   library(SAScii)
-  library(inequalityintsvy)
+  library(inequalityintsvy) # devtools::install_github("cimentadaj/inequalityintsvy")
   library(lme4)
   library(modelr)
   library(tidyverse)
@@ -86,8 +86,6 @@ opts_chunk$set(echo = F,
                  "United States",
                  "United Kingdom")
 @
-
-
 
 \tableofcontents
 
@@ -416,119 +414,232 @@ sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected 
 sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
 @
 
+<<merge_math_read>>=
 
-<<>>=
-selected_cnt <- map(adapted_year_data, ~ select(.x, country, high_edu_broad, new_hisced, escs_dummy))
+# Function does a lot of things, but in short:
 
-full_cnt <- 
-  selected_cnt %>%
-  enframe() %>%
-  unnest(value) %>%
-  mutate(year = as.character(dplyr::recode(.$name,
-                `1` = 2000,
-                `2` = 2003,
-                `3` = 2006,
-                `4` = 2009,
-                `5` = 2012,
-                `6` = 2015)),
-         escs_dummy = as.character(escs_dummy))
+# Calculate the difference between the gap and together with it's joint s.e
+# Also uncertainty intervals and returns a tibble with the difference between
+# SES gaps with the adjusted SE difference + uncertainty intervals + the original
+# data (the absolute numbers before the differences)
 
-sample_size <-
-  full_cnt %>%
-  count(year, country)
+pisa_preparer <- function(df_math, df_read) {
 
-high_low_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced) %>%
-  filter(new_hisced %in% c(1, 7)) %>%
-  spread(new_hisced, n) %>%
-  rename(low_isced = `1`, high_isced = `7`)
+descrip_math <- map(df_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
+descrip_read <- map(df_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
 
-ses_sample <-
-  full_cnt %>%
-  count(year, country, new_hisced, escs_dummy) %>%
-  filter(new_hisced == 7 & escs_dummy != 0 | new_hisced == 1 & escs_dummy != 1) %>%
-  ungroup() %>%
-  select(-new_hisced) %>%
-  spread(escs_dummy, n) %>%
-  rename(low_low_isced = `0`, high__high_isced = `1`)
 
-selected_cnts <-
-  left_join(sample_size, high_low_sample) %>%
-  left_join(ses_sample) %>%
-  arrange(year, country)
+reduced_data_math <-
+  map2(descrip_math, years, function(.x, .y) {
+    .x %>%
+      mutate(wave = .y) %>%
+      filter(!is.na(escs_dummy))
+  }) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  mutate(lower_math = mean_math - 1.96 * se_math,
+         upper_math = mean_math + 1.96 * se_math)
 
-@
+reduced_data_read <-
+  map2(descrip_read, years, function(.x, .y) {
+    .x %>%
+      mutate(wave = .y) %>%
+      filter(!is.na(escs_dummy))
+  }) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  mutate(lower_read = mean_read - 1.96 * se_read,
+         upper_read = mean_read + 1.96 * se_read)
 
-<<eval = F>>=
-# In this chunk you can join reading and math datasets
-descrip_math <- map(results_math, ~ rename(.x, mean_math = Mean, se_math = s.e.))
-descrip_read <- map(results_read, ~ rename(.x, mean_read = Mean, se_read = s.e.))
+reduced_data <- left_join(reduced_data_math,
+                          reduced_data_read, by = c("country", "escs_dummy", "wave"))
 
-map2(results_math, results_read, inner_join, by = "country")
-@
+# Merging math and reading data
+test_data <-
+  reduced_data %>%
+  select(country, wave, escs_dummy, contains("mean")) %>%
+  gather(test, score, contains("mean"))
 
-<<ci_for_difference>>=
-reduced_data <-
-    map2(results_math, years, function(.x, .y) {
-      .x %>%
-        mutate(wave = .y) %>%
-        filter(!is.na(escs_dummy))
-    }) %>%
-    bind_rows() %>%
-    mutate(lower = Mean - 1.96 * s.e.,
-           upper = Mean + 1.96 * s.e.)
-@
+math_data <-
+  reduced_data %>%
+  select(country, wave, escs_dummy, contains("math")) %>%
+  gather(test_bound, bound, contains("lower"), contains("upper")) %>%
+  select(-contains("math")) %>%
+  right_join(filter(test_data, test == "mean_math"))
 
-<<graphin differences, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
-reduced_data %>%
-    filter(country %in% c("United Kingdom")) %>%
-    ggplot(aes(as.character(wave), Mean, group = escs_dummy, colour = escs_dummy)) +
-    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
-    geom_line() +
-    facet_wrap(~ country)
-@
+read_data <-
+  reduced_data %>%
+  select(country, wave, escs_dummy, contains("read")) %>%
+  gather(test_bound, bound, contains("lower"), contains("upper")) %>%
+  select(-contains("read")) %>%
+  right_join(filter(test_data, test == "mean_read"))
 
-<<>>=
-# Calculate the joint standard error of the different
-  se_data <-
-    reduced_data %>%
-    select(country, escs_dummy, wave, s.e.) %>%
-    spread(escs_dummy, s.e.) %>%
+all_data <- bind_rows(math_data, read_data)
+
+# Calculate the joint standard error of the difference
+math_se_data <-
+  reduced_data %>%
+  select(country, escs_dummy, wave, se_math) %>%
+  spread(escs_dummy, se_math) %>%
     transmute(country, wave,
-              se_diff = sqrt(abs(`1`^2 - `0`^2)))
+              se_diff_math = sqrt(abs(`1`^2 - `0`^2)))
 
-@
+read_se_data <-
+  reduced_data %>%
+  select(country, escs_dummy, wave, se_read) %>%
+  spread(escs_dummy, se_read) %>%
+  transmute(country, wave,
+            se_diff_read = sqrt(abs(`1`^2 - `0`^2)))
 
-<<include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+se_data <- left_join(math_se_data, read_se_data)
 
 # Calculate the different between the gap and together with it's joint s.e graph
 # the absolut difference.
-  
-countries <- c("Chile", "Austria", "Belgium", "Canada", "Czech Republic", "Denmark",
-                 "Finland", "France", "Germany", "Italy", "Japan", "Netherlands", "Norway",
-                 "Poland", "Spain", "Sweden", "United Kingdom", "United States")
 
-reduced_data %>%
-    select(country, escs_dummy, Mean, wave) %>%
-    spread(key = escs_dummy, value = Mean) %>%
-    mutate(diff = `1` - `0`) %>%
-    gather(escs_dummy, Mean, -country, -wave, -`1`, -`0`) %>%
-    left_join(se_data) %>%
-    mutate(continent = countrycode(country, "country.name", "continent"),
-           region = countrycode(country, "country.name", "region"),
-           lower = Mean - 1.96 * se_diff,
-           upper = Mean + 1.96 * se_diff) %>%
-    filter(!is.na(continent), !is.na(region), country %in% vals) %>%
-    ggplot(aes(as.factor(wave), Mean, group = country, colour = country)) +
-    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
-    geom_line() +
-    geom_point(size = 0.5) +
-    scale_colour_discrete(guide = F) +
-    # geom_smooth(aes(group = region), colour = "blue", method = "lm") +
-    coord_cartesian(ylim = c(0, 4)) +
-    facet_wrap(~ country) +
-    ggtitle("math")
+math_diff <-
+  reduced_data %>%
+  select(wave, country, escs_dummy, mean_math) %>%
+  spread(escs_dummy, mean_math) %>%
+  transmute(wave, country, diff_math = `1` - `0`)
+
+read_diff <-
+  reduced_data %>%
+  select(wave, country, escs_dummy, mean_read) %>%
+  spread(escs_dummy, mean_read) %>%
+  transmute(wave, country, diff_read = `1` - `0`)
+
+data_summaries <-
+  math_diff %>%
+  left_join(read_diff) %>%
+  left_join(se_data) %>%
+  transmute(wave, country, diff_math, diff_read,
+           lower_math = diff_math - 1.96 * se_diff_math,
+           lower_read = diff_read - 1.96 * se_diff_read,
+           upper_math = diff_math + 1.96 * se_diff_math,
+           upper_read = diff_read + 1.96 * se_diff_read)
+
+differences <-
+  data_summaries %>%
+  select(wave, country, diff_math, diff_read) %>%
+  gather(test, difference, starts_with("diff")) %>%
+  mutate(type_test = ifelse(.$test == "diff_math", "math", "read"))
+
+bounds_lower <-
+  data_summaries %>%
+  select(wave, country, contains("lower")) %>%
+  gather(lower_bound, lower, lower_math, lower_read) %>%
+  mutate(type_test = ifelse(grepl("math", .$lower_bound), "math", "read"))
+
+bounds_upper <-
+  data_summaries %>%
+  select(wave, country, contains("upper")) %>%
+  gather(upper_bound, upper, upper_math, upper_read) %>%
+  mutate(type_test = ifelse(grepl("math", .$upper_bound), "math", "read"))
+
+# Getting the original data in
+original_math <-
+  reduced_data_math %>%
+  select(wave, everything(), -se_math) %>%
+  gather(metric, value, -(wave:escs_dummy)) %>%
+  unite(combination, escs_dummy, metric, sep = "_") %>%
+  spread(combination, value) %>%
+  mutate(type_test = "math")
+
+original_read <-
+  reduced_data_read %>%
+  select(wave, everything(), -se_read) %>%
+  gather(metric, value, -(wave:escs_dummy)) %>%
+  unite(combination, escs_dummy, metric, sep = "_") %>%
+  spread(combination, value) %>%
+  mutate(type_test = "read")
+
+# final data
+complete_data <-
+  left_join(differences, bounds_lower) %>%
+  left_join(bounds_upper) %>%
+  left_join(original_math) %>%
+  left_join(original_read)
+}
+
+complete_data_topbottom <- pisa_preparer(results_math, results_read)
+complete_data_topmid <- pisa_preparer(results_math_topmid, results_read_topmid)
+complete_data_midbottom <- pisa_preparer(results_math_midbottom, results_read_midbottom)
+
+complete_data_topbottom <- mutate(complete_data_topbottom, type = "90th/10th SES gap")
+complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
+complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
+@
+
+<<correlation_incomeineq, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+complete_data_topbottom %>%
+  mutate(wave = as.character(wave)) %>%
+  left_join(inequalityintsvy::economic_inequality, by = c("wave" = "year", "country")) %>%
+  filter(indicators == "GINI") %>%
+  group_by(country) %>%
+  summarize(avg_diff = mean(difference, na.rm = T),
+            avg_value = mean(value, na.rm = T)) %>%
+  filter(avg_value < 8) %>%
+  ggplot(aes(avg_value, avg_diff)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ splines::ns(x, 2), linetype = "longdash", se = F)
+@
+
+
+<<graphing_9010gaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+
+# 90/10 gaps acros countries
+complete_data_topbottom %>%
+  filter(country %in% c("United States", "Netherlands", "France",
+                        "Germany", "Poland", "Finland")) %>%
+  ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
+  geom_line() +
+  geom_point(size = 0.5) +
+  coord_cartesian(ylim = c(-0.5, 3)) +
+  facet_wrap(~ country)
+@
+
+<<graphing_allgaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+
+# Comparing all gaps across countries
+complete_data_topbottom %>%
+  bind_rows(complete_data_topmid) %>%
+  bind_rows(complete_data_midbottom) %>%
+  filter(country %in% c("United States", "Denmark", "France")) %>%
+  mutate(type = factor(type,
+                       levels = c("90th/10th SES gap", "90th/50th SES gap", "50th/10th SES gap"),
+                       ordered = TRUE)) %>%
+  ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
+  geom_line() +
+  geom_point(size = 0.5) +
+  coord_cartesian(ylim = c(-0.5, 3)) +
+  facet_grid(country ~ type)
+@
+
+<<graphing_ses_growth, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+# Graphing how the top/bottom are evolving over time instead of absolute difference
+
+complete_data_topbottom %>%
+  bind_rows(complete_data_topmid) %>%
+  bind_rows(complete_data_midbottom) %>%
+  filter(country %in% c("Germany", "Denmark", "France"), type_test == "math") %>%
+  select(wave, country, type_test, type, contains("math")) %>%
+  mutate(type = factor(type,
+                       levels = c("90th/10th SES gap", "90th/50th SES gap", "50th/10th SES gap"),
+                       ordered = TRUE)) %>%
+  gather(score, value, -(wave:type)) %>%
+  separate(score, c("ses", "score"), sep = 2) %>%
+  spread(score, value) %>%
+  ggplot(aes(as.factor(wave), mean_math, group = ses, colour = ses)) +
+  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.1) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
+  geom_line() +
+  geom_point(size = 0.5) +
+  coord_cartesian(ylim = c(-0.5, 3)) +
+  facet_grid(country ~ type)
 
 # Increase:  
 # Sweden - steady increase in both tests
@@ -553,20 +664,165 @@ reduced_data %>%
 # Norway - no change
 # Poland - no change
 # Spain - no change
-
 @
 
-<<>>=
+% How to output data frames are latex tables?
+<<rate_change>>=
+
+avg_increase_fun <- function(df, class) {
+
+# Average standard deviation increase
+  data_ready <-
+    df %>%
+    select(wave, country, type_test, contains("mean_math")) %>%
+    gather(metric, value, -(wave:type_test)) %>%
+    separate(metric, c("ses", "test"), sep = 2) %>%
+    spread(test, value) %>%
+    mutate(ses = gsub("_", "", ses)) %>%
+    filter(type_test == "math", ses == class) %>%
+    split(.$country) %>%
+    map(~ mutate(.,
+                 diff = c(diff(mean_math, lag = 1), NA),
+                 perc = round(diff / mean_math, 2) * 100,
+                 perc_pos = mean(perc > 0, na.rm = T))) %>%
+    enframe() %>%
+    unnest(value) %>%
+    split(.$country)
+  
+    map2(data_ready, names(data_ready), ~ {
+
+      print(.y)
+      
+      mean_df <-
+        bootstrapper(.x, mean(diff, na.rm = T), B = 500) %>%
+        filter(type == "bootstrap") %>%
+        rename(mean = value)
+
+      sd_df <-
+        bootstrapper(.x, sd(diff, na.rm = T), B = 500) %>%
+        filter(type == "bootstrap") %>%
+        rename(sd = value)
+      
+      suppressMessages(
+        left_join(mean_df, sd_df) %>%
+        mutate(lower_bound = mean - 1 * sd,
+               upper_bound = mean + 1 * sd)
+      )
+    }) %>%
+    enframe() %>%
+    unnest(value)
+}
+
+avg_sd_increase_high <- avg_increase_fun(complete_data_topbottom, 1)
+avg_sd_increase_low <- avg_increase_fun(complete_data_topbottom, 0)
+@
+
+<<rate_change_graph, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+
+full_data <-
+  left_join(avg_sd_increase_high, avg_sd_increase_low, by = "country") %>%
+  mutate(continent = ifelse(country %in% countries, "my_cnt", "other_cnt"))
+
+colnames(full_data) <- c("country", "high_increase", "low_increase", "continent")
+
+lims <- list(xlim = c(-0.15, 0.25), ylim = c(-0.25, 0.25))
+
+rect_data <- tibble(xst = c(lims$xlim[1], 0),
+                    xen = c(0.0, lims$xlim[2]),
+                    yst = c(0.0, lims$ylim[1]),
+                    yen = c(lims$ylim[2], 0),
+                    colour = c("red", "green"))
+
+full_data %>%
+  ggplot(aes(low_increase, high_increase), alpha = 0.2) +
+  geom_rect(data = rect_data, aes(xmin = xst,
+                                  xmax = xen,
+                                  ymin = yst,
+                                  ymax = yen),
+            fill = rect_data$colour,
+            alpha = 0.2,
+            inherit.aes = FALSE) +
+  geom_line(stat="smooth", method = "lm", se = FALSE, alpha = 0.5, colour = "grey", size = 1) +
+  geom_point(alpha = 0.2) +
+  geom_point(data = filter(full_data, continent == "my_cnt"), colour = "red", alpha = 0.7) +
+  geom_text_repel(data = filter(full_data, continent == "my_cnt"),
+                  aes(label = country), box.padding = unit(2.7, "lines")) +
+  geom_vline(xintercept = 0, alpha = 0.5) +
+  geom_hline(yintercept = 0, alpha = 0.5) +
+  xlim(lims$xlim) +
+  ylim(lims$ylim) +
+  coord_cartesian(expand = FALSE) +
+  annotate(geom = "text", x = 0.15, y = -0.2,
+           label = "Low SES are catching up \n faster than High SES",
+           fontface = 2, size = 3) +
+  annotate(geom = "text", x = -0.05, y = 0.20,
+           label = "High SES are increasing  \n faster than Low SES",
+           fontface = 2, size = 3) +
+  labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
+  theme_minimal()
+@
+
+% How to output data frames are latex tables?
+<<perc_increase_tables>>=
+
+# Show the rates at which is increasing/decreasing
+perc_increase_fun <- function(df) {
+  
+  # Average standard deviation increase
+  data_ready <-
+    df %>%
+    select(wave, country, type_test, difference) %>%
+    group_by(type_test) %>%
+    split(.$country) %>%
+    map(~ {
+      .x <-
+        spread(.x, wave, difference) %>%
+        ungroup()
+  
+      year_vars <- sum(map_dbl(.x, is.numeric)) - 1
+      years_subtract <- names(.x)[c(ncol(.x) - year_vars, ncol(.x))]
+      years_subtract <- lapply(years_subtract, as.name)
+
+      last_year <- rlang::new_quosure(years_subtract[[2]], env = .GlobalEnv)
+      first_year <- rlang::new_quosure(years_subtract[[1]], env = .GlobalEnv)
+      
+      years_available <-
+        .x %>%
+        gather(year, val, -(country:type_test)) %>%
+        group_by(type_test) %>%
+        summarise(yr_avaible = sum(!is.na(val))) %>%
+        pull(yr_avaible)
+      
+      year_sd <-
+        .x %>%
+        gather(year, val, -(country:type_test)) %>%
+        split(.$type_test) %>%
+        map_dbl(~ bootstrapper(.x, mad(val, na.rm = T), B = 100) %>% .[[2, 2]]) %>%
+        round(2) * 100
+
+      
+      .x %>%
+        transmute(type_test,
+                  country,
+                  perc_diff = round(((!!last_year) - (!!first_year)) / (!!first_year) * 100, 1),
+                  sd_year = year_sd,
+                  diff_lower = perc_diff - 1 * year_sd,
+                  diff_upper = perc_diff + 1 * year_sd,
+                  years_available = years_available)
+    })
+  data_ready
+}
+
+top_bottom_perc <- perc_increase_fun(complete_data_topbottom)
+top_mid_perc <- perc_increase_fun(complete_data_topmid)
+mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
+
+# Gap is closing at an average of the variable diff per year.
+@
+
+<<next_steps>>=
 # Next steps:
 
-# Show country patterns with reading and math together into one graph
-
-# Making country groups of the graphs showing that some countries are increasing, others are steady
-# While others are decreasing. Do this with a few countries, but end by showing all countries.
-
-# Continue by studying what's happening in those countries where it's increasing/decreasing
-# In the gap graph
-  
 # Continue by doing the multilevel models to see what explains what. Include
 # all indicators from the reardon/russian girl paper.
   
@@ -580,18 +836,12 @@ reduced_data %>%
 # Get each country trendline adjusted for the inequality indicators and place in the same country graph.
 
 # Should I add the parent's education in the lm model to see how trends change adjusted for that?
- 
-# The gap between the top 90th and the 50th, did it grow?
-# The gap between the top 50th and the 10th, did it grow?
 
 # A weak welfare system, together with income inequality, what's their pattern?
 # What if we put the school differentiation/tracking aspect in? Are there country groups based on these
 # patterns.
 
-# Show that within top and bottom educated categories, there is reasonable variation of SES index (to justify that your approach of suing the top and bottom percentiles within each category is the right approach)
-
 # In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
-
 @
 
 Recent research on educational inequality has found that differences in test peformance between High-SES and Low-SES kids has been growing quickly over the years. The vast literature on educational inequality has mainly concentrated on the United States (reardon here). First, because it is the only country where cognitive testing is very widespread across surveys. And secondly, this trend has allowed to have testing records as early as 1940 (check reardon) until present day. Using this information, Reardon (2011) is the first to investigate the evolution of the cognitive gap and the results are very surprising. Not only has the cognitive gap between the 90th income percentile and the 10th income percentile grown over time, but it has grown faster and to be wider than the highly contested white-black gap (cite study of white-black gap).
