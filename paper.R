@@ -35,22 +35,6 @@
                                           replication_scheme = 'pisa')
   )
 
-# Adapted from: https://github.com/jtleek/slipper/blob/master/R/slipper.R
-bootstrapper <- function(df, expr, B = 100, n = nrow(df), replacement = TRUE) {
-  bootstrapper_(df, lazyeval::lazy(expr), B, n, replacement)
-}
-bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
-  obs_val = lazyeval::lazy_eval(expr, data = df)
-  boot_val = replicate(B, {
-    newdata = sample_n(df, n, replace = replacement)
-    lazyeval::lazy_eval(expr, data = newdata)
-  })
-  out = tibble(type = c("observed", "bootstrap"), 
-                   value = c(obs_val, mean(boot_val, na.rm = T)))
-  return(out)
-}
-
-
 ## ----loading_data-recoding-----------------------------------------------
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
@@ -777,9 +761,6 @@ mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
 # Get each country trendline adjusted for the inequality indicators and place in the same country graph.
 
 # Should I add the parent's education in the lm model to see how trends change adjusted for that?
- 
-# The gap between the top 90th and the 50th, did it grow?
-# The gap between the top 50th and the 10th, did it grow?
 
 # A weak welfare system, together with income inequality, what's their pattern?
 # What if we put the school differentiation/tracking aspect in? Are there country groups based on these
