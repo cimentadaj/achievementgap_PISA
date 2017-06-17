@@ -27,7 +27,7 @@
 \maketitle
 
 <<working directory, echo = F>>=
-opts_knit$set(root.dir = '..')
+# opts_knit$set(root.dir = '..')
 
 opts_chunk$set(echo = F,
                message = F,
@@ -91,7 +91,7 @@ opts_chunk$set(echo = F,
 
 \section{Analysis}
 
-<<loading_data-recoding, cache = TRUE>>=
+<<loading_data-recoding>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
 
@@ -329,7 +329,7 @@ bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
 % This chunk needs to have cache = TRUE once you want to run it for like 2 hours until 
 % the results_* models have been created once and the cache can save them
 
-<<modeling>>=
+<<modeling, cache = TRUE>>=
 adapted_year_data <-
     map(pisa_all2$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
@@ -344,19 +344,19 @@ adapted_year_data <-
       .x
 })
 
-# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH")
-# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ")
-# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
+results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
+results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
 
-results_math <- read_rds("./data/delete.Rdata")
-results_read <- read_rds("./data/delete_read.Rdata")
-results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
-results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
-results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
-results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
+# results_math <- read_rds("./data/delete.Rdata")
+# results_read <- read_rds("./data/delete_read.Rdata")
+# results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+# results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+# results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+# results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -364,7 +364,7 @@ results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 @
 
 % Figure out how to ouput data frames as latex tables.
-<<sample_size>>=
+<<sample_size, cache = TRUE>>=
 
 # Get sample counts for each dummy
 sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
@@ -414,7 +414,7 @@ sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected 
 sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
 @
 
-<<merge_math_read>>=
+<<merge_math_read, cache = TRUE>>=
 
 # Function does a lot of things, but in short:
 
@@ -584,7 +584,6 @@ complete_data_topbottom %>%
   geom_smooth(method = "lm", formula = y ~ splines::ns(x, 2), linetype = "longdash", se = F)
 @
 
-
 <<graphing_9010gaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 
 # 90/10 gaps acros countries
@@ -667,7 +666,7 @@ complete_data_topbottom %>%
 @
 
 % How to output data frames are latex tables?
-<<rate_change>>=
+<<rate_change, cache = TRUE>>=
 
 avg_increase_fun <- function(df, class) {
 
@@ -720,8 +719,9 @@ avg_sd_increase_low <- avg_increase_fun(complete_data_topbottom, 0)
 <<rate_change_graph, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 
 full_data <-
-  left_join(avg_sd_increase_high, avg_sd_increase_low, by = "country") %>%
-  mutate(continent = ifelse(country %in% countries, "my_cnt", "other_cnt"))
+  left_join(select(avg_sd_increase_high, name, mean),
+            select(avg_sd_increase_low, name, mean), by = "name") %>%
+  mutate(continent = ifelse(name %in% countries, "my_cnt", "other_cnt"))
 
 colnames(full_data) <- c("country", "high_increase", "low_increase", "continent")
 
@@ -763,7 +763,7 @@ full_data %>%
 @
 
 % How to output data frames are latex tables?
-<<perc_increase_tables>>=
+<<perc_increase_tables, cache = TRUE>>=
 
 # Show the rates at which is increasing/decreasing
 perc_increase_fun <- function(df) {
