@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  17 JUN 2017 17:44
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  19 JUN 2017 08:20
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -310,7 +310,7 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 \openout4 = `paper.toc'.
 
 
-<figure/correlation_incomeineq-1.pdf, id=9, 505.89pt x 505.89pt>
+<figure/correlation_incomeineq-1.pdf, id=19, 505.89pt x 505.89pt>
 File: figure/correlation_incomeineq-1.pdf Graphic file (type pdf)
 
 <use figure/correlation_incomeineq-1.pdf>
@@ -336,7 +336,7 @@ Overfull \hbox (37.49504pt too wide) in paragraph at lines 106--107
 .\glue(\parfillskip) 0.0
 .\glue(\rightskip) 0.0 plus 1.0fil
 
-<figure/graphing_9010gaps-1.pdf, id=10, 505.89pt x 505.89pt> [1
+<figure/graphing_9010gaps-1.pdf, id=20, 505.89pt x 505.89pt> [1
 
 {/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 File: figure/graphing_9010gaps-1.pdf Graphic file (type pdf)
@@ -365,7 +365,7 @@ Overfull \hbox (37.49504pt too wide) in paragraph at lines 115--116
 .\glue(\parfillskip) 0.0
 .etc.
 
-<figure/graphing_allgaps-1.pdf, id=22, 505.89pt x 505.89pt> [2 <./figure/correl
+<figure/graphing_allgaps-1.pdf, id=32, 505.89pt x 505.89pt> [2 <./figure/correl
 ation_incomeineq-1.pdf>]
 File: figure/graphing_allgaps-1.pdf Graphic file (type pdf)
  <use figure/graphing_allgaps-1.pdf>
@@ -391,7 +391,7 @@ Overfull \hbox (37.49504pt too wide) in paragraph at lines 124--125
 .\glue(\parfillskip) 0.0
 .etc.
 
-<figure/graphing_ses_growth-1.pdf, id=33, 505.89pt x 505.89pt> [3 <./figure/gra
+<figure/graphing_ses_growth-1.pdf, id=43, 505.89pt x 505.89pt> [3 <./figure/gra
 phing_9010gaps-1.pdf>]
 File: figure/graphing_ses_growth-1.pdf Graphic file (type pdf)
  <use figure/graphing_ses_growth-1.pdf>
@@ -418,7 +418,7 @@ Overfull \hbox (37.49504pt too wide) in paragraph at lines 133--134
 .\glue(\parfillskip) 0.0
 .etc.
 
-<figure/rate_change_graph-1.pdf, id=43, 505.89pt x 505.89pt> [4 <./figure/graph
+<figure/rate_change_graph-1.pdf, id=53, 505.89pt x 505.89pt> [4 <./figure/graph
 ing_allgaps-1.pdf>]
 File: figure/rate_change_graph-1.pdf Graphic file (type pdf)
  <use figure/rate_change_graph-1.pdf>
@@ -445,32 +445,32 @@ Overfull \hbox (37.49504pt too wide) in paragraph at lines 145--146
 .\glue(\parfillskip) 0.0
 .etc.
 
-[5 <./figure/graphing_ses_growth-1.pdf>]
+[5 <./figure/graphing_ses_growth-1.pdf>] [6 <./figure/rate_change_graph-1.pdf>]
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <10.95> on input line 159.
+(Font)              <10.95> on input line 162.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 159.
+(Font)              <9> on input line 162.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 159.
- [6 <./figure/rate_change_graph-1.pdf>]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 165.
-[7]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 165.
+(Font)              <5> on input line 162.
+[7] [8]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 177.
+ [9]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 177.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 165.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 165.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 177.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 177.
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: DF63E5304716B02F65D116D3A3494ACE;43.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 165.
+(rerunfilecheck)             Checksum: 782C7D00A133AB450AC143EC00AA0EA0;117.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 177.
  ) 
 Here is how much of TeX's memory you used:
- 6664 strings out of 493014
- 102708 string characters out of 6133351
- 188474 words of memory out of 5000000
- 10131 multiletter control sequences out of 15000+600000
+ 6672 strings out of 493014
+ 102782 string characters out of 6133351
+ 192474 words of memory out of 5000000
+ 10133 multiletter control sequences out of 15000+600000
  9769 words of font info for 34 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,8n,40p,1262b,435s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 42i,8n,40p,3101b,435s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></
@@ -480,10 +480,10 @@ local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/loc
 al/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/
 texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/tex
 live/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb>
-Output written on paper.pdf (7 pages, 158573 bytes).
+Output written on paper.pdf (9 pages, 171631 bytes).
 PDF statistics:
- 124 PDF objects out of 1000 (max. 8388607)
- 95 compressed objects within 1 object stream
- 11 named destinations out of 1000 (max. 500000)
- 34 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 148 PDF objects out of 1000 (max. 8388607)
+ 116 compressed objects within 2 object streams
+ 17 named destinations out of 1000 (max. 500000)
+ 50 words of extra memory for PDF output out of 10000 (max. 10000000)
 
