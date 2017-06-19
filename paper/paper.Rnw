@@ -89,8 +89,6 @@ opts_chunk$set(echo = F,
 
 \tableofcontents
 
-\section{Analysis}
-
 <<loading_data-recoding>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
 pisa_all2 <- pisa_all
@@ -363,6 +361,8 @@ results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ",
 # load("./paper/cache/modeling_9a0b38d1d53fa243b0242580f0672fa5.RData")
 @
 
+\section{Descriptives}
+
 % Figure out how to ouput data frames as latex tables.
 <<sample_size, cache = TRUE>>=
 
@@ -570,6 +570,8 @@ complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
 complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
 @
 
+\section{Analysis}
+
 <<correlation_incomeineq, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 complete_data_topbottom %>%
   mutate(wave = as.character(wave)) %>%
@@ -764,7 +766,9 @@ full_data %>%
 
 % How to output data frames are latex tables?
 <<perc_increase_tables, cache = TRUE>>=
-
+df <- split(
+  group_by(complete_data_topmid, type_test) %>% select(wave, country, type_test, difference), complete_data_topmid$country)
+.x <- df$`United States`
 # Show the rates at which is increasing/decreasing
 perc_increase_fun <- function(df) {
   
@@ -802,9 +806,11 @@ perc_increase_fun <- function(df) {
 
       
       .x %>%
+        map_if(is_double, round, 3) %>%
+        as_tibble() %>%
         transmute(type_test,
                   country,
-                  perc_diff = round(((!!last_year) - (!!first_year)) / (!!first_year) * 100, 1),
+                  perc_diff = round(((!!last_year) - (!!first_year)) * 100, 1),
                   sd_year = year_sd,
                   diff_lower = perc_diff - 1 * year_sd,
                   diff_upper = perc_diff + 1 * year_sd,
@@ -818,6 +824,52 @@ top_mid_perc <- perc_increase_fun(complete_data_topmid)
 mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
 
 # Gap is closing at an average of the variable diff per year.
+@
+
+<<graphing_perc_increase, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+perc_graph <- function(df) {
+  df %>%
+  enframe(name = "country") %>%
+  unnest(value) %>%
+  filter(country %in% countries) %>%
+  select(-country1, -years_available) %>%
+  mutate(diff_95_lower = perc_diff - 2*sd_year,
+         diff_95_upper = perc_diff + 2*sd_year) %>%
+  setNames(c("Country", "Type of test", "Average % difference", "Average SD",
+             "Lower 50% bound", "Upper 50% bound", "Lower 95% bound", "Upper 95% bound")) %>%
+  filter(`Type of test` == "math") %>%
+  arrange(`Average % difference`) %>%
+  mutate(Country = ordered(forcats::as_factor(Country)),
+         Country_num = as.numeric(Country)) %>%
+  ggplot(aes(Country, `Average % difference`)) +
+  geom_point() +
+  geom_ribbon(aes(x = Country_num, ymin = `Lower 95% bound`, ymax = `Upper 95% bound`), alpha = 0.5) +
+  geom_ribbon(aes(x = Country_num, ymin = `Lower 50% bound`, ymax = `Upper 50% bound`), alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "longdash") +
+  scale_y_continuous(breaks = seq(-160, 160, 40)) +
+  coord_cartesian(ylim = c(-160, 160)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+m1 <- perc_graph(top_bottom_perc)
+m2 <- perc_graph(top_mid_perc)
+m3 <- perc_graph(mid_bottom_perc)
+
+gridExtra::grid.arrange(m1, m2, m3, nrow = 1)
+@
+
+<<table_sample>>=
+sample_tables_topbottom %>%
+  filter(name %in% c(2000, 2015)) %>%
+  transmute(name, country, escs_dummy, N = paste0(n, " (", perc, ")")) %>%
+  spread(escs_dummy, N) %>%
+  rename(Year = name,
+         Country = country,
+         `10th SES` = `0`,
+         `90th SES` = `1`) %>%
+  select(Country, Year, everything()) %>%
+  arrange(Country, Year) %>%
+  xtable::xtable()
 @
 
 
