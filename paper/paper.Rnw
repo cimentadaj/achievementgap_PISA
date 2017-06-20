@@ -766,9 +766,6 @@ full_data %>%
 
 % How to output data frames are latex tables?
 <<perc_increase_tables, cache = TRUE>>=
-df <- split(
-  group_by(complete_data_topmid, type_test) %>% select(wave, country, type_test, difference), complete_data_topmid$country)
-.x <- df$`United States`
 # Show the rates at which is increasing/decreasing
 perc_increase_fun <- function(df) {
   
@@ -922,6 +919,17 @@ Chmielewski (2017), building on the work of Chmielewski and Reardon (2016) and R
 The evolution of High/Low SES gaps for preschool children might be much less marked than the same gap for high school children. The explanation, although very debated, has been gaining much support in recent years. In countries with high levels of curricular differentiation, the transition from early schooling into the tracking system has been found to increase inequality of learning (Wossman and Hanushek diff-in-diff). Moreover, the vast sociological literature on educational transitions systematically finds that tracking tends to foster between-track inequality rather than erode their differences by tackling their specific needs (Van der Werfhorst and Mijs 2011). Based on this, we cannot simply assume that the achievement gap has been neither constant across cohorts (because there have been tracking reforms in many countries, introducing as well as elimination tracking structures) nor the same between ages, because tracking/no tracking might exarcebate the achievement gap.
 
 With this being said, this paper introduces one novelty in the literature which is to evaluate the evolution of the High/Low SES achievement gap in the past 15 years for all PISA participant countries. This is different from previous work because it concentrates solely on 15 year old children, and it attempts to capture the evolution of the achievement gap for each country. The advantages of this study are numerous. First, we concentrate on the evolution of the gap for only 15 year olds. This is different from all the work of Chmielewski and Reardon, in which they pool all ages to get average changes, to study the properties of specific age-groups. As we've seen before, there are reasons to think that specific age-groups have seen changes in the achievement gap. Moreover, in almost all countries with a tracked curriculum children are either at or in the process of tracking by the age 15, meaning that we will be able to link whether tracked countries are the most variable in their evolution of achievement gaps.
+
+Large inequalities in parent's education leads to large inequalities in children's education (Breen & Jonsson 2007)
+
+The rule of thumb to choose the 90th, 50th and 10th percentile is arbitrary, others have used, for example, the 5th, 50th and 95th. (Micklewright & Schnepf, 2007)
+
+Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (Mickleweight & Schnepf did it). They also find that France is a lower dispersion country (but in my results this is changing a lot). They also find that Germany and US are very dispersed countries (quite the opposite)
+
+Mickleweight & Schnepf find that France has a very small gap in 2000, something we find very clearly in our data, and the U.S has a very big gap in 2000, something we also find in our data. Mickleweight & Schnpef find
+that average achievement is negatively related to dispersion.
+
+Is efficiency related to opportunity here? Is efficiency what explains the inequality of opportunity?
 
 Talk about reardon and portilla and how the achievement gap has been closing in the last 15 years.
 Talk about how the achievement gap has been widening in Malaysia and South Korea (or Japan?)
