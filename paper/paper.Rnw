@@ -667,6 +667,10 @@ complete_data_topbottom %>%
 # Spain - no change
 @
 
+<<>>=
+
+@
+
 % How to output data frames are latex tables?
 <<rate_change, cache = TRUE>>=
 
