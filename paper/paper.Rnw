@@ -669,6 +669,45 @@ complete_data_topbottom %>%
 
 <<>>=
 
+country_scores <-
+  map(adapted_year_data, ~ {
+  if (unique(.x$wave) == "pisa2015") {
+    intsvy::pisa2015.mean.pv("MATH", by = "country", data = .x)
+  } else {
+    intsvy::pisa.mean.pv("MATH", by = "country", data = .x)
+  }
+}) %>% setNames(seq(2000, 2015), 3) %>%
+
+country_scores <-
+  enframe(country_scores, name = "wave") %>%
+  unnest() %>%
+  mutate(wave = as.double(wave))
+
+data_to_plot <-
+  left_join(complete_data_topbottom, country_scores, by = c("wave", "country")) %>%
+  select(wave, country, type_test, difference, Mean) %>%
+  filter(type_test == "math")
+
+data_to_plot %>%
+  ggplot(aes(scale(Mean), difference)) +
+  geom_point() +
+  geom_smooth()
+
+data_to_plot %>%
+  filter(country %in% countries) %>%
+  ggplot(aes(as.character(wave), difference, group = country)) +
+  geom_point(colour = "blue") +
+  geom_line(colour = "blue") +
+  geom_point(aes(y = scale(Mean)), colour = "red") +
+  geom_line(aes(y = scale(Mean)), colour = "red") +
+  facet_wrap(~ country)
+
+data_to_plot %>%
+  semi_join(data_to_plot %>% group_by(country) %>% count() %>% filter(n > 3), by = "country") %>%
+  group_by(country) %>%
+  summarize(cor = cor(scale(Mean), difference, use = 'complete.obs')) %>%
+  ggplot(aes(reorder(country, cor), cor, fill = cor > 0)) + geom_col() + coord_flip()
+
 @
 
 % How to output data frames are latex tables?
@@ -904,15 +943,15 @@ Recent research on educational inequality has found that differences in test pef
 
 Reardon (2011) finds that the increase has occured predominantely from the 1970's until the 2000's. In fact, hard numbers suggest that the gap increased by about ~ 40-50\%. The author also estimates the rate of change using data from the 1940's and finds an even higher increase of about ~ 75\%. Since the studies before the 1970's lack a lot of rigor in comparability and sampling, the author computes everything for the sample before/after 1970's separately \footenote{Even after weighting appropriately.}. Finally, Reardon (2011) concludes that the U.S gap between the 90th and 10th income percentile is at about 1.25 standard deviations. Corak and Waldfogel (2015) don't find results which are very far away from this. They find that for 14 year olds in the United States, the gap is above 1 SD but lower than 1.25. Duncan and Magnuson find similarly to the previous studies and confirms a gap of ~ 1.25/1.50 standard deviations.
 
-One important drawback of these studies is that they don't present the uncertainty of this estimate. Not necessarily to gauge their statistical significance, but to simply asses how much we can trust these numbers.
+One important drawback of these studies is that they don't present the uncertainty of this estimate. Not necessarily to gauge their statistical significance, but to simply asses how much we can trust their accuracy. Despite the recent surge in understanding achievement gaps as a function of social background, sociologists have already amassed a great deal of findings concerning inter-generational inequalities, one notable example being that it's very clear that large inequalities in parent's education tend to reproduce large inequalities in children's education (Breen & Jonsson 2007). Virtually in all countries, be it developed or developing, there is inequality of opportunity. But there is considerable variation in the magnitud of this effect. For example, the Scandinavian countries, particularly Denmark and Sweden, prove to be very mobile countries (Gosta and his phd student, Breen and other people, Shavit first study).
 
 With very recent data, Reardon and Portilla (2015) have unexpectedly uncovered a new finding: the reversal of the trend. From 1998 until 2010, it seems like the income achievement gap \footnote{The income achievement gap is the difference between the 90th and 10th income percentile in the test of interest} decreased at a rate of 0.01 and 0.008 standard deviations per year. In contrast to Reardon (2011), we find that in a 30-year span the gap was systematicaly increasing at a rate of 0.02, something not dramatically different from the previous estimates. The American situation is a very distinctive one relative to Europe. The reasons why we're seeing a reversal in the trend could be numerous and should be studied very close to context. For example, the American educational system lacks any formal curricular differentiation \emph{à la} European style. In contrast, Reardon and Portilla (2015) suggest that the reversal is likely due to the high increase of preschool enrollment. They suggest that in this same period (1998 - 2010) the income achievement gap in early schooling enrollment decreased substantially.
 
 Some authors have taken this analysis to an international context in order to discover between-country trends. The comprehensive work of Corak and Waldfogel () performs a comparative analysis of Australia, United Kingdom, United States and Canada. Their research design is very distinctive in that they use longitudinal data from children as early as age 2 and study the evolution of the achievement gap up until age 14 \footnote{To the best of my knowledge this is the only study that uses panel data to study achievement gaps, let alone to do this between countries}. The core finding behind the book is that the American achievement gap is much wider than in any other comparison countries. As mentioned earlier, they find that once the achievement gap is present in early school entry, it doesn't seem to narrow very much over the life course. They find that the achievement gap is very stable all the way from early education to secondary school (although their studies cover up until age 14). 
 
-Say more above Corak and Waldfogel above (book).
+One limitation of their study is that they concentrate on countries which have a very particular educational structure, namely the fact that there is little formal stratification in terms of curricula. These four countries have no major jump in school selection, quite the opposite to the European average countries. A thorough review by Van der Werfhorst and Mijs (2010) sheds some light on the subject. First and foremost, they gather substantive evidence showing that countries which have a highly tracked curriculum tend to have high levels of inequality, measured in terms of achievement gaps. Hanushek and Woessman (tracking study), use the TIMSS and PISA surveys to gauge whether highly tracked countries do indeed increase inequality after students pass the age at first selection of tracking. Moreover, Mickleweight & Schnepf (2007) using similar data but different design finds that countries which have a high level of tracking, are distinctively unequal in the difference between the top 95th and bottom 5th performers. In fact, the difference in test scores between these two groups is about 10 times higher then the average annual gain of a year of schooling.
 
-Despite their high level of rigurosity, their analysis is based on four surveys that have significant differences and cannot be easily compared. Their findings are very reliable but should be taken as suggestive.  For this reason we should also pay particular attention to studies such as Chmielewski and Reardon (2016) and Chmielewski (2017) which have attempted not only to compare gaps between countries, but to evaluate whether there is a general increase in educational inequality in many countries. These studies tackle a completely different question from the above, but they do provide support for the overall finding that the achievement gap is certainly not narrowing over time.
+Despite their high level of rigurosity, their analysis is based on four surveys that have significant differences in terms of questions, sampling and populations and cannot be easily compared. Their findings are very reliable but should be taken as suggestive at best.  For this reason we should also pay particular attention to studies such as Chmielewski and Reardon (2016) and Chmielewski (2017) which have attempted not only to compare gaps between countries, but to evaluate whether there is a general increase in educational inequality in many countries using similar studies. These studies tackle a completely different question from the above, but they do provide support for the overall finding that the achievement gap is certainly not narrowing over time.
 
 Chmielewski and Reardon (2016), using the Programme for International Student Assessment (PISA), the Trends in International Mathematics and Science Study (TIMSS) and PIRLS (the Progress in International Reading Literacy Study), the assess whether there are patterns of cross-national variation in the achievement gap. In other words, is the size of achievement gap different for many countries? Although there is potential to study countries over time using these surveys, they choose not to. They do so because their question of interest (income categories) was only asked in three waves; in the end the only had three countries repeated in all three waves. 
 
