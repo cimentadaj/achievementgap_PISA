@@ -1,4 +1,8 @@
-\contentsline {section}{\numberline {1}Descriptives}{2}{section.1}
-\contentsline {section}{\numberline {2}Analysis}{2}{section.2}
-\contentsline {section}{\numberline {3}Literature Review}{7}{section.3}
-\contentsline {section}{\numberline {4}Research design}{11}{section.4}
+\contentsline {section}{\numberline {1}Literature Review}{1}{section.1}
+\contentsline {section}{\numberline {2}Research questions}{4}{section.2}
+\contentsline {section}{\numberline {3}Methods}{4}{section.3}
+\contentsline {subsection}{\numberline {3.1}Data}{4}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Data analysis}{5}{subsection.3.2}
+\contentsline {section}{\numberline {4}Analysis}{6}{section.4}
+\contentsline {subsection}{\numberline {4.1}Descriptives}{6}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Results}{6}{subsection.4.2}
