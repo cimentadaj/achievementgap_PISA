@@ -3,6 +3,6 @@
 \contentsline {section}{\numberline {3}Methods}{5}{section.3}
 \contentsline {subsection}{\numberline {3.1}Data}{5}{subsection.3.1}
 \contentsline {subsection}{\numberline {3.2}Data analysis}{6}{subsection.3.2}
-\contentsline {section}{\numberline {4}Analysis}{8}{section.4}
-\contentsline {subsection}{\numberline {4.1}Descriptives}{8}{subsection.4.1}
-\contentsline {subsection}{\numberline {4.2}Results}{8}{subsection.4.2}
+\contentsline {section}{\numberline {4}Analysis}{9}{section.4}
+\contentsline {subsection}{\numberline {4.1}Descriptives}{9}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Results}{9}{subsection.4.2}
