@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  21 JUN 2017 12:15
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  21 JUN 2017 21:51
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -415,98 +415,81 @@ LaTeX Info: Redefining \nameref on input line 78.
 
  [1
 
-{/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+{/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2]
 Missing character: There is no Ã in font cmti10!
 Missing character: There is no   in font cmti10!
- [2] [3] [4] [5]
+ [3] [4] [5] [6]
 Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
 Missing character: There is no ™ in font cmr10!
-Missing character: There is no Â in font cmr10!
-Missing character: There is no µ in font cmr10!
-Missing character: There is no Â in font cmr10!
-Missing character: There is no µ in font cmr10!
-Missing character: There is no Â in font cmr10!
-Missing character: There is no µ in font cmr10!
-Missing character: There is no â in font cmr10!
-Missing character: There is no € in font cmr10!
-Missing character: There is no ™ in font cmr10!
-Missing character: There is no Â in font cmr10!
-Missing character: There is no µ in font cmr10!
-Missing character: There is no Â in font cmr10!
-Missing character: There is no µ in font cmr10!
-Missing character: There is no â in font cmr10!
-Missing character: There is no € in font cmr10!
-Missing character: There is no ™ in font cmr10!
-Missing character: There is no Â in font cmr10!
-Missing character: There is no µ in font cmr10!
- [6] [7]
-<figure/correlation_incomeineq-1.pdf, id=176, 505.89pt x 505.89pt>
+ [7] [8] [9]
+<figure/correlation_incomeineq-1.pdf, id=265, 505.89pt x 505.89pt>
 File: figure/correlation_incomeineq-1.pdf Graphic file (type pdf)
 
 <use figure/correlation_incomeineq-1.pdf>
 Package pdftex.def Info: figure/correlation_incomeineq-1.pdf used on input line
- 277.
+ 287.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/graphing_9010gaps-1.pdf, id=177, 505.89pt x 505.89pt> [8]
+<figure/graphing_9010gaps-1.pdf, id=266, 505.89pt x 505.89pt>
 File: figure/graphing_9010gaps-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_9010gaps-1.pdf>
-Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 286.
+Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 296.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/graphing_allgaps-1.pdf, id=184, 505.89pt x 505.89pt> [9 <./figure/corre
-lation_incomeineq-1.pdf>]
+<figure/graphing_allgaps-1.pdf, id=267, 505.89pt x 505.89pt> [10 <./figure/corr
+elation_incomeineq-1.pdf>]
 File: figure/graphing_allgaps-1.pdf Graphic file (type pdf)
  <use figure/graphing_allgaps-1.pdf>
-Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 295.
+Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 305.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/graphing_ses_growth-1.pdf, id=194, 505.89pt x 505.89pt> [10 <./figure/g
+<figure/graphing_ses_growth-1.pdf, id=277, 505.89pt x 505.89pt> [11 <./figure/g
 raphing_9010gaps-1.pdf>]
 File: figure/graphing_ses_growth-1.pdf Graphic file (type pdf)
  <use figure/graphing_ses_growth-1.pdf>
-Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 30
+Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 31
 4.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/rate_change_graph-1.pdf, id=204, 505.89pt x 505.89pt> [11 <./figure/gra
+<figure/rate_change_graph-1.pdf, id=287, 505.89pt x 505.89pt> [12 <./figure/gra
 phing_allgaps-1.pdf>]
 File: figure/rate_change_graph-1.pdf Graphic file (type pdf)
  <use figure/rate_change_graph-1.pdf>
-Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 318.
+Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 328.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/graphing_perc_increase-1.pdf, id=214, 505.89pt x 505.89pt> [12 <./figur
+<figure/graphing_perc_increase-1.pdf, id=297, 505.89pt x 505.89pt> [13 <./figur
 e/graphing_ses_growth-1.pdf>]
 File: figure/graphing_perc_increase-1.pdf Graphic file (type pdf)
  <use figure/graphing_perc_increase-1.pdf>
 Package pdftex.def Info: figure/graphing_perc_increase-1.pdf used on input line
- 330.
+ 340.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-(./paper.bbl [13 <./figure/rate_change_graph-1.pdf>])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 343.
- [14 <./figure/graphing_perc_increase-1.pdf>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 343.
+(./paper.bbl [14 <./figure/rate_change_graph-1.pdf>] [15 <./figure/graphing_per
+c_increase-1.pdf>])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 353.
+ [16]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 353.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 343.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 343.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 353.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 353.
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: 8F563F6774C2E5A74E2BB9658E549811;422.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 343.
+(rerunfilecheck)             Checksum: 54F5AD722C9FB9EE50E1D99799CEA95F;469.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 353.
  ) 
 Here is how much of TeX's memory you used:
- 7768 strings out of 493014
- 117097 string characters out of 6133351
- 218139 words of memory out of 5000000
- 11168 multiletter control sequences out of 15000+600000
+ 7816 strings out of 493014
+ 118018 string characters out of 6133351
+ 217479 words of memory out of 5000000
+ 11202 multiletter control sequences out of 15000+600000
  12117 words of font info for 43 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,17n,40p,1441b,439s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 42i,17n,40p,1800b,440s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
@@ -522,10 +505,10 @@ ive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive
 2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2
 016/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/20
 16/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb>
-Output written on paper.pdf (14 pages, 280981 bytes).
+Output written on paper.pdf (16 pages, 295324 bytes).
 PDF statistics:
- 317 PDF objects out of 1000 (max. 8388607)
- 271 compressed objects within 3 object streams
- 47 named destinations out of 1000 (max. 500000)
- 95 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 407 PDF objects out of 1000 (max. 8388607)
+ 358 compressed objects within 4 object streams
+ 61 named destinations out of 1000 (max. 500000)
+ 103 words of extra memory for PDF output out of 10000 (max. 10000000)
 

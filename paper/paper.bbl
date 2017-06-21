@@ -12,6 +12,25 @@ Breen, R. and Jonsson, J.~O. (2007).
   educational expansion in twentieth-century sweden 1.
 \newblock {\em American Journal of Sociology}, 112(6):1775--1810.
 
+\bibitem[Byun and Kim, 2010]{byun2010}
+Byun, S.-y. and Kim, K.-k. (2010).
+\newblock Educational inequality in south korea: The widening socioeconomic gap
+  in student achievement.
+\newblock In {\em Globalization, changing demographics, and educational
+  challenges in East Asia}, pages 155--182. Emerald Group Publishing Limited.
+
+\bibitem[Chmielewski, 2016]{anna2016_global}
+Chmielewski, A.~K. (2016).
+\newblock Changes in socioeconomic achievement gaps in international
+  comparison, 1964-2012.
+\newblock In {\em 2016 APPAM International Conference}. Appam.
+
+\bibitem[Chmielewski and Reardon, 2016]{anna2016}
+Chmielewski, A.~K. and Reardon, S.~F. (2016).
+\newblock Patterns of cross-national variation in the association between
+  income and academic achievement.
+\newblock {\em AERA Open}, 2(3):2332858416649593.
+
 \bibitem[Duncan and Magnuson, 2011]{duncan2011}
 Duncan, G.~J. and Magnuson, K. (2011).
 \newblock The nature and impact of early achievement skills, attention skills,
@@ -26,6 +45,38 @@ Esping-Andersen, G. and Wagner, S. (2012).
   487.
 \newblock Consequences of Economic Inequality.
 
+\bibitem[Fryer~Jr and Levitt, 2004]{fryer2004}
+Fryer~Jr, R.~G. and Levitt, S.~D. (2004).
+\newblock Understanding the black-white test score gap in the first two years
+  of school.
+\newblock {\em Review of Economics and Statistics}, 86(2):447--464.
+
+\bibitem[Hanushek et~al., 2006]{hanushek_woesmann_tracking}
+Hanushek, E.~A. et~al. (2006).
+\newblock Does educational tracking affect performance and inequality?
+  differences-in-differences evidence across countries.
+\newblock {\em The Economic Journal}, 116(510):C63--C76.
+
+\bibitem[Micklewright and Schnepf, 2007]{micklewright}
+Micklewright, J. and Schnepf, S. (2007).
+\newblock {\em Inequality and Poverty Re-Examined}.
+\newblock Oxford Univ. Press.
+
+\bibitem[OECD, 2002]{oecd_glance_2002}
+OECD (2002).
+\newblock {\em Education At A Glance: OECD Indicators 2002}.
+\newblock OECD Publishing.
+
+\bibitem[OECD, 2012]{pisa2012_technical}
+OECD (2012).
+\newblock {\em PISA 2009 Technical Report}.
+\newblock OECD Publishing.
+
+\bibitem[OECD, 2016]{pisa_2015_results}
+OECD (2016).
+\newblock {\em PISA 2015 Results (Volume I)}.
+\newblock OECD Publishing.
+
 \bibitem[Reardon, 2011]{reardon2011}
 Reardon, S.~F. (2011).
 \newblock The widening academic achievement gap between the rich and the poor:
@@ -39,6 +90,12 @@ Reardon, S.~F. and Portilla, X.~A. (2015).
 \newblock {\em Stanford, CA: Center for Education Policy Analysis. Retrieved
   December}, 20:2015.
 
+\bibitem[Saw, 2016]{saw2016}
+Saw, G.~K. (2016).
+\newblock Patterns and trends in achievement gaps in malaysian secondary
+  schools (1999--2011): gender, ethnicity, and socioeconomic status.
+\newblock {\em Educational Research for Policy and Practice}, 15(1):41--54.
+
 \bibitem[Shavit and Blossfeld, 1993]{shavit1993}
 Shavit, Y. and Blossfeld, H.-P. (1993).
 \newblock {\em Persistent Inequality: Changing Educational Attainment in
@@ -50,5 +107,10 @@ Van~de Werfhorst, H.~G. and Mijs, J.~J. (2010).
 \newblock Achievement inequality and the institutional structure of educational
   systems: A comparative perspective.
 \newblock {\em Annual review of sociology}, 36:407--428.
+
+\bibitem[Wu, 2005]{wu2005}
+Wu, M. (2005).
+\newblock The role of plausible values in large-scale surveys.
+\newblock {\em Studies in Educational Evaluation}, 31(2-3):114--128.
 
 \end{thebibliography}
