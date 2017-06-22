@@ -81,17 +81,28 @@ opts_chunk$set(echo = F,
                                           replication_scheme = 'pisa')
   )
   
-  countries <- c("Australia",
-                 "Germany",
-                 "Denmark",
-                 "Spain",
+  countries <- c("Finland",
                  "France",
-                 "Italy",
-                 "Netherlands",
+                 "New Zealand",
+                 "Austria",
+                 "Australia",
                  "Sweden",
-                 "Finland",
+                 "Czech Republic",
+                 "Canada",
+                 "Hungary",
+                 "Iceland", "Netherlands",
+                 "Spain",
+                 "Belgium",
+                 "Italy", "Norway",
+                 "United Kingdom",
+                 "Greece",
+                 "Denmark",
+                 "Israel",
+                 "Poland",
                  "United States",
-                 "United Kingdom")
+                 "Germany",
+                 "Turkey",
+                 "Russia")
 @
 
 \tableofcontents
@@ -350,19 +361,19 @@ adapted_year_data <-
       .x
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
-results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
+# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
+# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
 
-# results_math <- read_rds("./data/delete.Rdata")
-# results_read <- read_rds("./data/delete_read.Rdata")
-# results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
-# results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
-# results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
-# results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
+results_math <- read_rds("./data/delete.Rdata")
+results_read <- read_rds("./data/delete_read.Rdata")
+results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -507,15 +518,15 @@ var_years <-
   pull(var)
 })
 
-enframer <- function(df) {
+enframer <- function(df, col_name = "name") {
   df %>%
-    enframe() %>%
+    enframe(name = col_name) %>%
     unnest()
 }
 
 var_years %>%
   setNames(seq(2000, 2015, 3)) %>%
-  enframer() %>%
+  enframer(name) %>%
   ggplot(aes(name, value)) + geom_col()
 @
 
@@ -556,7 +567,7 @@ Finally, we calculate the SES achievement gap for each country by extracting the
 \end{split}
 \end{equation}
 
-We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than a linear model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES dummy reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible.
+We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than a linear model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES dummy reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible. For further exploration, we also compute the 90th/50th and 50th/10th SES gaps following the same method outlined above.
 
 \section{Analysis}
 
@@ -567,9 +578,79 @@ We also calculate the standard error of this difference and use it to create unc
 % % of home possessions
 % % of ISEI
 
+<<escsdummy_charachteristics, cache = TRUE, eval = F>>=
+.x <- adapted_year_data[[1]]
+country <- filter(.x, country == "United States")
+probs <- c(0.1, 0.9)
+
+escs_dummy_creator <- function(df, probs) {
+  
+    map(df, function(.x) {
+      
+      conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
+
+      country_split <- split(.x, .x$country)
+      
+      country_list <- map(country_split, function(country) {
+        print(unique(country$country))
+        
+        quan <- quantile_missing(country, weights_var, probs)
+        
+        # It's very important to create a variable that returns the number of observations of this dummy
+        # For each country. Possibly to weight by the number of observations.
+        country$escs_dummy <-
+          with(country, case_when(escs_trend >= quan[2] ~ 1,
+                                  escs_trend <= quan[1] ~ 0))
+        country
+      })
+      
+      .x <-
+        enframe(country_list) %>%
+        unnest(value)
+      
+      message(paste(unique(.x$wave), "data ready"))
+      
+      .x
+    })
+}
+
+escs_data <- escs_dummy_creator(adapted_year_data, c(0.1, 0.9))
+
+# Make recode the education variable into three categories
+map_lgl(escs_data, ~ "HISEI" %in% names(.x))
+
+escs_data[[1]] %>%
+  select(country, escs_dummy, high_edu_broad, ISEI) %>%
+  filter(country %in% countries) %>%
+  count(country, escs_dummy, high_edu_broad) %>%
+  group_by(country, escs_dummy) %>%
+  mutate(total_n = sum(n),
+         perc = n / total_n * 100) %>%
+  select(country, escs_dummy, high_edu_broad, perc) %>%
+  map_if(is_double, round, 2) %>%
+  as_tibble() %>%
+  filter(!is.na(escs_dummy)) %>%
+  spread(high_edu_broad, perc)
+
+escs_data[[1]] %>%
+  select(country, escs_dummy, high_edu_broad, ISEI) %>%
+  filter(country %in% countries) %>%
+  count(country, escs_dummy, isei_group = cut_number(ISEI, 4)) %>%
+  group_by(country, isei_group) %>%
+  mutate(total_n = sum(n),
+         perc = n / total_n * 100) %>%
+  select(country, escs_dummy, isei_group, perc) %>%
+  map_if(is_double, round, 2) %>%
+  as_tibble() %>%
+  filter(!is.na(escs_dummy)) %>%
+  spread(isei_group, perc) %>%
+  left_join(m, by = c("country", "escs_dummy"))
+
+@
+
 % Figure out how to ouput data frames as latex tables.
 <<sample_size, cache = TRUE>>=
-
 # Get sample counts for each dummy
 sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
   
@@ -774,17 +855,6 @@ complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
 complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
 @
 
-\subsection{Results}
-
-Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (\citet{micklewright} did it). They also find that France is a lower dispersion country (but in my results this is changing a lot). They also find that Germany and US are very dispersed countries (quite the opposite)
-
-\citet{micklewright} find that France has a very small gap in 2000, something we find very clearly in our data, and the U.S has a very big gap in 2000, something we also find in our data. \citet{micklewright} find
-that average achievement is negatively related to dispersion.
-
-It seems that social origin effects have actually increased in France  (Ballarino and Bernardi, 2016)
-
-
-
 <<correlation_incomeineq, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 complete_data_topbottom %>%
   mutate(wave = as.character(wave)) %>%
@@ -799,20 +869,111 @@ complete_data_topbottom %>%
   geom_smooth(method = "lm", formula = y ~ splines::ns(x, 2), linetype = "longdash", se = F)
 @
 
-<<graphing_9010gaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
+\subsection{Results}
 
+Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (\citet{micklewright} did it).
+
+<<graphing_9010gaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 # 90/10 gaps acros countries
+diff_increase_fun <- function(df) {
+  
+  # Average standard deviation increase
+  data_ready <-
+    df %>%
+    select(wave, country, type_test, difference) %>%
+    group_by(type_test) %>%
+    split(.$country) %>%
+    map(~ {
+      .x <-
+        spread(.x, wave, difference) %>%
+        ungroup()
+  
+      year_vars <- sum(map_dbl(.x, is.numeric)) - 1
+      years_subtract <- names(.x)[c(ncol(.x) - year_vars, ncol(.x))]
+      years_subtract <- lapply(years_subtract, as.name)
+
+      last_year <- rlang::new_quosure(years_subtract[[2]], env = .GlobalEnv)
+      first_year <- rlang::new_quosure(years_subtract[[1]], env = .GlobalEnv)
+      
+      years_available <-
+        .x %>%
+        gather(year, val, -(country:type_test)) %>%
+        group_by(type_test) %>%
+        summarise(yr_avaible = sum(!is.na(val))) %>%
+        pull(yr_avaible)
+      
+      year_sd <-
+        .x %>%
+        gather(year, val, -(country:type_test)) %>%
+        split(.$type_test) %>%
+        map_dbl(~ bootstrapper(.x, mad(val, na.rm = T), B = 100) %>% .[[2, 2]]) %>%
+        round(2) * 100
+
+      
+      .x %>%
+        map_if(is_double, round, 3) %>%
+        as_tibble() %>%
+        transmute(type_test,
+                  country,
+                  diff = round(((!!last_year) - (!!first_year)), 1),
+                  sd_year = year_sd,
+                  diff_lower = diff - 1 * year_sd,
+                  diff_upper = diff + 1 * year_sd,
+                  years_available = years_available)
+    })
+  data_ready
+}
+
+diff_data <-
+  diff_increase_fun(complete_data_topbottom) %>%
+  enframer("country") %>%
+  filter(country %in% countries) %>%
+  select(country, type_test, diff) %>%
+  split(.$type_test) %>%
+  map(~ .x %>% select(-type_test) %>% deframe())
+
+lm_data <- function(df) {
+  lm(log(difference) ~ wave, data = df) %>%
+    broom::tidy() %>%
+    mutate(estimate = exp(estimate))
+}
+
+ordered_cnt <-
+  complete_data_topbottom %>%
+  filter(type_test == "math") %>%
+  select(wave, country, difference) %>%
+  filter(country %in% countries) %>%
+  split(.$country) %>%
+  map(lm_data) %>%
+  enframer("country") %>%
+  filter(term == "wave") %>%
+  arrange(-estimate) %>%
+  pull(country)
+
 complete_data_topbottom %>%
-  filter(country %in% c("United States", "Netherlands", "France",
-                        "Germany", "Poland", "Finland")) %>%
+  filter(country %in% countries) %>%
+  mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
   ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_line(stat = "smooth", method = "lm", aes(group = 1),
+            formula = y ~ splines::ns(x, 3), linetype = "longdash",
+            colour = "black") +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
   geom_hline(yintercept = 0, linetype = "longdash") +
-  geom_line() +
-  geom_point(size = 0.5) +
-  coord_cartesian(ylim = c(-0.5, 3)) +
+  geom_line(alpha = 0.4) +
+  geom_point(size = 0.5, alpha = 0.4) +
+  coord_cartesian(ylim = c(0, 3)) +
   facet_wrap(~ country)
 @
+
+We start by look at the achievement for some countries. We plot both mathematics and reading gaps for each country and also a cubic trend spline for both test scores pooled. Some countries have increased their achievement very strongly. For example, France, Austria and surprisingly Sweden. In mathematics, France increase the gap by roughly \Sexpr{diff_data$math[["France"]]}. This increase happens similarly for literacy with an increase of \Sexpr{diff_data$read[["France"]]}. For such a short period of time, the magnitud of the increase is reasonably big.
+
+Given that no one has estimated the evolution of the gap we can't cross-check how other empirical estimations put France. However, we can make some educated inferences.  For example, \citet{micklewright} also finds that France is a low dispersion country, specifically in the year 2000. They also find that Germany and US are very dispersed countries (quite the opposite).
+
+\citet{micklewright} find that France has a very small gap in 2000, something we find very clearly in our data, and the U.S has a very big gap in 2000, something we also find in our data. \citet{micklewright} find
+that average achievement is negatively related to dispersion.
+
+It seems that social origin effects have actually increased in France  (Ballarino and Bernardi, 2016)
+
 
 <<graphing_allgaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 
