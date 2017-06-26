@@ -965,15 +965,67 @@ complete_data_topbottom %>%
   facet_wrap(~ country)
 @
 
-We start by look at the achievement for some countries. We plot both mathematics and reading gaps for each country and also a cubic trend spline for both test scores pooled. Some countries have increased their achievement very strongly. For example, France, Austria and surprisingly Sweden. In mathematics, France increase the gap by roughly \Sexpr{diff_data$math[["France"]]}. This increase happens similarly for literacy with an increase of \Sexpr{diff_data$read[["France"]]}. For such a short period of time, the magnitud of the increase is reasonably big.
+We start by look at the achievement for some countries. We plot both mathematics and reading gaps for each country and also a cubic trend spline for both test scores pooled. Some countries have increased their achievement very strongly. For example, France, Austria and surprisingly Sweden. In mathematics, France increase the gap by roughly \Sexpr{diff_data$math[["France"]]}. This pattern happens similarly for literacy with an increase of \Sexpr{diff_data$read[["France"]]}. For such a short period of time, the magnitud of the increase is reasonably big.
 
-Given that no one has estimated the evolution of the gap we can't cross-check how other empirical estimations put France. However, we can make some educated inferences.  For example, \citet{micklewright} also finds that France is a low dispersion country, specifically in the year 2000. They also find that Germany and US are very dispersed countries (quite the opposite).
+Given that no one has estimated the evolution of the gap we can't cross-check how other empirical estimations put France at. However, we can make some educated inferences.  For example, \citet{micklewright} also finds that France is a low dispersion country, specifically in the year 2000.
 
-\citet{micklewright} find that France has a very small gap in 2000, something we find very clearly in our data, and the U.S has a very big gap in 2000, something we also find in our data. \citet{micklewright} find
-that average achievement is negatively related to dispersion.
+However, we don't know what happens over time. But Ballarino and Bernardi (2016) did study the relationship of social origin effects and found that they increased very much in France in the last decades.
 
-It seems that social origin effects have actually increased in France  (Ballarino and Bernardi, 2016)
+Other countries have reasonable increases such as Austria and Finland. Aside from these countries, some other countries have no change at all. Specially, Canada, Netherlands and Spain. Canada excels here not only because the gap has been stable over time, but because it has the smallest gap of all countries presented here. It's nearly 0.5 standard deviations in 2000 and it increased only by \Sexpr{diff_data$math[["Canada"]]} in 2015. We can't really say Italy has had a significant since it has a sort of wiggly pattern that looks like it cancels itself out.
 
+Furthermore, we do have some countries which show a decrease in the SES achievement gap. United Kingdom, Israel, Poland, United States and Germany show some steep downward slopes. Most notably are the U.S and German cases. These two countries show a very high level of dispersion in the year 2000 with SES gaps of over 2 standard deviations. However, both countries reduced the gaps by \Sexpr{diff_data$math[["United States"]]} and \Sexpr{diff_data$math[["Germany"]]} respectively. Their distinctively big gaps in 2000 also show up in the work of \citet{micklewright}.
+
+Analyzing this graph we might naively conclude that these trends are not very steep and they should not be very important to consider. However, remember that the Y axis is measured in standard deviations. Small changes are actually very huge in practical terms. Take the case of Sweden. The slope doesn't look that steep but in reality it increased the gap from 1 standard deviation in 2000 to around 1.5 standard deviation. The actual difference is of about \Sexpr{diff_data$math[["Sweden"]]}. Now that we know that, the trends of Poland, United States, France and Germany are particularly shocking.
+
+Something reassuring is that mathematics and reading follow basically the same trend across all countries. This means that the result is not an artifact of chance. However, it's important to disentangle where is this gap originating from. Is this because the top are improving why the bottom decreases? Or is it that the bottom is catching up? Up next we plot the same graph only
+
+<<>>=
+# You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
+complete_data_topbottom %>%
+  filter(country %in% countries) %>%
+  mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
+  select(wave, country, matches("*._math$")) %>%
+  gather(ses, gap_size, matches("^\\d_mean_math$")) %>%
+  separate(ses, c("ses", "delete"), sep = 2) %>%
+  mutate(ses = gsub("_", "", ses)) %>%
+  filter(complete.cases(.)) %>%
+  # gather(lower_bound, lower, matches("\\d_lower")) %>%
+  # gather(upper_bound, upper, matches("\\d_upper"))
+  ggplot(aes(as.factor(wave), gap_size, group = ses, colour = ses)) +
+  geom_point(size = 0.5, alpha = 0.4) +
+  geom_line(alpha = 0.4) +
+  geom_line(stat = "smooth", method = "lm", aes(group = 1),
+            formula = y ~ splines::ns(x, 3), linetype = "longdash",
+            colour = "black") +
+  # geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
+  # geom_hline(yintercept = 0, linetype = "longdash") +
+  # coord_cartesian(ylim = c(0, 3)) +
+  facet_wrap(~ country)
+@
+
+<<>>=
+
+lower <- seq(13, 1, -1)
+upper <- seq(100, 220, 10)
+
+df <- tibble(country = "fake_country",
+             years = rep(seq(2000, 2025, 2), 2),
+             ses = rep(c("lower", "upper"), each = 13),
+             value = c(lower, upper))
+
+# You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
+df %>%
+  ggplot(aes(as.factor(years), value, group = ses, colour = ses)) +
+  geom_point(size = 0.5, alpha = 0.4) +
+  geom_line(alpha = 0.4) +
+  geom_line(stat = "smooth", method = "lm", aes(group = 1),
+            formula = y ~ splines::ns(x, 3), linetype = "longdash",
+            colour = "black") +
+  # geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
+  # geom_hline(yintercept = 0, linetype = "longdash") +
+  # coord_cartesian(ylim = c(0, 3)) +
+  facet_wrap(~ country)
+@
 
 <<graphing_allgaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 
