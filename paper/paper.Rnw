@@ -1002,6 +1002,30 @@ complete_data_topbottom %>%
   facet_wrap(~ country)
 @
 
+<<>>=
+
+ggplot(complete_data_topbottom, aes(as.character(wave), country, fill = difference)) +
+  geom_tile() +
+  viridis::scale_fill_viridis()
+
+complete_data_topbottom %>%
+  mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
+  filter(type_test == "math", !is.na(country)) %>%
+  ggplot(aes(as.character(wave), difference)) +
+  geom_point() +
+  geom_linerange(aes(ymin = 0, ymax = difference))+
+  geom_line(stat = "smooth", method = "lm", aes(group = 1),
+            formula = y ~ splines::ns(x, 2), size = 0.7,
+            colour = "red") +
+  facet_wrap(~ country, ncol = 12) +
+  # viridis::scale_fill_viridis(option = "B") +
+  scale_y_continuous(expand = c(0, 0), lim = c(0, 3)) +
+  ggthemes::theme_few() +
+  theme(panel.spacing = unit(1, "lines"),
+      axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+@
 The top line belongs to the high SES group whereas the bottom line belongs to the low SES group. The middle line is a summary line showing whether one of the groups is growing/shrinking faster than the other. We find plenty of variation in these patterns. For example, in the United States the top seems to be equalizing much stronger than than the bottom is catching up. The U.K seems to be following the same path as the United States as well. On the other hand, in Poland the gap seems to be closing because the bottom SES group is catching up much faster. The Netherlands shows a similar pattern as the U.S, U.K patterns but upon closer inspection the explanation is very different. We see that the slope is negative (like in the previous two countries) but that's because the low SES group is decreasing at a greater rate than the high SES is decreasing.
 
 Finally, we pay attention to the flat summary lines. These lines should be interpreted with caution because it doesn't mean that the gap is not increasing. Denmark, Belgium, Netherlands, Norway and Spain show a flat line because the gap is growing very little, if at all. On the other hand, Sweden, France, Finland, New Zealand, Austria, among other countries, show a flat line because both groups are distancing themselves at a very similar rate. there's a group of distinctive groups where both low/high SES rates are very great resulting in the summary line being flat.
