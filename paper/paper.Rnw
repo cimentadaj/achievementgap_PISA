@@ -55,10 +55,9 @@ opts_chunk$set(echo = F,
   library(PISA2009lite)
   library(PISA2012lite)
   library(intsvy)
-  library(cimentadaj) # # devtools::install_github("cimentadaj/cimentadaj")
+  library(cimentadaj) # devtools::install_github("cimentadaj/cimentadaj")
   library(countrycode) # For region variable
   library(car)
-  library(readr)
   library(SAScii)
   library(inequalityintsvy) # devtools::install_github("cimentadaj/inequalityintsvy")
   library(lme4)
@@ -977,7 +976,7 @@ Furthermore, we do have some countries which show a decrease in the SES achievem
 
 Analyzing this graph we might naively conclude that these trends are not very steep and they should not be very important to consider. However, remember that the Y axis is measured in standard deviations. Small changes are actually very huge in practical terms. Take the case of Sweden. The slope doesn't look that steep but in reality it increased the gap from 1 standard deviation in 2000 to around 1.5 standard deviation. The actual difference is of about \Sexpr{diff_data$math[["Sweden"]]}. Now that we know that, the trends of Poland, United States, France and Germany are particularly shocking.
 
-Something reassuring is that mathematics and reading follow basically the same trend across all countries. This means that the result is not an artifact of chance. However, it's important to disentangle where is this gap originating from. Is this because the top are improving why the bottom decreases? Or is it that the bottom is catching up? Up next we plot the same graph only
+Something reassuring is that mathematics and reading follow basically the same trend across all countries. This means that the result is not an artifact of chance. However, it's important to disentangle where is this gap originating from. Is this because the top are improving why the bottom decreases? Or is it that the bottom is catching up? Up next we plot the same graph but show the divergent patterns between high/low SES origins.
 
 <<>>=
 # You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
@@ -995,7 +994,7 @@ complete_data_topbottom %>%
   geom_point(size = 0.5, alpha = 0.4) +
   geom_line(alpha = 0.4) +
   geom_line(stat = "smooth", method = "lm", aes(group = 1),
-            formula = y ~ splines::ns(x, 3), linetype = "longdash",
+            formula = y ~ splines::ns(x, 1), linetype = "longdash",
             colour = "black") +
   # geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
   # geom_hline(yintercept = 0, linetype = "longdash") +
@@ -1003,6 +1002,13 @@ complete_data_topbottom %>%
   facet_wrap(~ country)
 @
 
+The top line belongs to the high SES group whereas the bottom line belongs to the low SES group. The middle line is a summary line showing whether one of the groups is growing/shrinking faster than the other. We find plenty of variation in these patterns. For example, in the United States the top seems to be equalizing much stronger than than the bottom is catching up. The U.K seems to be following the same path as the United States as well. On the other hand, in Poland the gap seems to be closing because the bottom SES group is catching up much faster. The Netherlands shows a similar pattern as the U.S, U.K patterns but upon closer inspection the explanation is very different. We see that the slope is negative (like in the previous two countries) but that's because the low SES group is decreasing at a greater rate than the high SES is decreasing.
+
+Finally, we pay attention to the flat summary lines. These lines should be interpreted with caution because it doesn't mean that the gap is not increasing. Denmark, Belgium, Netherlands, Norway and Spain show a flat line because the gap is growing very little, if at all. On the other hand, Sweden, France, Finland, New Zealand, Austria, among other countries, show a flat line because both groups are distancing themselves at a very similar rate. there's a group of distinctive groups where both low/high SES rates are very great resulting in the summary line being flat.
+
+Ths source of this gap can be deconstructed into two broader gaps. We want to know if these gaps have increased because the 90th SES group has distanced itself from the 50th SES group or because the middle has been also distancing itself from 10th SES group. Up next we plot all the combinations of the 90th/50th/10th gaps and pay attention to the magnitude of each gap. For example, we're interested in searching which gap is bigger between countries, the 90th/50th or the 50th/10th? Moreover, are some of these gaps contributing more to the 90th/10th gap we saw earlier. Because we visualize three plots for every country, we only plot a selected number of countries that represent the overall patterns from the previous plots \footnote{United States and Germany show a decrease, France shows a steep increase and Denmark shows no significant change.}.
+
+% This plot might not be necessary any more
 <<>>=
 
 lower <- seq(13, 1, -1)
@@ -1033,7 +1039,7 @@ df %>%
 complete_data_topbottom %>%
   bind_rows(complete_data_topmid) %>%
   bind_rows(complete_data_midbottom) %>%
-  filter(country %in% c("United States", "Denmark", "France")) %>%
+  filter(country %in% c("United States", "Denmark", "France", "Germany")) %>%
   mutate(type = factor(type,
                        levels = c("90th/10th SES gap", "90th/50th SES gap", "50th/10th SES gap"),
                        ordered = TRUE)) %>%
@@ -1046,13 +1052,18 @@ complete_data_topbottom %>%
   facet_grid(country ~ type)
 @
 
+We start off with Denmark. Generally speaking, we find that the 50th/10th gap is contributing more than the 90th/50th gap as the gap is bigger for both subjects. Furthermore, we find, just as in the 90th/10th SES gap, that there isn't a significant decrease, with the exception of reading in the 50th/10th SES gap which seemed to decrease from nearly 1.5 to 1 standard deviation. France shows a similar pattern as Denmark in that the 50th/10th SES gap is the main contributer and that the three gaps have the similar trend. 
+
+Germany and U.S, on the other hand, show a very different landscape. For example, Germany, shows that the 90th/10th gap is primarily driven by the 50th/10th SES gap and that the slopes of the 90th/50th gap is much weaker than the other two gaps. This means that Top/Middle SES groups have shrunk much less than the other groups. The big catching up is actually coming from the Middle/Bottom SES groups. However, we don't know if this is because the bottom is catching up or that the middle is coming down. However, based on the gap plots from above, we can infer that it is because the bottom is catching up rapidly because against the 90th SES group, it is increasing steeply every year. The U.S shows a different pattern from all other countries. Both the 90th/50th/10th gaps seem to contribute rather similarly to the overall 90th/10th gap (although 50th/10th is marginally higher) but more interestingly, the 90th/50th gap has stagnated in the last 15 years. The top/middle groups have a relatively big gap and it hasn't changed at all. On the other hand, the steep decrease we saw for the U.S is coming exclusively from the 50th/10th gap shrinking. The reason, nonetheless, might be different from the German case, where it's probable that the bottom is catching up. Here, as in the 90th/10th gap, the middle might be 'dumbing' down closer to the low SES group.
+
+
 <<graphing_ses_growth, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 # Graphing how the top/bottom are evolving over time instead of absolute difference
 
 complete_data_topbottom %>%
   bind_rows(complete_data_topmid) %>%
   bind_rows(complete_data_midbottom) %>%
-  filter(country %in% c("Germany", "Denmark", "France"), type_test == "math") %>%
+  filter(country %in% c("United States", "Denmark", "France", "Germany"), type_test == "math") %>%
   select(wave, country, type_test, type, contains("math")) %>%
   mutate(type = factor(type,
                        levels = c("90th/10th SES gap", "90th/50th SES gap", "50th/10th SES gap"),
