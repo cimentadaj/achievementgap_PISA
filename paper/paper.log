@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  22 JUN 2017 15:31
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  1 JUL 2017 14:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -448,60 +448,60 @@ Package pdftex.def Info: figure/correlation_incomeineq-1.pdf used on input line
  294.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [10]
-<figure/graphing_9010gaps-1.pdf, id=286, 505.89pt x 505.89pt>
+<figure/graphing_9010gaps-1.pdf, id=282, 505.89pt x 505.89pt>
 File: figure/graphing_9010gaps-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_9010gaps-1.pdf>
-Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 312.
+Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 307.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
-
-<figure/graphing_allgaps-1.pdf, id=287, 505.89pt x 505.89pt> [11 <./figure/corr
-elation_incomeineq-1.pdf>]
+ [11 <./figure/correlation_incomeineq-1.pdf>] [12 <./figure/graphing_9010gaps-1
+.pdf>]
+<figure/graphing_allgaps-1.pdf, id=310, 505.89pt x 505.89pt>
 File: figure/graphing_allgaps-1.pdf Graphic file (type pdf)
- <use figure/graphing_allgaps-1.pdf>
-Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 321.
-(pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/graphing_ses_growth-1.pdf, id=297, 505.89pt x 505.89pt> [12 <./figure/g
-raphing_9010gaps-1.pdf>]
+<use figure/graphing_allgaps-1.pdf>
+Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 364.
+(pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
+ [13]
+<figure/graphing_ses_growth-1.pdf, id=317, 505.89pt x 505.89pt>
 File: figure/graphing_ses_growth-1.pdf Graphic file (type pdf)
- <use figure/graphing_ses_growth-1.pdf>
-Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 33
+
+<use figure/graphing_ses_growth-1.pdf>
+Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 38
 0.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
-
-<figure/rate_change_graph-1.pdf, id=307, 505.89pt x 505.89pt> [13 <./figure/gra
-phing_allgaps-1.pdf>]
+ [14 <./figure/graphing_allgaps-1.pdf>]
+<figure/rate_change_graph-1.pdf, id=327, 505.89pt x 505.89pt> [15 <./figure/gra
+phing_ses_growth-1.pdf>]
 File: figure/rate_change_graph-1.pdf Graphic file (type pdf)
  <use figure/rate_change_graph-1.pdf>
-Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 344.
+Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 408.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/graphing_perc_increase-1.pdf, id=318, 505.89pt x 505.89pt> [14 <./figur
-e/graphing_ses_growth-1.pdf>]
+<figure/graphing_perc_increase-1.pdf, id=337, 505.89pt x 505.89pt>
 File: figure/graphing_perc_increase-1.pdf Graphic file (type pdf)
- <use figure/graphing_perc_increase-1.pdf>
-Package pdftex.def Info: figure/graphing_perc_increase-1.pdf used on input line
- 356.
-(pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-(./paper.bbl [15 <./figure/rate_change_graph-1.pdf>] [16 <./figure/graphing_per
-c_increase-1.pdf>])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 369.
- [17]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 369.
+<use figure/graphing_perc_increase-1.pdf>
+Package pdftex.def Info: figure/graphing_perc_increase-1.pdf used on input line
+ 422.
+(pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
+ (./paper.bbl [16 <./figure/rate_change_graph-1.pdf>] [17 <./figure/graphing_pe
+rc_increase-1.pdf>])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 436.
+ [18]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 436.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 369.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 369.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 436.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 436.
 Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: 54F5AD722C9FB9EE50E1D99799CEA95F;469.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 369.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 436.
  ) 
 Here is how much of TeX's memory you used:
- 7822 strings out of 493014
- 118167 string characters out of 6133351
+ 7824 strings out of 493014
+ 118186 string characters out of 6133351
  217476 words of memory out of 5000000
  11206 multiletter control sequences out of 15000+600000
  12117 words of font info for 43 fonts, out of 8000000 for 9000
@@ -522,10 +522,10 @@ ive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive
 2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2
 016/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/20
 16/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb>
-Output written on paper.pdf (17 pages, 301680 bytes).
+Output written on paper.pdf (18 pages, 332134 bytes).
 PDF statistics:
- 427 PDF objects out of 1000 (max. 8388607)
- 375 compressed objects within 4 object streams
- 62 named destinations out of 1000 (max. 500000)
+ 438 PDF objects out of 1000 (max. 8388607)
+ 385 compressed objects within 4 object streams
+ 64 named destinations out of 1000 (max. 500000)
  108 words of extra memory for PDF output out of 10000 (max. 10000000)
 

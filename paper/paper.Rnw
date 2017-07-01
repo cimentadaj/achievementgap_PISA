@@ -82,26 +82,29 @@ opts_chunk$set(echo = F,
   
   countries <- c("Finland",
                  "France",
-                 "New Zealand",
+                 # "New Zealand",
                  "Austria",
                  "Australia",
                  "Sweden",
-                 "Czech Republic",
+                 # "Czech Republic",
                  "Canada",
                  "Hungary",
-                 "Iceland", "Netherlands",
+                 # "Iceland",
+                 "Netherlands",
                  "Spain",
-                 "Belgium",
-                 "Italy", "Norway",
+                 # "Belgium",
+                 "Italy",
+                 # "Norway",
                  "United Kingdom",
-                 "Greece",
+                 # "Greece",
                  "Denmark",
-                 "Israel",
+                 # "Israel",
                  "Poland",
                  "United States",
-                 "Germany",
-                 "Turkey",
-                 "Russia")
+                 "Germany"
+                 # "Turkey",
+                 # "Russia"
+                 )
 @
 
 \tableofcontents
@@ -360,19 +363,19 @@ adapted_year_data <-
       .x
 })
 
-# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
-# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
-# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
+results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
+results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
 
-results_math <- read_rds("./data/delete.Rdata")
-results_read <- read_rds("./data/delete_read.Rdata")
-results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
-results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
-results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
-results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
+# results_math <- read_rds("./data/delete.Rdata")
+# results_read <- read_rds("./data/delete_read.Rdata")
+# results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+# results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+# results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+# results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -525,7 +528,7 @@ enframer <- function(df, col_name = "name") {
 
 var_years %>%
   setNames(seq(2000, 2015, 3)) %>%
-  enframer(name) %>%
+  enframer("name") %>%
   ggplot(aes(name, value)) + geom_col()
 @
 
@@ -1004,10 +1007,6 @@ complete_data_topbottom %>%
 
 <<>>=
 
-ggplot(complete_data_topbottom, aes(as.character(wave), country, fill = difference)) +
-  geom_tile() +
-  viridis::scale_fill_viridis()
-
 complete_data_topbottom %>%
   mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
   filter(type_test == "math", !is.na(country)) %>%
@@ -1018,7 +1017,7 @@ complete_data_topbottom %>%
             formula = y ~ splines::ns(x, 2), size = 0.7,
             colour = "red") +
   facet_wrap(~ country, ncol = 12) +
-  # viridis::scale_fill_viridis(option = "B") +
+  viridis::scale_fill_viridis(option = "B") +
   scale_y_continuous(expand = c(0, 0), lim = c(0, 3)) +
   ggthemes::theme_few() +
   theme(panel.spacing = unit(1, "lines"),
@@ -1033,29 +1032,29 @@ Finally, we pay attention to the flat summary lines. These lines should be inter
 Ths source of this gap can be deconstructed into two broader gaps. We want to know if these gaps have increased because the 90th SES group has distanced itself from the 50th SES group or because the middle has been also distancing itself from 10th SES group. Up next we plot all the combinations of the 90th/50th/10th gaps and pay attention to the magnitude of each gap. For example, we're interested in searching which gap is bigger between countries, the 90th/50th or the 50th/10th? Moreover, are some of these gaps contributing more to the 90th/10th gap we saw earlier. Because we visualize three plots for every country, we only plot a selected number of countries that represent the overall patterns from the previous plots \footnote{United States and Germany show a decrease, France shows a steep increase and Denmark shows no significant change.}.
 
 % This plot might not be necessary any more
-<<>>=
-
-lower <- seq(13, 1, -1)
-upper <- seq(100, 220, 10)
-
-df <- tibble(country = "fake_country",
-             years = rep(seq(2000, 2025, 2), 2),
-             ses = rep(c("lower", "upper"), each = 13),
-             value = c(lower, upper))
-
-# You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
-df %>%
-  ggplot(aes(as.factor(years), value, group = ses, colour = ses)) +
-  geom_point(size = 0.5, alpha = 0.4) +
-  geom_line(alpha = 0.4) +
-  geom_line(stat = "smooth", method = "lm", aes(group = 1),
-            formula = y ~ splines::ns(x, 3), linetype = "longdash",
-            colour = "black") +
-  # geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
-  # geom_hline(yintercept = 0, linetype = "longdash") +
-  # coord_cartesian(ylim = c(0, 3)) +
-  facet_wrap(~ country)
-@
+% <<>>=
+% 
+% lower <- seq(13, 1, -1)
+% upper <- seq(100, 220, 10)
+% 
+% df <- tibble(country = "fake_country",
+%              years = rep(seq(2000, 2025, 2), 2),
+%              ses = rep(c("lower", "upper"), each = 13),
+%              value = c(lower, upper))
+% 
+% # You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
+% df %>%
+%   ggplot(aes(as.factor(years), value, group = ses, colour = ses)) +
+%   geom_point(size = 0.5, alpha = 0.4) +
+%   geom_line(alpha = 0.4) +
+%   geom_line(stat = "smooth", method = "lm", aes(group = 1),
+%             formula = y ~ splines::ns(x, 3), linetype = "longdash",
+%             colour = "black") +
+%   # geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
+%   # geom_hline(yintercept = 0, linetype = "longdash") +
+%   # coord_cartesian(ylim = c(0, 3)) +
+%   facet_wrap(~ country)
+% @
 
 <<graphing_allgaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 
@@ -1076,9 +1075,11 @@ complete_data_topbottom %>%
   facet_grid(country ~ type)
 @
 
-We start off with Denmark. Generally speaking, we find that the 50th/10th gap is contributing more than the 90th/50th gap as the gap is bigger for both subjects. Furthermore, we find, just as in the 90th/10th SES gap, that there isn't a significant decrease, with the exception of reading in the 50th/10th SES gap which seemed to decrease from nearly 1.5 to 1 standard deviation. France shows a similar pattern as Denmark in that the 50th/10th SES gap is the main contributer and that the three gaps have the similar trend. 
+We start off with Denmark. Generally speaking, we find that the 50th/10th gap is contributing more than the 90th/50th gap as the gap is bigger for both tests. Furthermore, we find, just as in the 90th/10th SES gap, that there isn't a significant decrease, with the exception of reading in the 50th/10th SES gap which seemed to decrease from nearly 1.5 to 1 standard deviation. France shows a similar pattern as Denmark in that the 50th/10th SES gap is the main contributer and that the three gaps have the similar trend. 
 
 Germany and U.S, on the other hand, show a very different landscape. For example, Germany, shows that the 90th/10th gap is primarily driven by the 50th/10th SES gap and that the slopes of the 90th/50th gap is much weaker than the other two gaps. This means that Top/Middle SES groups have shrunk much less than the other groups. The big catching up is actually coming from the Middle/Bottom SES groups. However, we don't know if this is because the bottom is catching up or that the middle is coming down. However, based on the gap plots from above, we can infer that it is because the bottom is catching up rapidly because against the 90th SES group, it is increasing steeply every year. The U.S shows a different pattern from all other countries. Both the 90th/50th/10th gaps seem to contribute rather similarly to the overall 90th/10th gap (although 50th/10th is marginally higher) but more interestingly, the 90th/50th gap has stagnated in the last 15 years. The top/middle groups have a relatively big gap and it hasn't changed at all. On the other hand, the steep decrease we saw for the U.S is coming exclusively from the 50th/10th gap shrinking. The reason, nonetheless, might be different from the German case, where it's probable that the bottom is catching up. Here, as in the 90th/10th gap, the middle might be 'dumbing' down closer to the low SES group.
+
+But, similar as before, we don't know which group is causing the decrease/increase of the gap in the 90th/50th and 50th/10th gap. For that we plot the evolution of these gaps below.
 
 
 <<graphing_ses_growth, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
@@ -1097,7 +1098,6 @@ complete_data_topbottom %>%
   spread(score, value) %>%
   ggplot(aes(as.factor(wave), mean_math, group = ses, colour = ses)) +
   geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.1) +
-  geom_hline(yintercept = 0, linetype = "longdash") +
   geom_line() +
   geom_point(size = 0.5) +
   coord_cartesian(ylim = c(-0.5, 3)) +
@@ -1128,6 +1128,10 @@ complete_data_topbottom %>%
 # Spain - no change
 @
 
+With Denmark there's no average change across all years. However, for France, we see that the gap is growing much faster for the 50th/10th SES gap. For Germany we see that the gap is closing in all three groups although much more strongly for the 50th/10th SES gap. It looks like the 50th/10th gap is mainly driving the changes in the gaps for most of the countries that actually see a change over time.  For the U.S, there's very little change in the 90th/50th SES gap, with most of the change coming from the 50th/10th gap.
+
+Given that we have the data for the average performance for each country and the achievement gap, we can also investigate whether there's an efficiency/equality tradeoff and if it stands over time. One particular topic that has been researched in the past is whether improving the overall cognitive development of a country compromises the distribution of the countries overall performance. For example, in order to improve the average score in, let's say, mathematics, tracking can improve the average score by making children in the higher trackers perform better, raising the overall performance. This, however, can come at a price. If tracking actually benefits the top but doesn't increase the performance of the bottom tracks then we see a net increase of inequality accompanied with an increase in the overall performance.
+
 <<graphing_achievement_disparity, cache = T>>=
 
 country_scores <-
@@ -1153,7 +1157,19 @@ data_to_plot %>%
   ggplot(aes(scale(Mean), difference)) +
   geom_point() +
   geom_smooth()
+@
 
+For all country-years pooled we see a very strong correlation but contrary to what we would expect. We find that countries with high performance have also a very low level of inequality. In fact, even if we separate it by year.
+
+<<>>=
+data_to_plot %>%
+  ggplot(aes(scale(Mean), difference)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ wave)
+@
+
+<<>>=
 data_to_plot %>%
   filter(country %in% countries) %>%
   ggplot(aes(as.character(wave), difference, group = country)) +
@@ -1162,13 +1178,16 @@ data_to_plot %>%
   geom_point(aes(y = scale(Mean)), colour = "red") +
   geom_line(aes(y = scale(Mean)), colour = "red") +
   facet_wrap(~ country)
+@
 
+In fact, we see a strong correspondence. In countries like Germany and France we see quite a functional form between both inequality and performance. This pattern is also seen in in the UK, Austria, Australia and New Zealand. Poland and Italy are quite interesting cases because it shows how inequality has been decreasing that much whereas average performance has been improving notably. On another hand, only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality.
+
+<<>>=
 data_to_plot %>%
   semi_join(data_to_plot %>% group_by(country) %>% count() %>% filter(n > 3), by = "country") %>%
   group_by(country) %>%
   summarize(cor = cor(scale(Mean), difference, use = 'complete.obs')) %>%
   ggplot(aes(reorder(country, cor), cor, fill = cor > 0)) + geom_col() + coord_flip()
-
 @
 
 % How to output data frames are latex tables?
@@ -1248,9 +1267,12 @@ full_data %>%
             fill = rect_data$colour,
             alpha = 0.2,
             inherit.aes = FALSE) +
-  geom_line(stat="smooth", method = "lm", se = FALSE, alpha = 0.5, colour = "grey", size = 1) +
+  geom_line(stat="smooth", method = "lm", se = FALSE, alpha = 0.5, colour = "grey", size = 1,
+            linetype = "longdash") +
   geom_point(alpha = 0.2) +
   geom_point(data = filter(full_data, continent == "my_cnt"), colour = "red", alpha = 0.7) +
+  geom_line(data = filter(full_data, continent == "my_cnt"), colour = "red", alpha = 0.4,
+            stat="smooth", method = "lm", se = FALSE, alpha = 0.5, colour = "red", size = 1) +
   geom_text_repel(data = filter(full_data, continent == "my_cnt"),
                   aes(label = country), box.padding = unit(2.7, "lines")) +
   geom_vline(xintercept = 0, alpha = 0.5) +
@@ -1259,14 +1281,16 @@ full_data %>%
   ylim(lims$ylim) +
   coord_cartesian(expand = FALSE) +
   annotate(geom = "text", x = 0.15, y = -0.2,
-           label = "Low SES are catching up \n faster than High SES",
+           label = "Low SES is catching up \n faster than High SES",
            fontface = 2, size = 3) +
   annotate(geom = "text", x = -0.05, y = 0.20,
-           label = "High SES are increasing  \n faster than Low SES",
+           label = "High SES is increasing  \n faster than Low SES",
            fontface = 2, size = 3) +
   labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
   theme_minimal()
 @
+
+In a more convenient way, we can see that there is a lot of variance in the rate at which top/bottom groups are changing. We see that there are more countries where the inequality is increasing (red panel) but there's also a fair share where Low SES is catching up faster, such as United States and Germany. We see a negative relationship where the faster the low SES catch up the slower the High SES decrease. Quite an interesting pattern because we see very few countries where low SES are decreasing (so going even further down) and High SES is also decresing (bottom left panel). On the other hand, we do see more ocuntries where the both groups are increasing (top right panel). We plot all remaining countries in the back, together with a trendline and we see that the relation holds for all PISA countries.
 
 % How to output data frames are latex tables?
 <<perc_increase_tables, cache = TRUE>>=
@@ -1328,7 +1352,7 @@ mid_bottom_perc <- perc_increase_fun(complete_data_midbottom)
 @
 
 <<graphing_perc_increase, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
-perc_graph <- function(df) {
+perc_graph <- function(df, title) {
   df %>%
   enframe(name = "country") %>%
   unnest(value) %>%
@@ -1349,15 +1373,17 @@ perc_graph <- function(df) {
   geom_hline(yintercept = 0, linetype = "longdash") +
   scale_y_continuous(breaks = seq(-160, 160, 40)) +
   coord_cartesian(ylim = c(-160, 160)) +
+  ggtitle(title) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-m1 <- perc_graph(top_bottom_perc)
-m2 <- perc_graph(top_mid_perc)
-m3 <- perc_graph(mid_bottom_perc)
+m1 <- perc_graph(top_bottom_perc, "90/10")
+m2 <- perc_graph(top_mid_perc, "90/50")
+m3 <- perc_graph(mid_bottom_perc, "50/10")
 
 gridExtra::grid.arrange(m1, m2, m3, nrow = 1)
 @
+
 
 <<table_sample>>=
 sample_tables_topbottom %>%

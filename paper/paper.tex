@@ -271,7 +271,7 @@ Finally, we calculate the SES achievement gap for each country by extracting the
 \end{split}
 \end{equation}
 
-We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than a linear model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES dummy reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible.
+We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than a linear model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES dummy reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible. For further exploration, we also compute the 90th/50th and 50th/10th SES gaps following the same method outlined above.
 
 \section{Analysis}
 
@@ -300,12 +300,7 @@ We also calculate the standard error of this difference and use it to create unc
 
 \subsection{Results}
 
-Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (\citet{micklewright} did it). They also find that France is a lower dispersion country (but in my results this is changing a lot). They also find that Germany and US are very dispersed countries (quite the opposite)
-
-\citet{micklewright} find that France has a very small gap in 2000, something we find very clearly in our data, and the U.S has a very big gap in 2000, something we also find in our data. \citet{micklewright} find
-that average achievement is negatively related to dispersion.
-
-It seems that social origin effects have actually increased in France  (Ballarino and Bernardi, 2016)
+Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (\citet{micklewright} did it).
 
 
 
@@ -316,6 +311,54 @@ It seems that social origin effects have actually increased in France  (Ballarin
 
 
 
+We start by look at the achievement for some countries. We plot both mathematics and reading gaps for each country and also a cubic trend spline for both test scores pooled. Some countries have increased their achievement very strongly. For example, France, Austria and surprisingly Sweden. In mathematics, France increase the gap by roughly 0.9. This pattern happens similarly for literacy with an increase of 0.6. For such a short period of time, the magnitud of the increase is reasonably big.
+
+Given that no one has estimated the evolution of the gap we can't cross-check how other empirical estimations put France at. However, we can make some educated inferences.  For example, \citet{micklewright} also finds that France is a low dispersion country, specifically in the year 2000.
+
+However, we don't know what happens over time. But Ballarino and Bernardi (2016) did study the relationship of social origin effects and found that they increased very much in France in the last decades.
+
+Other countries have reasonable increases such as Austria and Finland. Aside from these countries, some other countries have no change at all. Specially, Canada, Netherlands and Spain. Canada excels here not only because the gap has been stable over time, but because it has the smallest gap of all countries presented here. It's nearly 0.5 standard deviations in 2000 and it increased only by 0.2 in 2015. We can't really say Italy has had a significant since it has a sort of wiggly pattern that looks like it cancels itself out.
+
+Furthermore, we do have some countries which show a decrease in the SES achievement gap. United Kingdom, Israel, Poland, United States and Germany show some steep downward slopes. Most notably are the U.S and German cases. These two countries show a very high level of dispersion in the year 2000 with SES gaps of over 2 standard deviations. However, both countries reduced the gaps by -0.6 and -0.9 respectively. Their distinctively big gaps in 2000 also show up in the work of \citet{micklewright}.
+
+Analyzing this graph we might naively conclude that these trends are not very steep and they should not be very important to consider. However, remember that the Y axis is measured in standard deviations. Small changes are actually very huge in practical terms. Take the case of Sweden. The slope doesn't look that steep but in reality it increased the gap from 1 standard deviation in 2000 to around 1.5 standard deviation. The actual difference is of about 0.6. Now that we know that, the trends of Poland, United States, France and Germany are particularly shocking.
+
+Something reassuring is that mathematics and reading follow basically the same trend across all countries. This means that the result is not an artifact of chance. However, it's important to disentangle where is this gap originating from. Is this because the top are improving why the bottom decreases? Or is it that the bottom is catching up? Up next we plot the same graph but show the divergent patterns between high/low SES origins.
+
+
+
+
+The top line belongs to the high SES group whereas the bottom line belongs to the low SES group. The middle line is a summary line showing whether one of the groups is growing/shrinking faster than the other. We find plenty of variation in these patterns. For example, in the United States the top seems to be equalizing much stronger than than the bottom is catching up. The U.K seems to be following the same path as the United States as well. On the other hand, in Poland the gap seems to be closing because the bottom SES group is catching up much faster. The Netherlands shows a similar pattern as the U.S, U.K patterns but upon closer inspection the explanation is very different. We see that the slope is negative (like in the previous two countries) but that's because the low SES group is decreasing at a greater rate than the high SES is decreasing.
+
+Finally, we pay attention to the flat summary lines. These lines should be interpreted with caution because it doesn't mean that the gap is not increasing. Denmark, Belgium, Netherlands, Norway and Spain show a flat line because the gap is growing very little, if at all. On the other hand, Sweden, France, Finland, New Zealand, Austria, among other countries, show a flat line because both groups are distancing themselves at a very similar rate. there's a group of distinctive groups where both low/high SES rates are very great resulting in the summary line being flat.
+
+Ths source of this gap can be deconstructed into two broader gaps. We want to know if these gaps have increased because the 90th SES group has distanced itself from the 50th SES group or because the middle has been also distancing itself from 10th SES group. Up next we plot all the combinations of the 90th/50th/10th gaps and pay attention to the magnitude of each gap. For example, we're interested in searching which gap is bigger between countries, the 90th/50th or the 50th/10th? Moreover, are some of these gaps contributing more to the 90th/10th gap we saw earlier. Because we visualize three plots for every country, we only plot a selected number of countries that represent the overall patterns from the previous plots \footnote{United States and Germany show a decrease, France shows a steep increase and Denmark shows no significant change.}.
+
+% This plot might not be necessary any more
+% <<>>=
+% 
+% lower <- seq(13, 1, -1)
+% upper <- seq(100, 220, 10)
+% 
+% df <- tibble(country = "fake_country",
+%              years = rep(seq(2000, 2025, 2), 2),
+%              ses = rep(c("lower", "upper"), each = 13),
+%              value = c(lower, upper))
+% 
+% # You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
+% df %>%
+%   ggplot(aes(as.factor(years), value, group = ses, colour = ses)) +
+%   geom_point(size = 0.5, alpha = 0.4) +
+%   geom_line(alpha = 0.4) +
+%   geom_line(stat = "smooth", method = "lm", aes(group = 1),
+%             formula = y ~ splines::ns(x, 3), linetype = "longdash",
+%             colour = "black") +
+%   # geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
+%   # geom_hline(yintercept = 0, linetype = "longdash") +
+%   # coord_cartesian(ylim = c(0, 3)) +
+%   facet_wrap(~ country)
+% @
+
 
 
 {\centering \includegraphics[width=5.5in,height=5in]{figure/graphing_allgaps-1} 
@@ -323,6 +366,13 @@ It seems that social origin effects have actually increased in France  (Ballarin
 }
 
 
+
+
+We start off with Denmark. Generally speaking, we find that the 50th/10th gap is contributing more than the 90th/50th gap as the gap is bigger for both tests. Furthermore, we find, just as in the 90th/10th SES gap, that there isn't a significant decrease, with the exception of reading in the 50th/10th SES gap which seemed to decrease from nearly 1.5 to 1 standard deviation. France shows a similar pattern as Denmark in that the 50th/10th SES gap is the main contributer and that the three gaps have the similar trend. 
+
+Germany and U.S, on the other hand, show a very different landscape. For example, Germany, shows that the 90th/10th gap is primarily driven by the 50th/10th SES gap and that the slopes of the 90th/50th gap is much weaker than the other two gaps. This means that Top/Middle SES groups have shrunk much less than the other groups. The big catching up is actually coming from the Middle/Bottom SES groups. However, we don't know if this is because the bottom is catching up or that the middle is coming down. However, based on the gap plots from above, we can infer that it is because the bottom is catching up rapidly because against the 90th SES group, it is increasing steeply every year. The U.S shows a different pattern from all other countries. Both the 90th/50th/10th gaps seem to contribute rather similarly to the overall 90th/10th gap (although 50th/10th is marginally higher) but more interestingly, the 90th/50th gap has stagnated in the last 15 years. The top/middle groups have a relatively big gap and it hasn't changed at all. On the other hand, the steep decrease we saw for the U.S is coming exclusively from the 50th/10th gap shrinking. The reason, nonetheless, might be different from the German case, where it's probable that the bottom is catching up. Here, as in the 90th/10th gap, the middle might be 'dumbing' down closer to the low SES group.
+
+But, similar as before, we don't know which group is causing the decrease/increase of the gap in the 90th/50th and 50th/10th gap. For that we plot the evolution of these gaps below.
 
 
 
@@ -333,6 +383,20 @@ It seems that social origin effects have actually increased in France  (Ballarin
 
 
 
+
+With Denmark there's no average change across all years. However, for France, we see that the gap is growing much faster for the 50th/10th SES gap. For Germany we see that the gap is closing in all three groups although much more strongly for the 50th/10th SES gap. It looks like the 50th/10th gap is mainly driving the changes in the gaps for most of the countries that actually see a change over time.  For the U.S, there's very little change in the 90th/50th SES gap, with most of the change coming from the 50th/10th gap.
+
+Given that we have the data for the average performance for each country and the achievement gap, we can also investigate whether there's an efficiency/equality tradeoff and if it stands over time. One particular topic that has been researched in the past is whether improving the overall cognitive development of a country compromises the distribution of the countries overall performance. For example, in order to improve the average score in, let's say, mathematics, tracking can improve the average score by making children in the higher trackers perform better, raising the overall performance. This, however, can come at a price. If tracking actually benefits the top but doesn't increase the performance of the bottom tracks then we see a net increase of inequality accompanied with an increase in the overall performance.
+
+
+
+For all country-years pooled we see a very strong correlation but contrary to what we would expect. We find that countries with high performance have also a very low level of inequality. In fact, even if we separate it by year.
+
+
+
+
+
+In fact, we see a strong correspondence. In countries like Germany and France we see quite a functional form between both inequality and performance. This pattern is also seen in in the UK, Austria, Australia and New Zealand. Poland and Italy are quite interesting cases because it shows how inequality has been decreasing that much whereas average performance has been improving notably. On another hand, only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality.
 
 
 
@@ -348,6 +412,8 @@ It seems that social origin effects have actually increased in France  (Ballarin
 
 
 
+In a more convenient way, we can see that there is a lot of variance in the rate at which top/bottom groups are changing. We see that there are more countries where the inequality is increasing (red panel) but there's also a fair share where Low SES is catching up faster, such as United States and Germany. We see a negative relationship where the faster the low SES catch up the slower the High SES decrease. Quite an interesting pattern because we see very few countries where low SES are decreasing (so going even further down) and High SES is also decresing (bottom left panel). On the other hand, we do see more ocuntries where the both groups are increasing (top right panel). We plot all remaining countries in the back, together with a trendline and we see that the relation holds for all PISA countries.
+
 % How to output data frames are latex tables?
 
 
@@ -356,6 +422,7 @@ It seems that social origin effects have actually increased in France  (Ballarin
 {\centering \includegraphics[width=5.5in,height=5in]{figure/graphing_perc_increase-1} 
 
 }
+
 
 
 
