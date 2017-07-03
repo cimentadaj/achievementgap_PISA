@@ -1,10 +1,27 @@
 \begin{thebibliography}{}
 
+\bibitem[Bauchm{\"u}ller et~al., 2014]{bauchmuller2014}
+Bauchm{\"u}ller, R., G{\o}rtz, M., and Rasmussen, A.~W. (2014).
+\newblock Long-run benefits from universal high-quality preschooling.
+\newblock {\em Early Childhood Research Quarterly}, 29(4):457--470.
+
+\bibitem[Bj{\"o}rklund and J{\"a}ntti, 2009]{bjorklund2009}
+Bj{\"o}rklund, A. and J{\"a}ntti, M. (2009).
+\newblock Intergenerational income mobility and the role of family background.
+\newblock {\em Oxford Handbook of Economic Inequality, Oxford University Press,
+  Oxford}, pages 491--521.
+
 \bibitem[Bradbury et~al., 2015]{bradbury2015}
 Bradbury, B., Corak, M., Waldfogel, J., and Washbrook, E. (2015).
 \newblock {\em Too many children left behind: The US achievement gap in
   comparative perspective}.
 \newblock Russell Sage Foundation.
+
+\bibitem[Breen and Goldthorpe, 1997]{breen1997}
+Breen, R. and Goldthorpe, J.~H. (1997).
+\newblock Explaining educational differentials: Towards a formal rational
+  action theory.
+\newblock {\em Rationality and society}, 9(3):275--305.
 
 \bibitem[Breen and Jonsson, 2007]{breen2007}
 Breen, R. and Jonsson, J.~O. (2007).
@@ -12,12 +29,31 @@ Breen, R. and Jonsson, J.~O. (2007).
   educational expansion in twentieth-century sweden 1.
 \newblock {\em American Journal of Sociology}, 112(6):1775--1810.
 
+\bibitem[Brooks-Gunn and Duncan, 1997]{brooks1997}
+Brooks-Gunn, J. and Duncan, G.~J. (1997).
+\newblock The effects of poverty on children.
+\newblock {\em The future of children}, pages 55--71.
+
 \bibitem[Byun and Kim, 2010]{byun2010}
 Byun, S.-y. and Kim, K.-k. (2010).
 \newblock Educational inequality in south korea: The widening socioeconomic gap
   in student achievement.
 \newblock In {\em Globalization, changing demographics, and educational
   challenges in East Asia}, pages 155--182. Emerald Group Publishing Limited.
+
+\bibitem[Campbell et~al., 2002]{campbell2002}
+Campbell, F.~A., Ramey, C.~T., Pungello, E., Sparling, J., and Miller-Johnson,
+  S. (2002).
+\newblock Early childhood education: Young adult outcomes from the abecedarian
+  project.
+\newblock {\em Applied developmental science}, 6(1):42--57.
+
+\bibitem[Chetty et~al., 2016]{chetty2016}
+Chetty, R., Grusky, D., Hell, M., Hendren, N., Manduca, R., and Narang, J.
+  (2016).
+\newblock The fading american dream: Trends in absolute income mobility since
+  1940.
+\newblock Technical report, National Bureau of Economic Research.
 
 \bibitem[Chmielewski, 2016]{anna2016_global}
 Chmielewski, A.~K. (2016).
@@ -31,11 +67,32 @@ Chmielewski, A.~K. and Reardon, S.~F. (2016).
   income and academic achievement.
 \newblock {\em AERA Open}, 2(3):2332858416649593.
 
+\bibitem[Coleman et~al., 1966]{coleman1966}
+Coleman, J.~S. et~al. (1966).
+\newblock Equality of educational opportunity.
+
+\bibitem[Cunha et~al., 2006]{cunha2006}
+Cunha, F., Heckman, J.~J., Lochner, L., and Masterov, D.~V. (2006).
+\newblock Interpreting the evidence on life cycle skill formation.
+\newblock {\em Handbook of the Economics of Education}, 1:697--812.
+
 \bibitem[Duncan and Magnuson, 2011]{duncan2011}
 Duncan, G.~J. and Magnuson, K. (2011).
 \newblock The nature and impact of early achievement skills, attention skills,
   and behavior problems.
 \newblock {\em Whither opportunity}, pages 47--70.
+
+\bibitem[Erikson et~al., 1979]{erikson1979}
+Erikson, R., Goldthorpe, J.~H., and Portocarero, L. (1979).
+\newblock Intergenerational class mobility in three western european societies:
+  England, france and sweden.
+\newblock {\em The British Journal of Sociology}, 30(4):415--441.
+
+\bibitem[Esping-Andersen et~al., 2012]{esping_waldfogel2012}
+Esping-Andersen, G., Garfinkel, I., Han, W.-J., Magnuson, K., Wagner, S., and
+  Waldfogel, J. (2012).
+\newblock Child care and school performance in denmark and the united states.
+\newblock {\em Children and Youth Services Review}, 34(3):576--589.
 
 \bibitem[Esping-Andersen and Wagner, 2012]{esping2012}
 Esping-Andersen, G. and Wagner, S. (2012).
@@ -51,11 +108,54 @@ Fryer, J, R.~G. and Levitt, S.~D. (2004).
   of school.
 \newblock {\em Review of Economics and Statistics}, 86(2):447--464.
 
+\bibitem[Gamoran, 2001]{gamoran2001}
+Gamoran, A. (2001).
+\newblock American schooling and educational inequality: A forecast for the
+  21st century.
+\newblock {\em Sociology of education}, pages 135--153.
+
+\bibitem[Ganzeboom, 2010]{ganzeboom2010}
+Ganzeboom, H.~B. (2010).
+\newblock A new international socio-economic index (isei) of occupational
+  status for the international standard classification of occupation 2008
+  (isco-08) constructed with data from the issp 2002-2007.
+\newblock In {\em Annual Conference of International Social Survey Programme,
+  Lisbon}, volume~1.
+
+\bibitem[Ganzeboom and Treiman, 1996]{ganzeboom1996}
+Ganzeboom, H.~B. and Treiman, D.~J. (1996).
+\newblock Internationally comparable measures of occupational status for the
+  1988 international standard classification of occupations.
+\newblock {\em Social science research}, 25(3):201--239.
+
 \bibitem[Hanushek et~al., 2006]{hanushek_woesmann_tracking}
 Hanushek, E.~A. et~al. (2006).
 \newblock Does educational tracking affect performance and inequality?
   differences-in-differences evidence across countries.
 \newblock {\em The Economic Journal}, 116(510):C63--C76.
+
+\bibitem[Hanushek and W{\"o}{\ss}mann, 2007]{hanushek2007}
+Hanushek, E.~A. and W{\"o}{\ss}mann, L. (2007).
+\newblock The role of education quality for economic growth.
+
+\bibitem[Heckman, 2006]{heckman2006}
+Heckman, J.~J. (2006).
+\newblock Skill formation and the economics of investing in disadvantaged
+  children.
+\newblock {\em Science}, 312(5782):1900--1902.
+
+\bibitem[J{\ae}ger and Holm, 2007]{jaeger2007}
+J{\ae}ger, M.~M. and Holm, A. (2007).
+\newblock Does parents’ economic, cultural, and social capital explain the
+  social class effect on educational attainment in the scandinavian mobility
+  regime?
+\newblock {\em Social Science Research}, 36(2):719--744.
+
+\bibitem[Magnuson and Waldfogel, 2008]{magnuson2008}
+Magnuson, K. and Waldfogel, J. (2008).
+\newblock {\em Steady gains and stalled progress: Inequality and the
+  Black-White test score gap}.
+\newblock Russell Sage Foundation.
 
 \bibitem[Micklewright and Schnepf, 2007]{micklewright}
 Micklewright, J. and Schnepf, S. (2007).
@@ -107,6 +207,11 @@ Van~de Werfhorst, H.~G. and Mijs, J.~J. (2010).
 \newblock Achievement inequality and the institutional structure of educational
   systems: A comparative perspective.
 \newblock {\em Annual review of sociology}, 36:407--428.
+
+\bibitem[Waldfogel, 2006]{waldfogel2006}
+Waldfogel, J. (2006).
+\newblock What do children need?
+\newblock {\em Juncture}, 13(1):26--34.
 
 \bibitem[Wu, 2005]{wu2005}
 Wu, M. (2005).
