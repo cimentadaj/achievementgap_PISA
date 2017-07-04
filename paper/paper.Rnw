@@ -367,19 +367,19 @@ adapted_year_data <-
       .x
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
-results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
+# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
+# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
 
-# results_math <- read_rds("./data/delete.Rdata")
-# results_read <- read_rds("./data/delete_read.Rdata")
-# results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
-# results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
-# results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
-# results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
+results_math <- read_rds("./data/delete.Rdata")
+results_read <- read_rds("./data/delete_read.Rdata")
+results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -658,7 +658,7 @@ summary_data <-
 @
 
 % Figure out how to ouput data frames as latex tables.
-<<sample_size, results = 'tex'>>=
+<<sample_size, include = TRUE, out.width = '4in'>>=
 # Get sample counts for each dummy
 sample_size_calc <- function(df, probs, selected = F, cnts = NULL) {
   
@@ -744,6 +744,7 @@ addtorow$command <- paste("\\hline \\
                           "\\\\ \\hline")
 
 print(table_coming,
+      type = "latex",
       add.to.row = addtorow,
       include.colnames = FALSE,
       include.rownames = FALSE,
@@ -1004,18 +1005,23 @@ ordered_cnt <-
   pull(country)
 
 complete_data_topbottom %>%
-  filter(country %in% countries) %>%
   mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
-  ggplot(aes(as.factor(wave), difference, group = type_test, colour = type_test)) +
+  filter(type_test == "math", !is.na(country)) %>%
+  ggplot(aes(as.character(wave), difference)) +
+  geom_point() +
+  geom_linerange(aes(ymin = 0, ymax = difference))+
   geom_line(stat = "smooth", method = "lm", aes(group = 1),
-            formula = y ~ splines::ns(x, 3), linetype = "longdash",
-            colour = "black") +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, alpha = 0.4) +
-  geom_hline(yintercept = 0, linetype = "longdash") +
-  geom_line(alpha = 0.4) +
-  geom_point(size = 0.5, alpha = 0.4) +
-  coord_cartesian(ylim = c(0, 3)) +
-  facet_wrap(~ country)
+            formula = y ~ splines::ns(x, 2), size = 0.7,
+            colour = "red") +
+  facet_wrap(~ country, ncol = 5) +
+  scale_y_continuous(name = "90/10 gap in SD", expand = c(0, 0), lim = c(0, 3)) +
+  scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
+  coord_fixed() +
+  ggthemes::theme_few() +
+  theme(panel.spacing = unit(1, "lines"),
+        panel.grid.major.y = element_line(colour = "grey")) +
+  ggtitle("Evolution of the 90/10 achievement gap")
+
 @
 
 We start by look at the achievement for some countries. We plot both mathematics and reading gaps for each country and also a cubic trend spline for both test scores pooled. Some countries have increased their achievement very strongly. For example, France, Austria and surprisingly Sweden. In mathematics, France increase the gap by roughly \Sexpr{diff_data$math[["France"]]}. This pattern happens similarly for literacy with an increase of \Sexpr{diff_data$read[["France"]]}. For such a short period of time, the magnitud of the increase is reasonably big.
@@ -1056,26 +1062,6 @@ complete_data_topbottom %>%
   facet_wrap(~ country)
 @
 
-<<>>=
-
-complete_data_topbottom %>%
-  mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
-  filter(type_test == "math", !is.na(country)) %>%
-  ggplot(aes(as.character(wave), difference)) +
-  geom_point() +
-  geom_linerange(aes(ymin = 0, ymax = difference))+
-  geom_line(stat = "smooth", method = "lm", aes(group = 1),
-            formula = y ~ splines::ns(x, 2), size = 0.7,
-            colour = "red") +
-  facet_wrap(~ country, ncol = 12) +
-  viridis::scale_fill_viridis(option = "B") +
-  scale_y_continuous(expand = c(0, 0), lim = c(0, 3)) +
-  ggthemes::theme_few() +
-  theme(panel.spacing = unit(1, "lines"),
-      axis.text.x = element_text(angle = 90, hjust = 1))
-
-
-@
 The top line belongs to the high SES group whereas the bottom line belongs to the low SES group. The middle line is a summary line showing whether one of the groups is growing/shrinking faster than the other. We find plenty of variation in these patterns. For example, in the United States the top seems to be equalizing much stronger than than the bottom is catching up. The U.K seems to be following the same path as the United States as well. On the other hand, in Poland the gap seems to be closing because the bottom SES group is catching up much faster. The Netherlands shows a similar pattern as the U.S, U.K patterns but upon closer inspection the explanation is very different. We see that the slope is negative (like in the previous two countries) but that's because the low SES group is decreasing at a greater rate than the high SES is decreasing.
 
 Finally, we pay attention to the flat summary lines. These lines should be interpreted with caution because it doesn't mean that the gap is not increasing. Denmark, Belgium, Netherlands, Norway and Spain show a flat line because the gap is growing very little, if at all. On the other hand, Sweden, France, Finland, New Zealand, Austria, among other countries, show a flat line because both groups are distancing themselves at a very similar rate. there's a group of distinctive groups where both low/high SES rates are very great resulting in the summary line being flat.
