@@ -23,7 +23,7 @@
     linkcolor=blue,   
     urlcolor=blue}}
 
-\title{First paper - Draft}
+\title{The not so widening achievement gap: an interntational comparison of the evolution of the SES achievement gap from 2000-2015}
 \author{Jorge Cimentada}
 
 
@@ -710,10 +710,68 @@ sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected 
 sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
 @
 
+% <<table_escs, include = TRUE>>=
+% summary_table <-
+%   left_join(summary_data, sample_tables_topbottom) %>%
+%   filter(name %in% c("2000", "2015")) %>%
+%   arrange(country, name)
+% 
+% table_coming <-
+%   summary_table %>%
+%   select(-perc) %>%
+%   gather(cats, vals, -(name:escs_dummy)) %>%
+%   unite(all_vals, escs_dummy, cats, sep = "_") %>%
+%   spread(all_vals, vals) %>%
+%   map_at(c(3, 4, 6, 7), ~ {
+%     .x[is.na(.x)] <- 0
+%     paste0(round(.x, 0), "%")
+%   }) %>%
+%   map_if(is_double, as.character) %>%
+%   data.frame() %>%
+%   xtable::xtable()
+% 
+% addtorow <- list()
+% addtorow$pos <- list(0)
+% addtorow$command <- paste("\\hline \\
+%                           & & & Low SES & & & High SES \\\\
+%                           \\cmidrule(l){3-5}
+%                           \\cmidrule(l){6-8}",
+%                           paste0(
+%                             c("Year",
+%                               "Countries",
+%                               "\\% Low Edu",
+%                               "\\% High Edu",
+%                               "Sample size",
+%                               "\\% Low Edu",
+%                               "\\% High Edu",
+%                               "Sample size"),
+%                             collapse = " & "),
+%                           "\\\\ \\hline")
+% 
+% print(table_coming,
+%       scalebox = '0.75',
+%       floating = FALSE,
+%       add.to.row = addtorow,
+%       include.colnames = FALSE,
+%       include.rownames = FALSE,
+%       hline.after = nrow(table_coming),
+%       caption.placement = "top",
+%       caption = "SES sample size and ISCED composition")
+% @
+
 <<table_escs, include = TRUE>>=
+
+avg_performance <-
+  list(results_math[[1]], results_math[[6]]) %>%
+  set_names(c(2000, 2015)) %>%
+  enframe() %>%
+  unnest()
+
 summary_table <-
-  left_join(summary_data, sample_tables_topbottom) %>%
+  sample_tables_topbottom %>%
+  mutate(escs_dummy = as.character(escs_dummy)) %>%
   filter(name %in% c("2000", "2015")) %>%
+  left_join(avg_performance) %>%
   arrange(country, name)
 
 table_coming <-
@@ -722,12 +780,9 @@ table_coming <-
   gather(cats, vals, -(name:escs_dummy)) %>%
   unite(all_vals, escs_dummy, cats, sep = "_") %>%
   spread(all_vals, vals) %>%
-  map_at(c(3, 4, 6, 7), ~ {
-    .x[is.na(.x)] <- 0
-    paste0(round(.x, 0), "%")
-  }) %>%
-  map_if(is_double, as.character) %>%
-  data.frame() %>%
+  select(name, country, `0_n`, `0_Mean`, `0_s.e.`, `1_n`, `1_Mean`, `1_s.e.`) %>%
+  mutate(`0_n` = as.character(`0_n`),
+         `1_n` = as.character(`1_n`)) %>%
   xtable::xtable()
 
 addtorow <- list()
@@ -739,12 +794,12 @@ addtorow$command <- paste("\\hline \\
                           paste0(
                             c("Year",
                               "Countries",
-                              "\\% Low Edu",
-                              "\\% High Edu",
-                              "Sample size",
-                              "\\% Low Edu",
-                              "\\% High Edu",
-                              "Sample size"),
+                              "N",
+                              "Avg score",
+                              "S.E",
+                              "N",
+                              "Avg score",
+                              "S.E"),
                             collapse = " & "),
                           "\\\\ \\hline")
 
@@ -758,6 +813,10 @@ print(table_coming,
       caption.placement = "top",
       caption = "SES sample size and ISCED composition")
 @
+
+The first table shows a description of the sample size and mean score of both top and bottom SES groups for only the first and last time point. One main concern from the planned analysis is that getting the top 90th percentile and bottom 10th percentile would result in a small sample size. The table suggests that we have a reasonable number of respondents to actually estimate gaps accurately. Moreover, we can see that in all instances the bottom SES group has a lower score than all top SES groups.
+
+We see that in some countries like Finland and Sweden the average low SES scores is actually above the average score of 0, suggesting their very equal countries. However, most countries, like Spain, Poland, Hungary and Germany, their average low SES scores are much lower than the country average, which is 0. We also see some countries with major changes from year 2000 to 2015, with, for example, Australia decreasing the low SES gap from 0.22 standard deviations to -0.15, well below the country average. In the next section we take a look at this in a more detailed fashion, considering all years in between.
 
 <<merge_math_read>>=
 
@@ -1055,7 +1114,7 @@ us_math_2000_upper <-
   filter(complete_data_topbottom, wave == 2000, country == "United States", type_test == "math") %>%
   .[["upper"]]
 @
-We find that the initial gap for the U.S in 2000 is \Sexpr{us_math_2000} varying between \Sexpr{us_math_2000_lower} and \Sexpr{us_math_2000_upper}. This gap is much higher than found in previous studies, but again, we don't know much previous estimates vary and nobody has really studied the 15-year old achievement gap precisely. All country-level studies pool many studies together and control for age, removing the age-specific gap effect.
+We find that the initial gap for the U.S in 2000 is \Sexpr{round(us_math_2000, 2)} varying between \Sexpr{round(us_math_2000_lower, 2)} and \Sexpr{round(us_math_2000_upper, 2)}. This gap is much higher than found in previous studies, but again, we don't know much previous estimates vary and nobody has really studied the 15-year old achievement gap precisely. All country-level studies pool many studies together and control for age, removing the age-specific gap effect.
 
 Figure 3 below takes a more direct approach and looks at the percentage change from the first and last timepoint available. Each data point has been computed together with it's 50\% and 95\% uncertainty interval \footnote{Each of these uncertainty intervals were computed using a 500-replicate bootstrap}.
 
@@ -1369,7 +1428,7 @@ full_data %>%
   annotate(geom = "text", x = 0.15, y = -0.2,
            label = "Low SES is catching up \n faster than High SES",
            fontface = 2, size = 3) +
-  annotate(geom = "text", x = -0.05, y = 0.20,
+  annotate(geom = "text", x = -0.075, y = 0.20,
            label = "High SES is increasing  \n faster than Low SES is catching up",
            fontface = 2, size = 3) +
   labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
@@ -1420,6 +1479,7 @@ With Denmark there's no average change across all years. However, for France, we
 
 Given that we have the data for the average performance for each country and the achievement gap, we can also investigate whether there's an efficiency/equality tradeoff and if it stands over time. One particular topic that has been researched in the past is whether improving the overall cognitive development of a country compromises the distribution of the countries overall performance. For example, in order to improve the average score in, let's say, mathematics, tracking can improve the average score by making children in the higher trackers perform better, raising the overall performance. This, however, can come at a price. If tracking actually benefits the top but doesn't increase the performance of the bottom tracks then we see a net increase of inequality accompanied with an increase in the overall performance. We plot this relationship in figure 8.
 
+\subsection{Efficiency-equality tradeoff}
 <<graphing_achievement_disparity, cache = T>>=
 
 country_scores <-
@@ -1471,7 +1531,7 @@ data_to_plot %>%
 \end{center}
 \end{figure}
 
-For the past 15 years we see a very strong correlation suggesting that countries that perform very well in PISA have actually very low achievement gaps (or the other way around) \footnote{We graph all countries-years pooled as well and the relationship is identical}. The correlations are between \Sexpr{max(correlation)} and \Sexpr{min(correlation)}. This confirms the theoretical and empirical frameworks suggested by \citet{werfhorst_mijs}. However, what they didn't really go in depth was whether this corelation is strongest for some countries over time. With the data available we can look at the evolution separately for many countries. We plot it up next in figure 9.
+For the past 15 years we see a very strong correlation suggesting that countries that perform very well in PISA have actually very low achievement gaps (or the other way around) \footnote{We graph all countries-years pooled as well and the relationship is identical}. The correlations are between \Sexpr{round(max(correlation), 2)} and \Sexpr{round(min(correlation), 2)}. This confirms the theoretical and empirical frameworks suggested by \citet{werfhorst_mijs}. However, what they didn't really go in depth was whether this corelation is strongest for some countries over time. With the data available we can look at the evolution separately for many countries. We plot it up next in figure 9.
 
 \begin{figure}
 \begin{center}
