@@ -1,3 +1,11 @@
+% Things to remember:
+% The working directory is not where the data is.
+% Change working directory to "/Users/cimentadaj/Downloads/gitrepo/Achievement_Gap_PISA/paper"
+% for everything below to work.
+
+% There's a code chunk named modeling which lasts about 3-4 hours to run. I explain how to get
+% around that in a comment above the code chunk. For down there.
+
 \documentclass[11pt, a4paper]{article}
 \bibliographystyle{apalike}
 \pagestyle{headings}
@@ -114,6 +122,8 @@ opts_chunk$set(echo = FALSE,
 
 \tableofcontents
 
+% pisa_listcol.Rdata is a dataset produced by the source() expression from the above
+% code chunk
 <<loading_data-recoding>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
   
@@ -351,9 +361,12 @@ bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
 # bootstrapper(mtcars, mean(mpg), B = 200)
 @
 
-% This chunk needs to have cache = TRUE once you want to run it for like 2 hours until 
-% the results_* models have been created once and the cache can save them
+% This chunk takes about 3-4 hours to run. Once I had them ready I saved them so you can read them
+% as rds. If you run the 'compile pdf' this chunk is already cached (DONT CHANGE ANYTHING FROM
+% THIS CHUNK, CAUSE OTHERWISE IT WILL RERUN FOR 3-4 HOURS). If you want to run the code without
+% compiling sweave, comment the test_diff expressions and read as rds. 
 
+% Remember to uncomment when compiling sweave again, so the chunk remains intact.
 <<modeling>>=
 adapted_year_data <-
     map(pisa_all2$value, ~ {
@@ -434,7 +447,7 @@ One clear limitation of their study (as well as \citet{reardon2011}) is that the
 
 In fact, the evolution of high/low SES gaps for preschool children might be much less marked than the same gap for high school children. The explanation, although very debated, has been gaining much support in recent years. If we remember correctly, countries with high levels of curricular differentiation, the transition from early schooling into the tracking system has been found to increase inequality of learning \citep{hanushek_woesmann_tracking}. Moreover, the vast sociological literature on educational transitions systematically finds that tracking tends to foster between-track inequality rather than erode their differences by tackling their specific needs \citep{werfhorst_mijs}. Based on this, we cannot simply assume that the achievement gap has been neither constant across cohorts (because there have been tracking reforms in many countries, introducing as well as eliminating tracking structures) nor the same between ages, because tracking/no tracking might exarcebate the achievement gap.
 
-% Talk about how the achievement gap has been widening in Malaysia and South Korea (or Japan?)
+% TODO: Talk about how the achievement gap has been widening in Malaysia and South Korea (or Japan?)
 % Is efficiency related to opportunity here? Is efficiency what explains the inequality of opportunity?
 % Note how many of these studies haven't really concentrated on who is getting better or worse: top or bottom?
 % Talk more about how countries with high social mobility has been linked to smallest achievement gaps
@@ -521,9 +534,6 @@ Where \begin{math}\hat{\epsilon_i}\end{math} is the residual for student \begin{
 
 This new standardized variable has a mean of zero. Standardizing the median test score solves the problem of comparability of gaps measured with different tests, and across waves because the test scores have now the same metric across time. However, if the variance of academic achievement changes over time, then standardizing the overall score at each country-wave pair actually makes the transformation biased. That is, by standardizing we're forcing the standard deviation of test scores to be zero across all waves. But if the true deviations of the median academic achievement changes over time, then the estimated trend in the SES gaps will be underestimated, or vice versa.
 
-% Show graph of variance over time
-% I'm showing standard deviations, is it better to show variance?
-
 \begin{figure}
 \begin{center}
 <<variance_pisa, include = T, out.height = '3in', out.width = '3.5in', fig.align = 'center'>>=
@@ -552,7 +562,7 @@ var_years %>%
   scale_x_discrete(name = NULL) +
   ggtitle("Standard deviation of test scores over time") +
   theme_few() +
-  theme(text = element_text(size = 12))
+  theme(text = element_text(size = 14))
 @
 \caption{Standard deviation of test scores across all waves.}
 \end{center}
@@ -711,6 +721,8 @@ sample_tables_topmid <- sample_size_calc(adapted_year_data, c(.5, .9), selected 
 sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), selected = TRUE, countries)
 @
 
+% Previous table that had % of low and high education for low and high SES dummies
+
 % <<table_escs, include = TRUE>>=
 % summary_table <-
 %   left_join(summary_data, sample_tables_topbottom) %>%
@@ -760,6 +772,7 @@ sample_tables_midbottom <- sample_size_calc(adapted_year_data, c(.1, .5), select
 %       caption = "SES sample size and ISCED composition")
 % @
 
+% New table only has sample size, average score and s.e.
 <<table_escs, include = TRUE>>=
 
 avg_performance <-
@@ -990,7 +1003,7 @@ complete_data_topbottom %>%
 @
 
 \subsection{Evolution of the achievement gap}
-% Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (\citet{micklewright} did it).
+% TODO: Calculate the difference between 90/10 and then the ratio of this with the annual gain of one year of schooling (\citet{micklewright} did it).
 
 \begin{figure}
 \begin{center}
@@ -1223,6 +1236,7 @@ perc_graph(top_bottom_perc, "math", "90/10 achievement gap", "Percentage change 
 
 Generally speaking, we see that most countries increased their achievement gap over time. France had an average increase of about 80\% since 2000 varying down to 40\%, whereas Germany had a similar figure but decreasing. Many of the countries we saw before that didn't have a very steep slope, such as Hungary or Australia, in fact had increases of about 40\% of their gap. In contrast, we see that the U.S and Poland had also quite significant decreases of about 40\%. The benefit of presenting these estimates this way is that we can actually asses the uncertainty of each calculation, and we do find that some of these estimates have wide variability. Despite this, most countries show a clear sign of either decreasing or increasing.
 
+% Code chunks for the same plots as above for reading. Available upon request.
 <<evolution_reading, eval = F>>=
 # See below that reading graph is upon request. This is the one.
 complete_data_topbottom %>%
@@ -1334,7 +1348,6 @@ The U.S shows a different pattern from all other countries. Both the 90th/50th/1
 
 In a more convenient way, we can inspect whether there is a lot of variance in the rate at which top/bottom groups are changing in figure 6.
 
-% How to output data frames are latex tables?
 <<rate_change>>=
  
 avg_increase_fun <- function(df, class) {
@@ -1563,20 +1576,6 @@ data_to_plot %>%
 Looking at figure 9, we see a strong correspondence between the two variables. In countries like France we see quite a functional form between both inequality and performance. As average performance plummets, the achievement gap is increasing. This pattern is also seen in Austria, Australia and Germany. The other obvious pattern is the opposite trend. We see countries like Poland, Finland, Canada and less pronounced, Italy, where this pattern is evident. The surprising case here is the United States. We see that as the average performance has been decreasing, the average achievement gap has been decreasing as well. In fact, among the few countries we should find something that resembles this pattern should be the U.S because it doesn't have a strict institutionalized tracking system. However, the explanation behind this pattern is very speculative.
 
 Finally, the last notable pattern is that in some countries the average performance is so high that it actually overperforms the achievement gap. Only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality, which coincidentially, are countries that have the lower leven of inequalities among the ones presented here.
-
-<<table_sample>>=
-sample_tables_topbottom %>%
-  filter(name %in% c(2000, 2015)) %>%
-  transmute(name, country, escs_dummy, N = paste0(n, " (", perc, ")")) %>%
-  spread(escs_dummy, N) %>%
-  rename(Year = name,
-         Country = country,
-         `10th SES` = `0`,
-         `90th SES` = `1`) %>%
-  select(Country, Year, everything()) %>%
-  arrange(Country, Year) %>%
-  xtable::xtable()
-@
 
 <<next_steps>>=
 # Next steps:
