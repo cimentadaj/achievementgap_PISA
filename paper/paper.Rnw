@@ -551,7 +551,8 @@ var_years %>%
   scale_y_continuous(name = "Standard deviation of raw test scores") +
   scale_x_discrete(name = NULL) +
   ggtitle("Standard deviation of test scores over time") +
-  theme_few()
+  theme_few() +
+  theme(text = element_text(size = 12))
 @
 \caption{Standard deviation of test scores across all waves.}
 \end{center}
@@ -1458,20 +1459,21 @@ complete_data_topbottom %>%
   gather(score, value, -(wave:type)) %>%
   separate(score, c("ses", "score"), sep = 2) %>%
   spread(score, value) %>%
-  ggplot(aes(as.factor(wave), mean_math, group = ses, colour = ses)) +
-  geom_errorbar(aes(ymin = lower_math, ymax = upper_math), width = 0.1) +
+  ggplot(aes(as.factor(wave), mean_math, group = ses, colour = ses, shape = ses)) +
   geom_line(alpha = 0.4) +
-  geom_point(size = 0.5, alpha = 0.4) +
+  geom_point(size = 2, alpha = 0.4) +
   coord_cartesian(ylim = c(-1, 2)) +
   scale_y_continuous(name = "Standardized test scores (mean 0)") +
   scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
   scale_colour_discrete(name = NULL, labels = c("Low SES", "High SES")) +
+  scale_shape_discrete(name = NULL, labels = c("Low SES", "High SES")) +
   ggtitle("Evolution of the top/bottom groups by different gaps") +
   facet_grid(country ~ type) +
   theme_few() +
   theme(panel.spacing = unit(1, "lines"),
         legend.position = "bottom")
 @
+\caption{Evolution of the SES gaps for top/bottom groups}
 \end{center}
 \end{figure}
 
@@ -1516,7 +1518,7 @@ correlation <-
 
 \begin{figure}
 \begin{center}
-<<avgperformance_inequality, include = T, out.height = '5in', out.width = '6.5in', fig.align = 'center'>>=
+<<avgperformance_inequality, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 data_to_plot %>%
   ggplot(aes(scale(Mean), difference)) +
   geom_smooth(method = "lm") +
@@ -1542,9 +1544,9 @@ data_to_plot %>%
   gather(type, value, difference, Mean) %>%
   filter(country %in% countries) %>%
   ggplot(aes(as.character(wave), value, group = type, colour = type, shape = type)) +
-  geom_point(alpha = 0.4) +
+  geom_point(size = 2, alpha = 0.4) +
   geom_line(alpha = 0.4) +
-  scale_y_continuous(name = "Standardized test scores (mean 0)") +
+  scale_y_continuous(name = "Test scores in SD") +
   scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
   scale_colour_discrete(name = NULL, labels = c("Achievement gap", "Avg performance")) +
   scale_shape_discrete(name = NULL, labels = c("Achievement gap", "Avg performance")) +
