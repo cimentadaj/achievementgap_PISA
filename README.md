@@ -20,6 +20,6 @@ Below is an explanation of all the files in the repo.
 
 * The `playing_around` folder have a script I was playing around. See comments inside script for details.
 
-* Finally, the paper should run seamlessly by compiling  `Paper.Rnw` with `Sweave` and a pdf file should be saved in the `./paper` folder.
+* Finally, the paper should run seamlessly by compiling  `Paper.Rnw` with `Sweave` and a pdf file should be saved in the `./paper` folder. Without messing up the `cache` chunks, it currently takes around 4 minutes to compile.
 
 
