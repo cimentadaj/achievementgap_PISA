@@ -464,7 +464,7 @@ In fact, the evolution of high/low SES gaps for preschool children might be much
 
 \section{Research questions}
 
-This study seeks to evaluate the evolution of the high/low SES achievement gap in the past 15 years for all PISA participant countries. This is different from previous work because it concentrates solely on 15 year old children, something not done for the achievement gap, and it attempts to capture the evolution of the achievement gap for countries with different educational systems. In addition, extend the previous findings by studying the relationship between the gap and the average performance of each country in order to detect if there's a tradeoff between efficiency and equality over time separately for each country. The advantages of this study are twofold.
+This study seeks to evaluate the evolution of the high/low SES achievement gap in the past 15 years for all PISA participant countries. This is different from previous work because it concentrates solely on 15 year old children, something not done for the achievement gap, and it attempts to capture the evolution of the achievement gap for countries with different educational systems. In addition, extend the previous findings by studying the relationship between the gap and the average performance of each country in order to detect if there's a tradeoff between good performance and equality over time separately for each country. The advantages of this study are twofold.
 
 First, we concentrate on the evolution of the gap for only 15 year olds, which will serve as a comparison to the single year-country snapshot of \citet{anna2016} and the evolution of the kindergarten gap in \citet{reardon_portilla}. As we've seen before, there are reasons to think that specific age-groups have seen changes in the achievement gap. Moreover, in almost all countries with a tracked curriculum children are either at or in the process of tracking by the age 15, meaning that we will be able to link whether tracked countries are the most variable in their evolution of achievement gaps.
 
@@ -483,7 +483,7 @@ a) The seminal work of \citet{reardon2011} suggests that achievement gaps change
 
 b) We want to compare the percentage change at which the gap widened/narrowed from the first to the last year available. This will give us a general idea of the overall change over time, and will allow us to compare our estimates to the actual literature \footnote{Although no study has performed this age-specific achievement gap for comparable tests over such a long time. Our results will serve as comparison for other studies that use age-specific groups, such as 4th graders using PIRLS.}
 
-c) The widening/narrowing of the achievement gap has a source, which has been often studied to be related to everything from educational spending, income inequality, time allocation to students and preschool enrollment. The literature has concentrated very narrowly on whether the gap is increasing because the top performers are getting ahead, because both are distancing or because the bottom is falling behind. We shall pay particular attention to identifying the rate at which the top/bottom groups are evolving over time. This type of analysis is particularly useful in jotting down the mechanisms through which the gap is evolving. If the bottom performers are stagnated whereas the top is gaining ground, the efficiency-trade off dilemma of tracking might be much more credible than other explanations.
+c) The widening/narrowing of the achievement gap has a source, which has been often studied to be related to everything from educational spending, income inequality, time allocation to students and preschool enrollment. The literature has concentrated very narrowly on whether the gap is increasing because the top performers are getting ahead, because both are distancing or because the bottom is falling behind. We shall pay particular attention to identifying the rate at which the top/bottom groups are evolving over time. This type of analysis is particularly useful in jotting down the mechanisms through which the gap is evolving. If the bottom performers are stagnated whereas the top is gaining ground, the performance-equality trade off dilemma of tracking might be much more credible than other explanations.
 
 d) We want to test the notion that better performing countries have a smaller degree of inequality than other countries. \citet{werfhorst_mijs} emphasize that there is empirical evidence that suggests this. This pattern is not so obvious, however. For example, countries with high leves of tracking could maximize student performance, specially the high SES students, raising their overall performance and thus raising the national performance score. But if the bottom performers are not gaining at the same rate, then the achievement gap will inevitable grow resulting in a high performing countries with a widening achievement gap.
 
@@ -595,9 +595,7 @@ In order to correct gap estimates for measurement error, I adjust student test s
 \hat{\gamma_i} = \hat{\gamma_i} * \frac{1}{\sqrt{r}}
 \end{equation}
 
-where \begin{math}r\end{math} is the reliability score of the wave \footnote{Other proceedures multiply each country by their own reliability measure for each year-subject pair \citep{anna2016_global}. Unfortunately, PISA 2000 did not provide any reliability measure separately for each country and PISA 2015 has to yet release their own. At the moment of writing this paper, they were unavailable. For this reason we implement the analysis following the original work of \citet{reardon2011}}. Each PISA survey provides a reliability indicator which we use accordingly. This yields estimates of the true gaps, and eliminates any bias in the trend that may arise from differential reliability of the tests.
-
-% Explain more in detail how the reliability indicator is calculated.
+where \begin{math}r\end{math} is the reliability score of the wave \footnote{Other proceedures multiply each country by their own reliability measure for each year-subject pair \citep{anna2016_global}. The realibility estimates are calculated using Item Response Theory (IRT) analogues of traditional estimates of Person separation reliability such as internal consistency. Unfortunately, PISA 2000 did not provide any reliability measure separately for each country and PISA 2015 has to yet release their own. At the moment of writing this paper, they were unavailable. For this reason we implement the analysis following the original work of \citet{reardon2011}}. Each PISA survey provides a reliability indicator which we use accordingly. This yields estimates of the true gaps, and eliminates any bias in the trend that may arise from differential reliability of the tests.
 
 After constructing the adjusted test score measurement, we estimate the SES dummy by calculating the weighted 90th and 10th quantiles for the SES composite index, and then generating a dummy of 1 for those above (including) the 90th percentile and 0 for those below (including) the 10th percentile.
 
@@ -605,8 +603,8 @@ We then fit
 
 % Replace the Y_i with the chosen y from the previos equation.
 \begin{equation}
-Y_i = \alpha_{j[i]} + \beta_{j[i]} * SES_i + \epsilon_i,\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{within country} \ j
-Y_i = \alpha_{j[i]} + \beta_{j[i]} * SES_i + \epsilon_i,\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{for each country} \ j
+\gamma_i = \alpha_{j[i]} + \beta_{j[i]} * SES_i + \epsilon_i,\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{within country} \ j
+\gamma_i = \alpha_{j[i]} + \beta_{j[i]} * SES_i + \epsilon_i,\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{for each country} \ j
 \end{equation}
 
 % Try running also a linear model together with the multilevel model and ompcare results
@@ -630,8 +628,7 @@ Finally, we calculate the SES achievement gap for each country by extracting the
 \end{split}
 \end{equation}
 
-We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than a linear model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES dummy reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible. For further exploration, we also compute the 90th/50th and 50th/10th SES gaps following the same method outlined above.
-We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than an OLS model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES dummy reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible. For further exploration, we also compute the 90th/50th and 50th/10th SES gaps following the same method outlined above.
+We also calculate the standard error of this difference and use it to create uncertainty intervals in the estimation of time trends. We fit a multilevel rather than a linear model because by pooling the information together, we weight countries appropriately to their sample size. Given that including the SES \emph{dummy} reduces the sample size considerably, we want to be able to estimate each country-difference as accurately as possible. For further exploration, we also compute the 90th/50th and 50th/10th SES gaps following the same method outlined above.
 % Explain more in detail that it's a dummy and not three groups.
 
 \section{Analysis and results}
@@ -1523,7 +1520,7 @@ With Denmark there's no average change across all years. However, for France, we
 
 Given that we have the data for the average performance for each country and the achievement gap, we can also investigate whether there's a tradeoff between the average country performance and the widening of the achievement gap and if it stands over time. One particular topic that has been researched in the past is whether improving the overall performance of a country compromises the equality of the educational system. For example, in order to improve the average score in, let's say, mathematics, tracking can improve the average score by making children in the higher trackers perform better, raising the overall performance. This, however, can come at a price. If tracking actually benefits the top but doesn't increase the performance of the bottom tracks then we see a net increase of inequality accompanied with an increase in the overall performance. We plot this relationship in figure 8.
 
-\subsection{Efficiency-equality tradeoff}
+\subsection{Performance-equality tradeoff}
 <<graphing_achievement_disparity, cache = T>>=
 
 country_scores <-
