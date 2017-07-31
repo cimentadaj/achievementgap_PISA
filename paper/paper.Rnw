@@ -294,7 +294,6 @@ test_diff <- function(df, reliability, test, probs) {
       .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
       
       # Calculate median math score of all PV's
-      .x$dv <- apply(.x[test_vars], 1, median, na.rm = T)
       .x$dv <- rowMedians(as.matrix(.x[test_vars]), na.rm = T)
       
       # Should I estimate the model separately by country?
