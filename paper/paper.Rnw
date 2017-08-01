@@ -126,7 +126,7 @@ opts_chunk$set(echo = FALSE,
 % pisa_listcol.Rdata is a dataset produced by the source() expression from the above
 % code chunk
 <<loading_data-recoding>>=
-pisa_all <- read_rds("./data/pisa_listcol.Rdata")
+pisa_all <- read_rds("./paper/data/pisa_listcol.Rdata")
   
 pisa_all2 <- pisa_all
 
@@ -226,30 +226,66 @@ reliability_pisa <-
     rename(escs_trend = ESCS)
 @
 
+<<>>=
+
+library(perccalc)
+
+d <- map(1:6, ~ {
+
+df <- pisa_all2$value[[.x]]
+
+df_try <-
+  df %>%
+  filter(country == "France") %>%
+  select(country, high_edu_broad, matches("^PV*.MATH$"), W_FSTUWT) %>%
+  mutate(high_edu_broad = factor(high_edu_broad, ordered = TRUE))
+
+math_score <-
+  df_try %>%
+  select_if(is_double) %>%
+  as.matrix() %>%
+  rowMedians(na.rm = TRUE)
+
+df_try <-
+  df_try %>%
+  select(country, high_edu_broad, W_FSTUWT) %>%
+  add_column(math_score)
+
+perc_diff(df_try, high_edu_broad, math_score, percentiles = c(90, 10))
+}) %>% 
+  setNames(seq(2000, 2015, 3)) %>%
+  enframe() %>%
+  unnest() %>%
+  slice(seq(1, 12, 2))
+
+d %>%
+  ggplot(aes(name, value)) +
+  geom_point() +
+  geom_line(aes(group = 1))
+
+@
+
 <<functions_for_modelling>>=
 
-# Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
-# for the top educated. If the quantiles can't be estimated, it returns two NA's instead
-quantile_missing <- function(df, weights, probs) {
-    
-    quan <- try(Hmisc::wtd.quantile(
-      df$escs_trend,
-      weights = df[[weights]],
-      probs = probs
-      ))
-
-    if (any("try-error" %in% class(quan))) {
-      return(c(NA, NA))
-      } else {
-     return(c(quan[1], quan[2]))
-    }
-}
-  
 # Producing the plot to get the difference between the top 30% of the high educated
 # vs the bottom 30% of the low educated. This function loops through each dataset/country
 # and survey reliability and estimates the difference while also extracting the s.e. of each
 # difference.
   
+adapted_year_data <-
+    map(pisa_all2$value, ~ {
+      if (unique(.x$wave) == "pisa2000") {
+        # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
+        # is 7 and the bottom is 1
+        .x <-
+          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
+      } else {
+        .x <-
+          mutate(.x, new_hisced = as.character(high_edu_broad))
+      }
+      .x
+})
+
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
 test_diff <- function(df, reliability, test, probs) {
@@ -259,33 +295,15 @@ test_diff <- function(df, reliability, test, probs) {
       conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
       weights_var <- conf$variables$weightFinal
 
-      country_split <- split(.x, .x$country)
-      
-      country_list <- map(country_split, function(country) {
-        print(unique(country$country))
-        
-        quan <- quantile_missing(country, weights_var, probs)
-        
-        # It's very important to create a variable that returns the number of observations of this dummy
-        # For each country. Possibly to weight by the number of observations.
-        country$escs_dummy <-
-          with(country, case_when(escs_trend >= quan[2] ~ 1,
-                                  escs_trend <= quan[1] ~ 0))
-        country
-      })
-      
-      .x <-
-        enframe(country_list) %>%
-        unnest(value)
-
       .x <-
         .x %>%
         dplyr::select(wave,
                       matches(paste0("^PV.*", test, "$")),
-                      escs_dummy,
+                      high_edu_broad,
                       country,
                       one_of(weights_var),
-                      AGE)
+                      AGE) %>%
+        mutate(high_edu_broad = factor(high_edu_broad, ordered = TRUE))
       
       message(paste(unique(.x$wave), "data ready"))
 
@@ -294,7 +312,6 @@ test_diff <- function(df, reliability, test, probs) {
       .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
       
       # Calculate median math score of all PV's
-      .x$dv <- apply(.x[test_vars], 1, median, na.rm = T)
       .x$dv <- rowMedians(as.matrix(.x[test_vars]), na.rm = T)
       
       # Should I estimate the model separately by country?
@@ -307,39 +324,51 @@ test_diff <- function(df, reliability, test, probs) {
       # 1 / sqrt(reliability of each survey), which is .y in the loop.
       .x$adj_pvnum <- resid(mod1)/rmse(mod1, .x) * 1 / sqrt(.y)
       
-      mod2 <-
-        lmer(adj_pvnum ~ escs_dummy + (1 + escs_dummy | country),
-             data = .x,
-             weights = .x[[weights_var]])
+      error_perc_diff <- function(data) {
+        result <- try(perc_diff(data, high_edu_broad, adj_pvnum, W_FSTUWT, percentiles = probs))
+        
+        if (class(result) == "try-error") {
+          c(NA, NA)
+        } else {
+          result
+        }
+      }
       
-      # Take the country coefficients (absolute coefficients)
-      country_coef <-
-        coef(mod2)$country %>%
-        rownames_to_column() %>%
-        gather(escs_dummy, Mean, -rowname) %>%
-        mutate(escs_dummy = dplyr::recode(escs_dummy,
-                                          `(Intercept)` = "0",
-                                          `escs_dummy` = "1"))
+      .x <- .x %>% filter(country %in% countries)
+
       
-      # Take the absolute country standard errors
-      se <-
-        se.coef(mod2)$country %>%
-        as.data.frame() %>%
-        rownames_to_column() %>%
-        gather(escs_dummy, s.e., -rowname) %>%
-        mutate(escs_dummy = dplyr::recode(escs_dummy,
-                                          `(Intercept)` = "0",
-                                          `escs_dummy` = "1"))
+      mod2 <- 
+        .x %>%
+        split(.x$country) %>%
+        map(~ error_perc_diff(.x)) %>%
+        Filter(function(x) !all(is.na(x)), .)
       
-      results <-
-        inner_join(country_coef, se, by = c("rowname", "escs_dummy")) %>%
-        rename(country = rowname) %>%
-        arrange(country, escs_dummy)
-      
-      message(paste0(unique(.x$wave), " modeling done"))
-      results
+      mod2 %>%
+        reduce(bind_rows) %>%
+        mutate(country = names(mod2))
     })
 }
+
+
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
+
+results_math %>%
+  setNames(years) %>%
+  enframe(name = "year") %>%
+  unnest() %>%
+  filter(country != "United States") %>%
+  mutate(low = difference - 1.96 * se,
+         high = difference + 1.96 * se) %>%
+  ggplot(aes(year, difference)) +
+  geom_point() +
+  geom_line(aes(group = country)) +
+  geom_errorbar(aes(ymin = low, ymax = high)) +
+  facet_wrap(~ country)
+
+# .x <- adapted_year_data[[4]]
+# .y <- reliability_pisa[3]
+# test <- "MATH"
+# probs <- c(0.9, 0.1)
 
 
 # Adapted from: https://github.com/jtleek/slipper/blob/master/R/slipper.R
@@ -370,19 +399,6 @@ bootstrapper_ <- function(df, expr, B = 500, n = nrow(df), replacement = TRUE) {
 
 % Remember to uncomment when compiling sweave again, so the chunk remains intact.
 <<modeling>>=
-adapted_year_data <-
-    map(pisa_all2$value, ~ {
-      if (unique(.x$wave) == "pisa2000") {
-        # pisa2000 has a different coding so here I recode 6 to 7 so that in all waves the top edu
-        # is 7 and the bottom is 1
-        .x <-
-          mutate(.x, new_hisced = as.character(dplyr::recode(as.numeric(high_edu_broad), `6` = 7)))
-      } else {
-        .x <-
-          mutate(.x, new_hisced = as.character(high_edu_broad))
-      }
-      .x
-})
 
 results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
 results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
