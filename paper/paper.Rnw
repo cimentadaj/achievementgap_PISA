@@ -252,6 +252,7 @@ quantile_missing <- function(df, weights, probs) {
   
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
+
 test_diff <- function(df, reliability, test, probs) {
   
     map2(df, reliability, function(.x, .y) {
@@ -297,14 +298,24 @@ test_diff <- function(df, reliability, test, probs) {
       .x$dv <- rowMedians(as.matrix(.x[test_vars]), na.rm = T)
       
       # Should I estimate the model separately by country?
-      mod1 <- lm(dv ~ AGE,
-                 weights = .x[[weights_var]],
-                 data = .x,
-                 na.action = "na.exclude")
-      
+      separate_countries <-
+        .x %>%
+        split(.x$country) %>%
+        map(function(each_country) {
+        mod1 <- lm(dv ~ AGE,
+                   weights = each_country[[weights_var]],
+                   data = each_country,
+                   na.action = "na.exclude")
+
       # Take residuals of model and divide by rmse. Multiply that by
       # 1 / sqrt(reliability of each survey), which is .y in the loop.
-      .x$adj_pvnum <- resid(mod1)/rmse(mod1, .x) * 1 / sqrt(.y)
+      each_country$adj_pvnum <- resid(mod1)/rmse(mod1, each_country) * 1 / sqrt(.y)
+      each_country
+      })
+      
+      .x <-
+        separate_countries %>%
+        reduce(bind_rows)
       
       mod2 <-
         lmer(adj_pvnum ~ escs_dummy + (1 + escs_dummy | country),
