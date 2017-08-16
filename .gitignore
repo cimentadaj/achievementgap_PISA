@@ -2,3 +2,5 @@
 paper/cache/
 paper/data/
 paper/figure/
+*.RData
+

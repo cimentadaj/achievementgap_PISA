@@ -126,7 +126,7 @@ opts_chunk$set(echo = FALSE,
 % pisa_listcol.Rdata is a dataset produced by the source() expression from the above
 % code chunk
 <<loading_data-recoding>>=
-pisa_all <- read_rds("./data/pisa_listcol.Rdata")
+pisa_all <- read_rds("./paper/data/pisa_listcol.Rdata")
   
 pisa_all2 <- pisa_all
 
@@ -383,19 +383,19 @@ adapted_year_data <-
       .x
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
-results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
+# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
+# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
+# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
+# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
+# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
 
-# results_math <- read_rds("./data/delete.Rdata")
-# results_read <- read_rds("./data/delete_read.Rdata")
-# results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
-# results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
-# results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
-# results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
+results_math <- read_rds("./paper/data/delete.Rdata")
+results_read <- read_rds("./paper/data/delete_read.Rdata")
+results_math_topmid <- read_rds("./paper/data/delete_math_topmid.Rdata")
+results_read_topmid <- read_rds("./paper/data/delete_read_topmid.Rdata")
+results_math_midbottom <- read_rds("./paper/data/delete_math_midbottom.Rdata")
+results_read_midbottom <- read_rds("./paper/data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -579,6 +579,8 @@ var_years %>%
   ggtitle("Standard deviation of test scores over time") +
   theme_few() +
   theme(text = element_text(size = 14))
+
+rm(var_years)
 @
 \caption{Standard deviation of test scores across all waves.}
 \end{center}
@@ -693,6 +695,8 @@ summary_data <-
   map(escs_data, edu_calc) %>%
   setNames(years) %>%
   enframer()
+
+rm(escs_data)
 @
 
 <<sample_size>>=
@@ -849,6 +853,9 @@ print(table_coming,
       hline.after = nrow(table_coming),
       caption.placement = "top",
       caption = "SES sample size and ISCED composition")
+
+rm(sample_tables_topbottom, sample_tables_topmid, sample_tables_midbottom,
+   avg_performance, summary_table, table_coming)
 @
 
 The first table shows a description of the sample size and mean score of both top and bottom SES groups for only the first and last time point. One main concern from the planned analysis is that getting the top 90th percentile and bottom 10th percentile would result in a small sample size. The table suggests that we have a reasonable number of respondents to actually estimate gaps accurately. Moreover, we can see that in all instances the bottom SES group has a lower score than all top SES groups.
@@ -1154,6 +1161,10 @@ us_math_2000_upper <-
 We find that the initial gap for the U.S in 2000 is \Sexpr{round(us_math_2000, 2)} varying between \Sexpr{round(us_math_2000_lower, 2)} and \Sexpr{round(us_math_2000_upper, 2)}. This gap is much higher than found in previous studies, but again, we don't know much previous estimates vary and nobody has really studied the 15-year old achievement gap precisely. All country-level studies pool many studies together and control for age, removing the age-specific gap effect.
 
 Figure 3 below takes a more direct approach and looks at the percentage change from the first and last timepoint available. Each data point has been computed together with it's 50\% and 95\% uncertainty interval \footnote{Each of these uncertainty intervals were computed using a 500-replicate bootstrap}.
+
+<<deleting_used_data>>=
+rm(diff_data, us_math_2000, us_math_2000_upper, us_math_2000_lower)
+@
 
 % How to output data frames are latex tables?
 <<perc_increase_tables>>=
@@ -1472,6 +1483,8 @@ full_data %>%
            fontface = 2, size = 3) +
   labs(x = "Average increase of low SES in SD", y = "Average increase of high SES in SD") +
   theme_minimal()
+
+rm(full_data, avg_sd_increase_high, avg_sd_increase_low)
 @
 \caption{Rate at which top/bottom SES groups are catching up for the 90/10 SES gap}
 \end{center}
@@ -1529,7 +1542,8 @@ country_scores <-
   } else {
     intsvy::pisa.mean.pv("MATH", by = "country", data = .x)
   }
-}) %>% setNames(seq(2000, 2015, 3))
+}) %>%
+  setNames(seq(2000, 2015, 3))
 
 country_scores <-
   enframe(country_scores, name = "wave") %>%
@@ -1545,6 +1559,8 @@ data_to_plot %>%
   ggplot(aes(scale(Mean), difference)) +
   geom_point() +
   geom_smooth()
+
+rm(country_scores)
 @
 
 <<correlation_performance_inequality>>=
@@ -1604,6 +1620,111 @@ data_to_plot %>%
 Looking at figure 9, we see a strong correspondence between the two variables. In countries like France we see quite a functional form between both inequality and performance. As average performance plummets, the achievement gap is increasing. This pattern is also seen in Austria, Australia and Germany. The other obvious pattern is the opposite trend. We see countries like Poland, Finland, Canada and less pronounced, Italy, where this pattern is evident. The surprising case here is the United States. We see that as the average performance has been decreasing, the average achievement gap has been decreasing as well. In fact, among the few countries we should find something that resembles this pattern should be the U.S because it doesn't have a strict institutionalized tracking system. However, the explanation behind this pattern is very speculative.
 
 Finally, the last notable pattern is that in some countries the average performance is so high that it actually overperforms the achievement gap. Only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality, which coincidentially, are countries that have the lower leven of inequalities among the ones presented here.
+
+<<>>=
+
+# 2000
+# SC03Q01 School public/private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 M/R
+# 9 Mis
+
+# 2003
+# SC03Q01 (8) Public or private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Miss
+
+# 2006
+# SC02Q01 (8) Public or private
+#  1 Public
+#  2 Private
+#  7 N/A
+#  8 Invalid
+#  9 Missing 
+
+# 2009
+# SC02Q01
+# 1 public
+# 2 private
+
+# 2012
+# SC01Q01 Public or private Num
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# 2015
+# SC013Q01TA
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# 2000: ST25Q01
+# 1 <ISCED 2A>
+# 2 <ISCED 2B>
+# 3 <ISCED 2C>
+# 4 <ISCED 3A>
+# 5 <ISCED 3B>
+# 6 <ISCED 3C>
+# 7 N/A
+# 8 M/R
+# 9 Mis
+
+# 2003: ISCEDO
+# 2006: ISCEDO
+# 2009: ISCEDO
+# 2012: ISCEDO
+# 2015: ISCEDO
+
+# 1	General
+# 2	Pre-Vocational
+# 3	Vocational
+# 4	Modular
+
+options(tibble.max_extra_cols = 10)
+library(WDI)
+
+wd_extract <- function(var, name) {
+  wdi_data <-
+    WDI(indicator = var, start = 2000, end = 2015) %>%
+    select(-1) %>%
+    as_tibble() %>%
+    mutate(year = as.character(year))
+  
+  names(wdi_data)[2] <- name
+  wdi_data
+}
+
+pop_preprimary <- wd_extract("SP.PRE.TOTL.IN", "pop_preprimary")
+teacher_pupil_ratio <- wd_extract("SE.PRE.ENRL.TC.ZS", "teacher_pupil_ratio")
+perc_teacher_trained <- wd_extract("UIS.TRTP.0", "perc_teach")
+preprimary_priv_enrol <- wd_extract("SE.PRE.PRIV.ZS", "preprimary_priv_enrol")
+
+difference_data <-
+  complete_data_topbottom %>%
+  filter(type_test == "math") %>%
+  select(wave, country, difference) %>%
+  rename(year = wave) %>%
+  mutate(year = as.character(year))
+
+library(inequalityintsvy)
+
+difference_data %>%
+  left_join(primary_enrolment) %>%
+  left_join(pop_tot) %>%
+  lmer(difference ~ enrolment + (1 | country), data = .) %>%
+  arm::display()
+
+@
 
 <<next_steps>>=
 # Next steps:
