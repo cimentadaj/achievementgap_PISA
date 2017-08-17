@@ -56,69 +56,70 @@ opts_chunk$set(echo = FALSE,
 @
 
 <<default_conf>>=
-  library(knitr)
-  library(arm)
-  library(saves)
-  library(haven)
-  library(PISA2000lite)
-  library(PISA2003lite)
-  library(PISA2006lite)
-  library(PISA2009lite)
-  library(PISA2012lite)
-  library(intsvy)
-  library(cimentadaj) # devtools::install_github("cimentadaj/cimentadaj")
-  library(countrycode) # For region variable
-  library(car)
-  library(SAScii)
-  library(inequalityintsvy) # devtools::install_github("cimentadaj/inequalityintsvy")
-  library(lme4)
-  library(modelr)
-  library(tidyverse)
-  library(ggrepel)
-  library(xtable)
-  library(ggthemes)
-  library(matrixStats)
-  
-  # source("./transform_data.R")
+library(knitr)
+library(arm)
+library(saves)
+library(haven)
+library(PISA2000lite)
+library(PISA2003lite)
+library(PISA2006lite)
+library(PISA2009lite)
+library(PISA2012lite)
+library(intsvy)
+library(cimentadaj) # devtools::install_github("cimentadaj/cimentadaj")
+library(countrycode) # For region variable
+library(car)
+library(SAScii)
+library(inequalityintsvy) # devtools::install_github("cimentadaj/inequalityintsvy")
+library(lme4)
+library(modelr)
+library(tidyverse)
+library(ggrepel)
+library(xtable)
+library(ggthemes)
+library(matrixStats)
+library(WDI)
 
-  # Conf for PISA_2015
-  pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
-                                         pvlabelsuff = "READ",
-                                         weightFinal = "W_FSTUWT",
-                                         weightBRR = "W_FSTURWT"),
-          parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
-                                          percentiles = c(5, 10, 25, 75, 90, 95),
-                                          PVreps = 10,
-                                          BRRreps = 80,
-                                          weights = "BRR",
-                                          replication_scheme = 'pisa')
-  )
-  
-  countries <- c("Finland",
-                 "France",
-                 # "New Zealand",
-                 "Austria",
-                 "Australia",
-                 "Sweden",
-                 # "Czech Republic",
-                 "Canada",
-                 "Hungary",
-                 # "Iceland",
-                 "Netherlands",
-                 "Spain",
-                 # "Belgium",
-                 "Italy",
-                 # "Norway",
-                 "United Kingdom",
-                 # "Greece",
-                 "Denmark",
-                 # "Israel",
-                 "Poland",
-                 "United States",
-                 "Germany"
-                 # "Turkey",
-                 # "Russia"
-                 )
+# source("./transform_data.R")
+
+# Conf for PISA_2015
+pisa2015_conf <- list(variables = list(pvlabelpref = "PV",
+                                       pvlabelsuff = "READ",
+                                       weightFinal = "W_FSTUWT",
+                                       weightBRR = "W_FSTURWT"),
+                      parameters = list(cutoffs = c(357.77, 420.07, 482.38, 544.68, 606.99, 669.30),
+                                        percentiles = c(5, 10, 25, 75, 90, 95),
+                                        PVreps = 10,
+                                        BRRreps = 80,
+                                        weights = "BRR",
+                                        replication_scheme = 'pisa')
+)
+
+countries <- c("Finland",
+               "France",
+               # "New Zealand",
+               "Austria",
+               "Australia",
+               "Sweden",
+               # "Czech Republic",
+               "Canada",
+               "Hungary",
+               # "Iceland",
+               "Netherlands",
+               "Spain",
+               # "Belgium",
+               "Italy",
+               # "Norway",
+               "United Kingdom",
+               # "Greece",
+               "Denmark",
+               # "Israel",
+               "Poland",
+               "United States",
+               "Germany"
+               # "Turkey",
+               # "Russia"
+)
 @
 
 \tableofcontents
@@ -223,7 +224,7 @@ reliability_pisa <-
   
   pisa_all2$value[[6]] <-
     pisa_all2$value[[6]] %>%
-    rename(escs_trend = ESCS)
+    rename(escs_trend = escs_trend)
 @
 
 <<functions_for_modelling>>=
@@ -383,19 +384,19 @@ adapted_year_data <-
       .x
 })
 
-# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
-# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
-# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.25, 0.75))
+results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.25, 0.75))
+results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.75))
+results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.75))
+results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.25, 0.5))
+results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.25, 0.5))
 
-results_math <- read_rds("./paper/data/delete.Rdata")
-results_read <- read_rds("./paper/data/delete_read.Rdata")
-results_math_topmid <- read_rds("./paper/data/delete_math_topmid.Rdata")
-results_read_topmid <- read_rds("./paper/data/delete_read_topmid.Rdata")
-results_math_midbottom <- read_rds("./paper/data/delete_math_midbottom.Rdata")
-results_read_midbottom <- read_rds("./paper/data/delete_read_midbottom.Rdata")
+# results_math <- read_rds("./paper/data/delete.Rdata")
+# results_read <- read_rds("./paper/data/delete_read.Rdata")
+# results_math_topmid <- read_rds("./paper/data/delete_math_topmid.Rdata")
+# results_read_topmid <- read_rds("./paper/data/delete_read_topmid.Rdata")
+# results_math_midbottom <- read_rds("./paper/data/delete_math_midbottom.Rdata")
+# results_read_midbottom <- read_rds("./paper/data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -669,7 +670,7 @@ escs_dummy_creator <- function(df, probs) {
     })
 }
 
-escs_data <- escs_dummy_creator(adapted_year_data, c(0.1, 0.9))
+escs_data <- escs_dummy_creator(adapted_year_data, c(0.25, 0.75))
 
 # Make recode the education variable into three categories
 map_lgl(escs_data, ~ "HISEI" %in% names(.x))
@@ -1013,9 +1014,9 @@ complete_data_topbottom <- pisa_preparer(results_math, results_read)
 complete_data_topmid <- pisa_preparer(results_math_topmid, results_read_topmid)
 complete_data_midbottom <- pisa_preparer(results_math_midbottom, results_read_midbottom)
 
-complete_data_topbottom <- mutate(complete_data_topbottom, type = "90th/10th SES gap")
-complete_data_topmid <- mutate(complete_data_topmid, type = "90th/50th SES gap")
-complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/10th SES gap")
+complete_data_topbottom <- mutate(complete_data_topbottom, type = "75th/25th SES gap")
+complete_data_topmid <- mutate(complete_data_topmid, type = "75th/50th SES gap")
+complete_data_midbottom <- mutate(complete_data_midbottom, type = "50th/25th SES gap")
 @
 
 <<correlation_incomeineq, include = F, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
@@ -1039,6 +1040,9 @@ complete_data_topbottom %>%
 \begin{center}
 <<graphing_9010gaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 # 90/10 gaps acros countries
+
+df <- complete_data_topbottom
+
 diff_increase_fun <- function(df) {
   
   # Average standard deviation increase
@@ -1147,15 +1151,21 @@ Analyzing this graph we might naively conclude that these trends are not very st
 
 <<us_sd_start>>=
 us_math_2000 <-
-  filter(complete_data_topbottom, wave == 2000, country == "United States", type_test == "math") %>%
+  filter(complete_data_topbottom,
+         wave == 2000, country == "United States",
+         type_test == "math") %>%
   .[["difference"]]
 
 us_math_2000_lower <-
-  filter(complete_data_topbottom, wave == 2000, country == "United States", type_test == "math") %>%
+  filter(complete_data_topbottom,
+         wave == 2000, country == "United States",
+         type_test == "math") %>%
   .[["lower"]]
 
 us_math_2000_upper <-
-  filter(complete_data_topbottom, wave == 2000, country == "United States", type_test == "math") %>%
+  filter(complete_data_topbottom,
+         wave == 2000, country == "United States",
+         type_test == "math") %>%
   .[["upper"]]
 @
 We find that the initial gap for the U.S in 2000 is \Sexpr{round(us_math_2000, 2)} varying between \Sexpr{round(us_math_2000_lower, 2)} and \Sexpr{round(us_math_2000_upper, 2)}. This gap is much higher than found in previous studies, but again, we don't know much previous estimates vary and nobody has really studied the 15-year old achievement gap precisely. All country-level studies pool many studies together and control for age, removing the age-specific gap effect.
@@ -1291,7 +1301,7 @@ complete_data_topbottom %>%
         panel.grid.major.y = element_line(colour = "grey")) +
   ggtitle("Evolution of the 90/10 achievement gap")
 
-perc_graph(top_bottom_perc, "read", "90/10 achievement gap", "Percentage change from 2000 to 2015")
+  perc_graph(top_bottom_perc, "read", "90/10 achievement gap", "Percentage change from 2000 to 2015")
 
 @
 
@@ -1621,7 +1631,7 @@ Looking at figure 9, we see a strong correspondence between the two variables. I
 
 Finally, the last notable pattern is that in some countries the average performance is so high that it actually overperforms the achievement gap. Only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality, which coincidentially, are countries that have the lower leven of inequalities among the ones presented here.
 
-<<>>=
+<<eval = F>>=
 
 # 2000
 # SC03Q01 School public/private
@@ -1690,8 +1700,7 @@ Finally, the last notable pattern is that in some countries the average performa
 # 3	Vocational
 # 4	Modular
 
-options(tibble.max_extra_cols = 10)
-library(WDI)
+library(readxl)
 
 wd_extract <- function(var, name) {
   wdi_data <-
@@ -1708,6 +1717,11 @@ pop_preprimary <- wd_extract("SP.PRE.TOTL.IN", "pop_preprimary")
 teacher_pupil_ratio <- wd_extract("SE.PRE.ENRL.TC.ZS", "teacher_pupil_ratio")
 perc_teacher_trained <- wd_extract("UIS.TRTP.0", "perc_teach")
 preprimary_priv_enrol <- wd_extract("SE.PRE.PRIV.ZS", "preprimary_priv_enrol")
+
+tracking_data <-
+  readxl::read_xlsx("./paper/data/tracking.xlsx", sheet = "all_data") %>%
+  map_if(is_double, round, 2) %>%
+  as_tibble
 
 difference_data <-
   complete_data_topbottom %>%
