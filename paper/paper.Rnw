@@ -1266,13 +1266,13 @@ Generally speaking, we see that most countries increased their achievement gap o
 % Code chunks for the same plots as above for reading. Available upon request.
 <<evolution_reading, eval = F>>=
 # See below that reading graph is upon request. This is the one.
-complete_data_topbottom %>%
-  mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
-  filter(type_test == "read", !is.na(country)) %>%
+
+pooled_trendline %>%
+  filter(type_test == "read") %>%
   ggplot(aes(as.character(wave), difference)) +
   geom_point() +
   geom_linerange(aes(ymin = 0, ymax = difference))+
-  geom_line(stat = "smooth", method = "lm", aes(group = 1),
+  geom_line(data = pooled_trendline, stat = "smooth", method = "lm", aes(group = 1),
             formula = y ~ splines::ns(x, 2), size = 0.7,
             colour = "red") +
   facet_wrap(~ country, ncol = 5) +
@@ -1285,7 +1285,6 @@ complete_data_topbottom %>%
   ggtitle("Evolution of the 90/10 achievement gap")
 
 perc_graph(top_bottom_perc, "read", "90/10 achievement gap", "Percentage change from 2000 to 2015")
-
 @
 
 Something reassuring is that mathematics and reading (not presented) follow basically the same trend across all countries \footnote{Reading had an even bigger decrease for similar countries, and a much smaller increase. The previos two graphs for reading are available upon request}. This means that the result is not an artifact of chance. However, it's important to disentangle where is this gap originating from. Is this because the top are improving why the bottom decreases? Or is it that the bottom is catching up? Up next we plot the same graph but show the divergent patterns between high/low SES origins.
