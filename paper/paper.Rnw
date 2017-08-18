@@ -1598,7 +1598,7 @@ data_to_plot %>%
   theme(panel.spacing = unit(1, "lines"),
         legend.position = "bottom")
 @
-\caption{Time trends of achievement gap and average achiement between 2000 and 2015}
+\caption{Time trends of achievement gap and average achievement between 2000 and 2015}
 \end{center}
 \end{figure}
 
@@ -1610,13 +1610,27 @@ Finally, the last notable pattern is that in some countries the average performa
 
 \section{Appendix}
 
-<<>>=
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.9))
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.9))
-results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.9))
-results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.9))
-results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.1, 0.5))
-results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.1, 0.5))
+<<estimating_othergaps>>=
+results_math_80 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.8, 0.2))
+results_read_80 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.8, 0.2))
+results_math_topmid_80 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.8, 0.5))
+results_read_topmid_80 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.8, 0.5))
+results_math_midbottom_80 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.2))
+results_read_midbottom_80 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.2))
+
+results_math_70 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.70, 0.30))
+results_read_70 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.70, 0.30))
+results_math_topmid_70 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.70, 0.5))
+results_read_topmid_70 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.70, 0.5))
+results_math_midbottom_70 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.30))
+results_read_midbottom_70 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.30))
+
+# results_math <- read_rds("./data/delete.Rdata")
+# results_read <- read_rds("./data/delete_read.Rdata")
+# results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
+# results_read_topmid <- read_rds("./data/delete_read_topmid.Rdata")
+# results_math_midbottom <- read_rds("./data/delete_math_midbottom.Rdata")
+# results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 
 # results_math <- read_rds("./data/delete.Rdata")
 # results_read <- read_rds("./data/delete_read.Rdata")
@@ -1626,6 +1640,88 @@ results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ",
 # results_read_midbottom <- read_rds("./data/delete_read_midbottom.Rdata")
 
 @
+
+\begin{figure}
+\begin{center}
+<<graph_all_gaps>>=
+complete_data_topbottom_80 <-
+  pisa_preparer(results_math_80, results_read_80) %>%
+  mutate(type = "80th/20th SES gap")
+
+complete_data_topmid_80 <-
+  pisa_preparer(results_math_topmid_80, results_read_topmid_80) %>%
+  mutate(type = "80th/50th SES gap")
+
+complete_data_midbottom_80 <-
+  pisa_preparer(results_math_midbottom_80, results_read_midbottom_80) %>%
+  mutate(type = "50th/20th SES gap")
+
+######
+
+complete_data_topbottom_70 <-
+  pisa_preparer(results_math_70, results_read_70) %>%
+  mutate(type = "70th/30th SES gap")
+
+complete_data_topmid_70 <-
+  pisa_preparer(results_math_topmid_70, results_read_topmid_70) %>%
+  mutate(type = "70th/50th SES gap")
+
+complete_data_midbottom_70 <-
+  pisa_preparer(results_math_midbottom_70, results_read_midbottom_70) %>%
+  mutate(type = "50th/30th SES gap")
+
+#####
+
+complete_gaps <-
+  complete_data_topbottom %>%
+  bind_rows(complete_data_topbottom_80)
+  bind_rows(complete_data_topbottom_70)
+
+complete_gaps %>%
+  mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
+  filter(type_test == "math",
+         country %in% countries) %>%
+  ggplot(aes(as.character(wave), difference, colour = type, linetype = type, group = type)) +
+  geom_line(stat = "smooth", method = "lm", size = 0.7) +
+  facet_wrap(~ country, ncol = 5) +
+  scale_colour_discrete(name = "Type of gaps") +
+  scale_linetype_discrete(name = "Type of gaps") +
+  scale_y_continuous(name = "Gaps in SD", expand = c(0, 0), lim = c(0, 3)) +
+  scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
+  ggthemes::theme_few() +
+  theme(panel.spacing = unit(1, "lines"),
+        panel.grid.major.y = element_line(colour = "grey"),
+        legend.title = ) +
+  ggtitle("Evolution of the different achievement gaps")
+@
+\caption{Evolution of the achievement gap for several gaps}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<percentage_change_8020>>=
+perc_increase_fun(complete_data_topbottom_80) %>%
+  perc_graph("math",
+             "80/20 achievement gap",
+             "Percentage change from 2000 to 2015")
+@
+\caption{Percentage change in the 80/20 achievement gap from 2000 to 2015}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<percentage_change_7030>>=
+perc_increase_fun(complete_data_topbottom_70) %>%
+  perc_graph("math",
+             "70/30 achievement gap",
+             "Percentage change from 2000 to 2015")
+@
+\caption{Percentage change in the 70/30 achievement gap from 2000 to 2015}
+\end{center}
+\end{figure}
+
 
 <<next_steps>>=
 # Next steps:
