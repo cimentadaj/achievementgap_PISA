@@ -384,19 +384,26 @@ adapted_year_data <-
       .x
 })
 
-results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.25, 0.75))
-results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.25, 0.75))
-results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.75))
-results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.75))
-results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.25, 0.5))
-results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.25, 0.5))
+# results_math <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.25, 0.75))
+# results_read <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.25, 0.75))
+# results_math_topmid <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.75))
+# results_read_topmid <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.75))
+# results_math_midbottom <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.25, 0.5))
+# results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.25, 0.5))
 
-# results_math <- read_rds("./paper/data/delete.Rdata")
-# results_read <- read_rds("./paper/data/delete_read.Rdata")
-# results_math_topmid <- read_rds("./paper/data/delete_math_topmid.Rdata")
-# results_read_topmid <- read_rds("./paper/data/delete_read_topmid.Rdata")
-# results_math_midbottom <- read_rds("./paper/data/delete_math_midbottom.Rdata")
-# results_read_midbottom <- read_rds("./paper/data/delete_read_midbottom.Rdata")
+# results_math_75 <- results_math
+# results_read_75 <- results_read
+# results_math_topmid_75 <- results_math_topmid
+# results_read_topmid_75 <- results_read_topmid
+# results_math_midbottom_75 <- results_math_midbottom
+# results_read_midbottom_75 <- results_read_midbottom
+
+results_math <- read_rds("./paper/data/delete.Rdata")
+results_read <- read_rds("./paper/data/delete_read.Rdata")
+results_math_topmid <- read_rds("./paper/data/delete_math_topmid.Rdata")
+results_read_topmid <- read_rds("./paper/data/delete_read_topmid.Rdata")
+results_math_midbottom <- read_rds("./paper/data/delete_math_midbottom.Rdata")
+results_read_midbottom <- read_rds("./paper/data/delete_read_midbottom.Rdata")
 # US is missing for reading
 
 # Cache is not working properly for the code above, so I just load the saved cached file
@@ -1039,7 +1046,7 @@ complete_data_topbottom %>%
 \begin{figure}
 \begin{center}
 <<graphing_9010gaps, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
-# 90/10 gaps acros countries
+# 90/10 gaps across countries
 
 df <- complete_data_topbottom
 
@@ -1118,16 +1125,21 @@ ordered_cnt <-
   arrange(-estimate) %>%
   pull(country)
 
-complete_data_topbottom %>%
+p <- 
+  complete_data_topbottom %>%
   mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
-  filter(type_test == "read", !is.na(country)) %>%
+  filter(type_test == "math", !is.na(country)) %>%
   ggplot(aes(as.character(wave), difference)) +
   geom_point() +
-  geom_linerange(aes(ymin = 0, ymax = difference))+
-  geom_line(stat = "smooth", method = "lm", aes(group = 1),
-            formula = y ~ splines::ns(x, 2), size = 0.7,
-            colour = "red") +
   facet_wrap(~ country, ncol = 5) +
+  geom_linerange(aes(ymin = 0, ymax = difference))
+
+p + geom_line(data = complete_data_topbottom %>%
+                mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
+                filter(!is.na(country)),
+              stat = "smooth", method = "lm", aes(group = 1),
+              formula = y ~ splines::ns(x, 2), size = 0.7,
+              colour = "red") +
   scale_y_continuous(name = "90/10 gap in SD", expand = c(0, 0), lim = c(0, 3)) +
   scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
   ggthemes::theme_few() +
