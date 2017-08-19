@@ -57,6 +57,7 @@ opts_chunk$set(echo = FALSE,
 
 <<default_conf>>=
   library(matrixStats)
+  library(tidyverse)
   library(knitr)
   library(arm)
   library(saves)
@@ -74,7 +75,6 @@ opts_chunk$set(echo = FALSE,
   library(inequalityintsvy) # devtools::install_github("cimentadaj/inequalityintsvy")
   library(lme4)
   library(modelr)
-  library(tidyverse)
   library(ggrepel)
   library(xtable)
   library(ggthemes)
@@ -602,7 +602,6 @@ We then fit
 
 % Replace the Y_i with the chosen y from the previos equation.
 \begin{equation}
-\gamma_i = \alpha_{j[i]} + \beta_{j[i]} * SES_i + \epsilon_i,\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{within country} \ j
 \gamma_i = \alpha_{j[i]} + \beta_{j[i]} * SES_i + \epsilon_i,\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{for each country} \ j
 \end{equation}
 
@@ -1608,6 +1607,34 @@ Looking at figure 9, we see a strong correspondence between the two variables. I
 
 Finally, the last notable pattern is that in some countries the average performance is so high that it actually overperforms the achievement gap. Only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality, which coincidentially, are countries that have the lower leven of inequalities among the ones presented here.
 
+<<next_steps>>=
+# Next steps:
+
+# Continue by doing the multilevel models to see what explains what. Include
+# all indicators from the reardon/russian girl paper.
+  
+# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
+# Specially the 90/10
+
+# Calculate how big is the gap between reading and math
+  
+# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
+  
+# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
+
+# Should I add the parent's education in the lm model to see how trends change adjusted for that?
+
+# A weak welfare system, together with income inequality, what's their pattern?
+# What if we put the school differentiation/tracking aspect in? Are there country groups based on these
+# patterns.
+
+# In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
+@
+
+\bibliography{mybibliography.bib}
+
+\pagebreak
+
 \section{Appendix}
 
 <<estimating_othergaps>>=
@@ -1625,6 +1652,20 @@ results_read_topmid_70 <- test_diff(adapted_year_data, reliability_pisa, "READ",
 results_math_midbottom_70 <- test_diff(adapted_year_data, reliability_pisa, "MATH", c(0.5, 0.30))
 results_read_midbottom_70 <- test_diff(adapted_year_data, reliability_pisa, "READ", c(0.5, 0.30))
 
+write_rds(results_math_80, "./data/math_80")
+write_rds(results_read_80, "./data/read_80")
+write_rds(results_math_topmid_80, "./data/math_topmid_80")
+write_rds(results_read_topmid_80, "./data/read_topmid_80")
+write_rds(results_math_midbottom_80, "./data/math_midbottom_80")
+write_rds(results_read_midbottom_80, "./data/read_midbottom_80")
+
+write_rds(results_math_70, "./data/math_70")
+write_rds(results_read_70, "./data/read_70")
+write_rds(results_math_topmid_70, "./data/math_topmid_70")
+write_rds(results_read_topmid_70, "./data/read_topmid_70")
+write_rds(results_math_midbottom_70, "./data/math_midbottom_70")
+write_rds(results_read_midbottom_70, "./data/read_midbottom_70")
+
 # results_math <- read_rds("./data/delete.Rdata")
 # results_read <- read_rds("./data/delete_read.Rdata")
 # results_math_topmid <- read_rds("./data/delete_math_topmid.Rdata")
@@ -1641,9 +1682,25 @@ results_read_midbottom_70 <- test_diff(adapted_year_data, reliability_pisa, "REA
 
 @
 
+<<eval = F>>=
+results_math_80 <- read_rds("./paper/data/math_80.Rdata")
+results_read_80 <- read_rds("./paper/data/read_80.Rdata")
+results_math_topmid_80 <- read_rds("./paper/data/math_topmid_80.Rdata")
+results_read_topmid_80 <- read_rds("./paper/data/read_topmid_80.Rdata")
+results_math_midbottom_80 <- read_rds("./paper/data/math_midbottom_80.Rdata")
+results_read_midbottom_80 <- read_rds("./paper/data/read_midbottom_80.Rdata")
+
+results_math_70 <- read_rds("./paper/data/math_70.Rdata")
+results_read_70 <- read_rds("./paper/data/read_70.Rdata")
+results_math_topmid_70 <- read_rds("./paper/data/math_topmid_70.Rdata")
+results_read_topmid_70 <- read_rds("./paper/data/read_topmid_70.Rdata")
+results_math_midbottom_70 <- read_rds("./paper/data/math_midbottom_70.Rdata")
+results_read_midbottom_70 <- read_rds("./paper/data/read_midbottom_70.Rdata")
+@
+
 \begin{figure}
 \begin{center}
-<<graph_all_gaps>>=
+<<graph_all_gaps,  include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 complete_data_topbottom_80 <-
   pisa_preparer(results_math_80, results_read_80) %>%
   mutate(type = "80th/20th SES gap")
@@ -1674,7 +1731,7 @@ complete_data_midbottom_70 <-
 
 complete_gaps <-
   complete_data_topbottom %>%
-  bind_rows(complete_data_topbottom_80)
+  bind_rows(complete_data_topbottom_80) %>%
   bind_rows(complete_data_topbottom_70)
 
 complete_gaps %>%
@@ -1691,7 +1748,7 @@ complete_gaps %>%
   ggthemes::theme_few() +
   theme(panel.spacing = unit(1, "lines"),
         panel.grid.major.y = element_line(colour = "grey"),
-        legend.title = ) +
+        legend.position = "bottom") +
   ggtitle("Evolution of the different achievement gaps")
 @
 \caption{Evolution of the achievement gap for several gaps}
@@ -1700,7 +1757,7 @@ complete_gaps %>%
 
 \begin{figure}
 \begin{center}
-<<percentage_change_8020>>=
+<<percentage_change_8020,  include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 perc_increase_fun(complete_data_topbottom_80) %>%
   perc_graph("math",
              "80/20 achievement gap",
@@ -1712,7 +1769,7 @@ perc_increase_fun(complete_data_topbottom_80) %>%
 
 \begin{figure}
 \begin{center}
-<<percentage_change_7030>>=
+<<percentage_change_7030,  include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 perc_increase_fun(complete_data_topbottom_70) %>%
   perc_graph("math",
              "70/30 achievement gap",
@@ -1722,31 +1779,5 @@ perc_increase_fun(complete_data_topbottom_70) %>%
 \end{center}
 \end{figure}
 
-
-<<next_steps>>=
-# Next steps:
-
-# Continue by doing the multilevel models to see what explains what. Include
-# all indicators from the reardon/russian girl paper.
-  
-# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
-# Specially the 90/10
-
-# Calculate how big is the gap between reading and math
-  
-# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
-  
-# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
-
-# Should I add the parent's education in the lm model to see how trends change adjusted for that?
-
-# A weak welfare system, together with income inequality, what's their pattern?
-# What if we put the school differentiation/tracking aspect in? Are there country groups based on these
-# patterns.
-
-# In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
-@
-
-\bibliography{mybibliography.bib}
 
 \end{document}
