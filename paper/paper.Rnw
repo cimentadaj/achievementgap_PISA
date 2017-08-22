@@ -73,12 +73,13 @@ library(SAScii)
 library(inequalityintsvy) # devtools::install_github("cimentadaj/inequalityintsvy")
 library(lme4)
 library(modelr)
-library(tidyverse)
 library(ggrepel)
 library(xtable)
 library(ggthemes)
 library(matrixStats)
 library(WDI)
+library(tidyverse)
+
 
 # source("./transform_data.R")
 
@@ -1146,10 +1147,39 @@ p + geom_line(data = complete_data_topbottom %>%
   theme(panel.spacing = unit(1, "lines"),
         panel.grid.major.y = element_line(colour = "grey")) +
   ggtitle("Evolution of the 90/10 achievement gap")
+
 @
 \caption{Evolution of the achievement gap for selected countries}
 \end{center}
 \end{figure}
+
+
+<<>>=
+m <- complete_data_topbottom %>%
+  filter(type_test == "math") %>%
+  select(wave, country, difference) %>%
+  left_join(tracking_data, by = c("country" = "cntry_name")) %>%
+  left_join(central_examination) %>%
+  mutate(num_tracks = factor(tracks15y))
+
+m %>%
+  filter(country %in% countries) %>%
+  split(.$country) %>%
+  map(~ lm(difference ~ wave + ztrack, data = .x))
+
+p + geom_smooth(data = complete_data_topbottom %>%
+                mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
+                filter(!is.na(country)),
+                method = "lm", se = FALSE,
+                aes(group = 1), size = 0.7,
+                colour = "red") +
+  scale_y_continuous(name = "90/10 gap in SD", expand = c(0, 0), lim = c(0, 3)) +
+  scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
+  ggthemes::theme_few() +
+  theme(panel.spacing = unit(1, "lines"),
+        panel.grid.major.y = element_line(colour = "grey")) +
+  ggtitle("Evolution of the 90/10 achievement gap")
+@
 
 We start by look at the achievement for some countries in figure 2. We plot only mathematics for each country and also a quadratic trend spline for \emph{both mathematics and literacy} pooled. Some countries have increased their achievement very strongly. For example, France, Austria and surprisingly Sweden have very steep slopes. France increasde the gap by roughly \Sexpr{diff_data$math[["France"]]} standard deviations, Austria by \Sexpr{diff_data$math[["Austria"]]} and Sweden by \Sexpr{diff_data$math[["Sweden"]]}. This pattern happens similarly for literacy. For example, France has an increase of \Sexpr{diff_data$read[["France"]]}. For such a short period of time, the magnitud of these increases are reasonably big.
 
@@ -1744,12 +1774,116 @@ difference_data <-
 
 library(inequalityintsvy)
 
-difference_data %>%
-  left_join(primary_enrolment) %>%
-  left_join(pop_tot) %>%
-  lmer(difference ~ enrolment + (1 | country), data = .) %>%
-  arm::display()
+central_examination <-
+  tribble(
+  ~ country, ~central_examination,
+  "Australia", 1, 
+  "Austria", 0, 
+  "Belgium", 0,
+  "Bulgaria", 1,
+  "Canada", rbinom(1, 1, prob = 0.51),
+  "Czech Republic", 1,
+  "Denmark", 1,
+  "Finland", 1,
+  "France", 1,
+  "Germany", 0,
+  "United Kingdom", 1,
+  "Greece", 0,
+  "Hong Kong", 1,
+  "Hungary", 1,
+  "Iceland", 1,
+  "Ireland", 1,
+  "Israel", 1,
+  "Italy", 1,
+  "Japan", 1,
+  "Korea", 1,
+  "Latvia", 1,
+  "Liechtenstein", 1,
+  "Luxembourg", 1,
+  "Netherlands", 1,
+  "New Zealand", 1,
+  "Norway", 1,
+  "Poland", 1,
+  "Portugal", 0,
+  "Russia", 1,
+  "Slovakia", 1,
+  "Slovenia", 1,
+  "Spain", 0,
+  "Sweden", 0,
+  "Switzerland", 0,
+  "Turkey", 1,
+  "United States", 1
+  )
 
+# The tracking variables explain very nicely the difference in test scores
+# for all countries pooled, up to 50% R squared.
+
+ready_data <-
+  difference_data %>%
+  left_join(tracking_data, by = c("country" = "cntry_name")) %>%
+  left_join(central_examination) %>%
+  mutate(num_tracks = factor(tracks15y),
+         age_selection = ifelse(selage >= 15, 1, 0))
+
+mod_tracking <-
+  ready_data %>%
+  lm(difference ~
+       num_tracks +
+       age_selection +
+       length +
+       central_examination, data = .)
+
+new_data <-
+  data_grid(ready_data,
+            selage, num_tracks, central_examination, .model = mod_tracking) %>%
+  filter(complete.cases(.))
+
+new_data$pred <- predict(mod_tracking, newdata = new_data)
+
+new_data %>%
+  ggplot(aes(selage, pred, colour = num_tracks)) +
+  geom_point()
+
+new_data %>%
+  ggplot(aes(num_tracks, pred, fill = as.character(num_tracks))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ central_examination) +
+  scale_fill_fivethirtyeight()
+
+# What happened if you adjut the trend splines for the tracking data?
+@
+
+<<>>=
+
+# One idea I had was to make a cumulative sum of the trend,
+# so the cumulative inequality over time for each country
+# and see how each tracking feature explains this cumulative
+# pattern, and it does so very well, with each one
+# separately (because I have only 30 observations) explaining
+# about 22% each. Age selection, up to 30% alone.
+
+ready_data_two <-
+  difference_data %>%
+  left_join(tracking_data, by = c("country" = "cntry_name")) %>%
+  left_join(central_examination) %>%
+  mutate(num_tracks = factor(tracks15y),
+         age_selection = ifelse(selage >= 15, 1, 0))
+
+ready_data_two <-
+  ready_data_two %>%
+  group_by(country) %>%
+  summarize(
+    cum_diff = sum(difference, na.rm = TRUE),
+    length = unique(length),
+    num_tracks = unique(num_tracks),
+    age_selection = unique(age_selection),
+    central_examination = unique(central_examination),
+    avg_track = unique(ztrack)
+         )
+
+mod_tracking <-
+  ready_data_two %>%
+  lm(cum_diff ~ age_selection, data = .)
 @
 
 <<next_steps>>=
