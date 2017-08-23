@@ -1822,33 +1822,63 @@ ready_data <-
   difference_data %>%
   left_join(tracking_data, by = c("country" = "cntry_name")) %>%
   left_join(central_examination) %>%
-  mutate(num_tracks = factor(tracks15y),
+  mutate(num_tracks = factor(car::recode(tracks15y, "5 = 4")),
          age_selection = ifelse(selage >= 15, 1, 0))
 
-mod_tracking <-
-  ready_data %>%
-  lm(difference ~
-       num_tracks +
-       age_selection +
-       length +
-       central_examination, data = .)
+library(rstanarm)
+
+mod_tracking <- stan_glmer(
+  difference ~
+    num_tracks +
+    age_selection + (1 | country),
+  family = gaussian(),
+  data = ready_data,
+  prior = normal(0, 2),
+  prior_intercept = normal(0, 5),
+  prior_aux = cauchy(0, 1))
+
+# mod_tracking <-
+#   ready_data %>%
+#   lmer(difference ~
+#        num_tracks +
+#        age_selection + (1 | country), data = .)
+
+# new_data <-
+#   data_grid(ready_data,
+#             selage, num_tracks, central_examination, .model = mod_tracking) %>%
+#   filter(complete.cases(.))
 
 new_data <-
-  data_grid(ready_data,
-            selage, num_tracks, central_examination, .model = mod_tracking) %>%
+  ready_data %>%
+  filter(!is.na(age_selection), !is.na(num_tracks)) %>%
+  expand(country, age_selection, num_tracks) %>%
   filter(complete.cases(.))
 
-new_data$pred <- predict(mod_tracking, newdata = new_data)
+predictions <- posterior_predict(mod_tracking, newdata = new_data)
+sd_obs <- colSds(predictions)
 
-new_data %>%
-  ggplot(aes(selage, pred, colour = num_tracks)) +
-  geom_point()
+new_data$pred <- colMeans(predictions)
+new_data$pred_low <- new_data$pred - (2 * sd_obs)
+new_data$pred_high <- new_data$pred + (2 * sd_obs)
 
-new_data %>%
-  ggplot(aes(num_tracks, pred, fill = as.character(num_tracks))) +
-  geom_col(position = "dodge") +
-  facet_wrap(~ central_examination) +
-  scale_fill_fivethirtyeight()
+sum_ready_data <-
+  ready_data %>%
+  group_by(country, num_tracks, age_selection) %>%
+  summarize(avg_diff = mean(difference),
+            diff_low = avg_diff - 2 * sd(difference),
+            diff_high = avg_diff + 2 * sd(difference)) %>%
+  ungroup()
+
+new_data %>% left_join(sum_ready_data) %>%
+  filter(country %in% countries) %>%
+  ggplot(aes(num_tracks %>% as.factor, avg_diff, fill = num_tracks)) +
+  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
+  geom_point(colour = "red") +
+  scale_y_continuous(limits = c(0, 4)) +
+  geom_col(aes(y = pred, alpha = 0.4)) +
+  geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
+  facet_wrap(country ~ age_selection) +
+  scale_fill_wsj()
 
 # What happened if you adjut the trend splines for the tracking data?
 @
@@ -1863,14 +1893,7 @@ new_data %>%
 # about 22% each. Age selection, up to 30% alone.
 
 ready_data_two <-
-  difference_data %>%
-  left_join(tracking_data, by = c("country" = "cntry_name")) %>%
-  left_join(central_examination) %>%
-  mutate(num_tracks = factor(tracks15y),
-         age_selection = ifelse(selage >= 15, 1, 0))
-
-ready_data_two <-
-  ready_data_two %>%
+  ready_data %>%
   group_by(country) %>%
   summarize(
     cum_diff = sum(difference, na.rm = TRUE),
@@ -1881,9 +1904,30 @@ ready_data_two <-
     avg_track = unique(ztrack)
          )
 
+# mod_tracking <-
+#   ready_data_two %>%
+#   lm(cum_diff ~ age_selection, data = .)
+
 mod_tracking <-
   ready_data_two %>%
-  lm(cum_diff ~ age_selection, data = .)
+  filter(!is.na(age_selection)) %>%
+  stan_glm(cum_diff ~ age_selection, data = .,
+           family = "gaussian",
+           prior = normal(0, 2),
+           prior_intercept = normal(0, 5),
+           prior_aux = cauchy(0, 1),
+           refresh = -1)
+
+ready_data_two %>%
+  filter(!is.na(age_selection)) %>%
+  mutate(pred_mean = posterior_predict(mod_tracking) %>% colMeans(),
+         pred_median = posterior_predict(mod_tracking) %>% colMedians()) %>%
+  select(country, cum_diff, pred_mean, pred_median) %>%
+  gather(cat, value, -country) %>%
+  ggplot(aes(country, value, fill = cat)) +
+  geom_col(position = "dodge") +
+  coord_flip()
+
 @
 
 <<next_steps>>=
