@@ -78,6 +78,7 @@ library(xtable)
 library(ggthemes)
 library(matrixStats)
 library(WDI)
+library(rstanarm)
 library(tidyverse)
 
 
@@ -1822,44 +1823,44 @@ ready_data <-
   difference_data %>%
   left_join(tracking_data, by = c("country" = "cntry_name")) %>%
   left_join(central_examination) %>%
-  mutate(num_tracks = factor(car::recode(tracks15y, "5 = 4")),
-         age_selection = ifelse(selage >= 15, 1, 0))
+  mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
+         age_selection = ifelse(selage >= 15, 1, 0)) %>%
+  filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
 
-library(rstanarm)
+library(brms)
 
-mod_tracking <- stan_glmer(
+mod_tracking <-
+  brms::brm(
   difference ~
     num_tracks +
     age_selection + (1 | country),
   family = gaussian(),
   data = ready_data,
-  prior = normal(0, 2),
-  prior_intercept = normal(0, 5),
-  prior_aux = cauchy(0, 1))
+  prior = c(set_prior("cauchy(2, 0.5)", coef = "num_tracks1"),
+            set_prior("cauchy(13, 1)", coef = "age_selection")
+            ),
+  warmup = 1000, iter = 2000, chains = 5
+  )
 
-# mod_tracking <-
-#   ready_data %>%
-#   lmer(difference ~
-#        num_tracks +
-#        age_selection + (1 | country), data = .)
-
-# new_data <-
-#   data_grid(ready_data,
-#             selage, num_tracks, central_examination, .model = mod_tracking) %>%
-#   filter(complete.cases(.))
+# It under predicts the y value rather than over predict
+# It has problems predicting the central tendency of the model
 
 new_data <-
   ready_data %>%
-  filter(!is.na(age_selection), !is.na(num_tracks)) %>%
+  filter(country %in% countries) %>%
   expand(country, age_selection, num_tracks) %>%
   filter(complete.cases(.))
 
 predictions <- posterior_predict(mod_tracking, newdata = new_data)
 sd_obs <- colSds(predictions)
 
-new_data$pred <- colMeans(predictions)
-new_data$pred_low <- new_data$pred - (2 * sd_obs)
-new_data$pred_high <- new_data$pred + (2 * sd_obs)
+new_data <-
+  new_data %>%
+  mutate(
+    pred = colMeans(predictions),
+    pred_low = pred - (2 * sd_obs),
+    pred_high = pred + (2 * sd_obs)
+  )
 
 sum_ready_data <-
   ready_data %>%
@@ -1869,7 +1870,8 @@ sum_ready_data <-
             diff_high = avg_diff + 2 * sd(difference)) %>%
   ungroup()
 
-new_data %>% left_join(sum_ready_data) %>%
+new_data %>%
+  left_join(sum_ready_data) %>%
   filter(country %in% countries) %>%
   ggplot(aes(num_tracks %>% as.factor, avg_diff, fill = num_tracks)) +
   geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
@@ -1879,6 +1881,31 @@ new_data %>% left_join(sum_ready_data) %>%
   geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
   facet_wrap(country ~ age_selection) +
   scale_fill_wsj()
+
+y_rep <- posterior_predict(mod_tracking)
+
+replication <-
+  map(1:2000, ~ {
+  ready_data %>%
+  mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
+  summarize(perc_sample = mean(pred_sample > difference),
+            minus_sample = mean(pred_sample - difference))
+})
+
+replication %>%
+  enframe() %>%
+  unnest() %>%
+  qplot(minus_sample, geom = "histogram", data = .)
+
+replication %>%
+  enframe() %>%
+  unnest() %>%
+  summarize(mean(between(minus_sample, -0.05, 0.05)))
+
+pp_check(mod_tracking, nsamples = 100)
+
+pp_check(mod_tracking, type = "error_scatter", nsamples = 100)
+
 
 # What happened if you adjut the trend splines for the tracking data?
 @
