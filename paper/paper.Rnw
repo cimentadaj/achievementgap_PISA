@@ -1895,19 +1895,17 @@ replication <-
 replication %>%
   enframe() %>%
   unnest() %>%
-  qplot(minus_sample, geom = "histogram", data = .)
+  qplot(perc_sample, geom = "histogram", data = .)
 
 replication %>%
   enframe() %>%
   unnest() %>%
-  summarize(mean(between(minus_sample, -0.05, 0.05)))
+  summarize(mean(perc_sample < 0.5))
 
 pp_check(mod_tracking, nsamples = 100)
 
 pp_check(mod_tracking, type = "error_scatter", nsamples = 100)
 
-
-# What happened if you adjut the trend splines for the tracking data?
 @
 
 <<>>=
@@ -1919,42 +1917,68 @@ pp_check(mod_tracking, type = "error_scatter", nsamples = 100)
 # separately (because I have only 30 observations) explaining
 # about 22% each. Age selection, up to 30% alone.
 
+vars_unique <- c("length", "num_tracks", "age_selection", "central_examination", "ztrack")
+
 ready_data_two <-
   ready_data %>%
   group_by(country) %>%
-  summarize(
-    cum_diff = sum(difference, na.rm = TRUE),
-    length = unique(length),
-    num_tracks = unique(num_tracks),
-    age_selection = unique(age_selection),
-    central_examination = unique(central_examination),
-    avg_track = unique(ztrack)
-         )
+  summarize_at(vars(vars_unique), unique) %>%
+  mutate(cum_diff = ready_data %>% group_by(country) %>% summarize(m = sum(difference)) %>% pull(m))
 
-# mod_tracking <-
-#   ready_data_two %>%
-#   lm(cum_diff ~ age_selection, data = .)
+mod_tracking <-
+  ready_data_two %>%
+  lm(cum_diff ~ num_tracks + age_selection, data = .) %>%
+  arm::display()
 
 mod_tracking <-
   ready_data_two %>%
   filter(!is.na(age_selection)) %>%
-  stan_glm(cum_diff ~ age_selection, data = .,
-           family = "gaussian",
-           prior = normal(0, 2),
-           prior_intercept = normal(0, 5),
-           prior_aux = cauchy(0, 1),
-           refresh = -1)
+  brm(
+    cum_diff ~ age_selection,
+    family = gaussian(),
+    data = .,
+    prior = set_prior("cauchy(13, 1)", coef = "age_selection"),
+    warmup = 1000, iter = 2000, chains = 5
+  )
+
+pp_check(mod_tracking, nsamples = 100)
+
+y_rep <- posterior_predict(mod_tracking)
+
+replication <-
+  map(1:2000, ~ {
+  ready_data_two %>%
+  mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
+  summarize(perc_sample = mean(pred_sample > cum_diff),
+            minus_sample = mean(pred_sample - cum_diff))
+})
+
+y_pred_data <-
+  replication %>%
+  enframe() %>%
+  unnest()
+
+y_pred_data %>% qplot(perc_sample, data = ., geom = "histogram", bins = 50)
+
+y_pred_data %>% {quantile(.$perc_sample)}
+
+y_pred_data %>%
+  summarize(mean_perc = mean(perc_sample < 0.5))
+
+bayes_R2(mod_tracking)
+
+# Too few data points to predict integers, the distribution is full of empty spaces
+# The predictions are too wide! Only 41% of the predictions are between 0.45 and 0.55
+# accuracy. There's more underprediction than over prediction
 
 ready_data_two %>%
   filter(!is.na(age_selection)) %>%
-  mutate(pred_mean = posterior_predict(mod_tracking) %>% colMeans(),
-         pred_median = posterior_predict(mod_tracking) %>% colMedians()) %>%
-  select(country, cum_diff, pred_mean, pred_median) %>%
+  mutate(pred_median = posterior_predict(mod_tracking) %>% colMedians()) %>%
+  select(country, cum_diff, pred_median) %>%
   gather(cat, value, -country) %>%
   ggplot(aes(country, value, fill = cat)) +
   geom_col(position = "dodge") +
   coord_flip()
-
 @
 
 <<next_steps>>=
