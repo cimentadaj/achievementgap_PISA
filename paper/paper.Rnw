@@ -1721,48 +1721,8 @@ Finally, the last notable pattern is that in some countries the average performa
 # 8 Invalid
 # 9 Missing
 
-# 2000: ST25Q01
-# 1 <ISCED 2A>
-# 2 <ISCED 2B>
-# 3 <ISCED 2C>
-# 4 <ISCED 3A>
-# 5 <ISCED 3B>
-# 6 <ISCED 3C>
-# 7 N/A
-# 8 M/R
-# 9 Mis
-
-# 2003: ISCEDO
-# 2006: ISCEDO
-# 2009: ISCEDO
-# 2012: ISCEDO
-# 2015: ISCEDO
-
-# 1	General
-# 2	Pre-Vocational
-# 3	Vocational
-# 4	Modular
-
-library(readxl)
-
-wd_extract <- function(var, name) {
-  wdi_data <-
-    WDI(indicator = var, start = 2000, end = 2015) %>%
-    select(-1) %>%
-    as_tibble() %>%
-    mutate(year = as.character(year))
-  
-  names(wdi_data)[2] <- name
-  wdi_data
-}
-
-pop_preprimary <- wd_extract("SP.PRE.TOTL.IN", "pop_preprimary")
-teacher_pupil_ratio <- wd_extract("SE.PRE.ENRL.TC.ZS", "teacher_pupil_ratio")
-perc_teacher_trained <- wd_extract("UIS.TRTP.0", "perc_teach")
-preprimary_priv_enrol <- wd_extract("SE.PRE.PRIV.ZS", "preprimary_priv_enrol")
-
 tracking_data <-
-  readxl::read_xlsx("./paper/data/tracking.xlsx", sheet = "all_data") %>%
+  read_xlsx("./paper/data/tracking.xlsx", sheet = "all_data") %>%
   map_if(is_double, round, 2) %>%
   as_tibble
 
@@ -1823,9 +1783,13 @@ ready_data <-
   difference_data %>%
   left_join(tracking_data, by = c("country" = "cntry_name")) %>%
   left_join(central_examination) %>%
+  left_join(school_data_ready) %>%
   mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
-         age_selection = ifelse(selage >= 15, 1, 0)) %>%
+         age_selection = selage) %>%
   filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
+
+
+ready_data_age <- mutate(ready_data, age_selection = ifelse(selage >= 15, 1, 0))
 
 library(brms)
 
@@ -1835,7 +1799,7 @@ mod_tracking <-
     num_tracks +
     age_selection + (1 | country),
   family = gaussian(),
-  data = ready_data,
+  data = ready_data_age,
   prior = c(set_prior("cauchy(2, 0.5)", coef = "num_tracks1"),
             set_prior("cauchy(13, 1)", coef = "age_selection")
             ),
@@ -1846,7 +1810,7 @@ mod_tracking <-
 # It has problems predicting the central tendency of the model
 
 new_data <-
-  ready_data %>%
+  ready_data_age %>%
   filter(country %in% countries) %>%
   expand(country, age_selection, num_tracks) %>%
   filter(complete.cases(.))
@@ -1863,7 +1827,7 @@ new_data <-
   )
 
 sum_ready_data <-
-  ready_data %>%
+  ready_data_age %>%
   group_by(country, num_tracks, age_selection) %>%
   summarize(avg_diff = mean(difference),
             diff_low = avg_diff - 2 * sd(difference),
@@ -1902,10 +1866,8 @@ replication %>%
   unnest() %>%
   summarize(mean(perc_sample < 0.5))
 
-pp_check(mod_tracking, nsamples = 100)
-
-pp_check(mod_tracking, type = "error_scatter", nsamples = 100)
-
+pp_check(mod_tracking, type = "error_binned", nsamples = 1000)
+# The models tends to overpredict high values and underpredict low values.
 @
 
 <<>>=
@@ -1927,8 +1889,8 @@ ready_data_two <-
 
 mod_tracking <-
   ready_data_two %>%
-  lm(cum_diff ~ num_tracks + age_selection, data = .) %>%
-  arm::display()
+  lm(cum_diff ~ age_selection, data = .) %>%
+  arm::display(detail = T)
 
 mod_tracking <-
   ready_data_two %>%
@@ -1940,8 +1902,17 @@ mod_tracking <-
     prior = set_prior("cauchy(13, 1)", coef = "age_selection"),
     warmup = 1000, iter = 2000, chains = 5
   )
+pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+pp_check(mod_tracking, type = "ecdf_overlay", nsamples = 10)
+pp_check(mod_tracking, type = "boxplot", nsamples = 30)
+pp_check(mod_tracking, type = "stat", nsamples = 200) # very nice to compare central tendency
 
-pp_check(mod_tracking, nsamples = 100)
+pp_check(mod_tracking, type = "error_scatter_avg", nsamples = 1000)
+
+pp_check(mod_tracking, type = "loo_pit")
+# over prediction
+# central tendency is not captured very well
+# more under-prediction than over prediction
 
 y_rep <- posterior_predict(mod_tracking)
 
