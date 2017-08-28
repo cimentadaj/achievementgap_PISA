@@ -1779,5 +1779,339 @@ perc_increase_fun(complete_data_topbottom_70) %>%
 \end{center}
 \end{figure}
 
+<<eval = F>>=
+
+# 2000
+# SC03Q01 School public/private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 M/R
+# 9 Mis
+
+# 2003
+# SC03Q01 (8) Public or private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Miss
+
+# 2006
+# SC02Q01 (8) Public or private
+#  1 Public
+#  2 Private
+#  7 N/A
+#  8 Invalid
+#  9 Missing 
+
+# 2009
+# SC02Q01
+# 1 public
+# 2 private
+
+# 2012
+# SC01Q01 Public or private Num
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# 2015
+# SC013Q01TA
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+library(readxl)
+
+tracking_data <-
+  read_xlsx("./paper/data/tracking.xlsx", sheet = "all_data") %>%
+  map_if(is_double, round, 2) %>%
+  as_tibble
+
+difference_data <-
+  complete_gaps %>%
+  filter(type_test == "math", type == "90th/10th SES gap") %>%
+  select(wave, country, difference) %>%
+  rename(year = wave) %>%
+  mutate(year = as.character(year))
+
+library(inequalityintsvy)
+
+central_examination <-
+  tribble(
+  ~ country, ~central_examination,
+  "Australia", 1, 
+  "Austria", 0, 
+  "Belgium", 0,
+  "Bulgaria", 1,
+  "Canada", rbinom(1, 1, prob = 0.51),
+  "Czech Republic", 1,
+  "Denmark", 1,
+  "Finland", 1,
+  "France", 1,
+  "Germany", 0,
+  "United Kingdom", 1,
+  "Greece", 0,
+  "Hong Kong", 1,
+  "Hungary", 1,
+  "Iceland", 1,
+  "Ireland", 1,
+  "Israel", 1,
+  "Italy", 1,
+  "Japan", 1,
+  "Korea", 1,
+  "Latvia", 1,
+  "Liechtenstein", 1,
+  "Luxembourg", 1,
+  "Netherlands", 1,
+  "New Zealand", 1,
+  "Norway", 1,
+  "Poland", 1,
+  "Portugal", 0,
+  "Russia", 1,
+  "Slovakia", 1,
+  "Slovenia", 1,
+  "Spain", 0,
+  "Sweden", 0,
+  "Switzerland", 0,
+  "Turkey", 1,
+  "United States", 1
+  )
+
+# The tracking variables explain very nicely the difference in test scores
+# for all countries pooled, up to 50% R squared.
+
+ready_data <-
+  difference_data %>%
+  left_join(tracking_data, by = c("country" = "cntry_name")) %>%
+  left_join(central_examination) %>%
+  left_join(school_data_ready) %>%
+  mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
+         age_selection = selage) %>%
+  filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
+
+ready_data_age <- mutate(ready_data, age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
+
+library(brms)
+# This linear model explains the pooled 90/10 differences
+mod_tracking <-
+  brms::brm(
+    difference ~
+      ztrack +
+      zvoc +
+      ztrack:zvoc, family = gaussian(),
+  data = ready_data_age,
+  warmup = 1000, iter = 2000, chains = 5
+  )
+
+mod_tracking
+bayes_R2(mod_tracking)
+marginal_effects(mod_tracking)
+
+pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
+pp_check(mod_tracking, type = "boxplot", nsamples = 20)
+pp_check(mod_tracking, type = "error_hist", nsamples = 6)
+pp_check(mod_tracking, type = "ecdf_overlay")
+
+pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
+pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
+
+# Check whether the previous model can be generalized to a multilevel
+# and see how much it can explain between country var
+mod_tracking <-
+  brms::brm(
+    difference ~
+      ztrack +
+      zvoc +
+      ztrack:zvoc + (1 | country),
+  family = gaussian(),
+  data = ready_data_age,
+  prior = c(set_prior("normal(0, 1)", coef = "ztrack"),
+            set_prior("normal(0, 1)", coef = "zvoc")),
+  warmup = 1000, iter = 2000, chains = 4
+  )
+
+# It under predicts the y value rather than over predict
+# It has problems predicting the central tendency of the model
+
+
+# The code bloew needs to be adapted to the model from above (
+# this is from previous models)
+
+new_data <-
+  ready_data_age %>%
+  filter(country %in% countries) %>%
+  expand(country, age_selection, num_tracks) %>%
+  filter(complete.cases(.))
+
+predictions <- posterior_predict(mod_tracking, newdata = new_data)
+sd_obs <- colSds(predictions)
+
+new_data <-
+  new_data %>%
+  mutate(
+    pred = colMeans(predictions),
+    pred_low = pred - (2 * sd_obs),
+    pred_high = pred + (2 * sd_obs)
+  )
+
+sum_ready_data <-
+  ready_data_age %>%
+  group_by(country, num_tracks, age_selection) %>%
+  summarize(avg_diff = mean(difference),
+            diff_low = avg_diff - 2 * sd(difference),
+            diff_high = avg_diff + 2 * sd(difference)) %>%
+  ungroup()
+
+new_data %>%
+  left_join(sum_ready_data) %>%
+  filter(country %in% countries) %>%
+  ggplot(aes(num_tracks %>% as.factor, avg_diff, fill = num_tracks)) +
+  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
+  geom_point(colour = "red") +
+  scale_y_continuous(limits = c(0, 4)) +
+  geom_col(aes(y = pred, alpha = 0.4)) +
+  geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
+  facet_wrap(country ~ age_selection) +
+  scale_fill_wsj()
+
+y_rep <- posterior_predict(mod_tracking)
+
+replication <-
+  map(1:2000, ~ {
+  ready_data %>%
+  mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
+  summarize(perc_sample = mean(pred_sample > difference),
+            minus_sample = mean(pred_sample - difference))
+})
+
+replication %>%
+  enframe() %>%
+  unnest() %>%
+  qplot(perc_sample, geom = "histogram", data = .)
+
+replication %>%
+  enframe() %>%
+  unnest() %>%
+  summarize(mean(perc_sample < 0.5))
+
+pp_check(mod_tracking, type = "error_binned", nsamples = 1000)
+@
+
+<<>>=
+
+# One idea I had was to make a cumulative sum of the trend,
+# so the cumulative inequality over time for each country
+# and see how each tracking feature explains this cumulative
+# pattern, and it does so very well, with each one
+# separately (because I have only 30 observations) explaining
+# about 22% each. Age selection, up to 30% alone.
+
+vars_unique <- c("length", "num_tracks", "age_selection", "central_examination", "ztrack",
+                 "zvoc")
+
+ready_data_two <-
+  ready_data %>%
+  group_by(country) %>%
+  summarize_at(vars(vars_unique), unique) %>%
+  mutate(cum_diff = ready_data %>% group_by(country) %>% summarize(m = sum(difference)) %>% pull(m))
+
+mod_tracking <-
+  ready_data_two %>%
+  lm(cum_diff ~ ztrack + zvoc, data = .) %>%
+  arm::display(detail = T)
+
+mod_tracking <-
+  ready_data_two %>%
+  filter(!is.na(age_selection)) %>%
+  brm(
+    cum_diff ~ ztrack + zvoc,
+    family = gaussian(),
+    data = .,
+    warmup = 1000, iter = 2000, chains = 5
+  )
+
+bayes_R2(mod_tracking)
+
+pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+pp_check(mod_tracking, type = "ecdf_overlay", nsamples = 10)
+pp_check(mod_tracking, type = "boxplot", nsamples = 30)
+pp_check(mod_tracking, type = "stat", nsamples = 200) # very nice to compare central tendency
+
+pp_check(mod_tracking, type = "error_scatter_avg", nsamples = 1000)
+
+pp_check(mod_tracking, type = "loo_pit")
+# over prediction
+# central tendency is not captured very well
+# more under-prediction than over prediction
+
+# update all of this for the previous model!
+y_rep <- posterior_predict(mod_tracking)
+
+replication <-
+  map(1:2000, ~ {
+  ready_data_two %>%
+  mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
+  summarize(perc_sample = mean(pred_sample > cum_diff),
+            minus_sample = mean(pred_sample - cum_diff))
+})
+
+y_pred_data <-
+  replication %>%
+  enframe() %>%
+  unnest()
+
+y_pred_data %>% qplot(perc_sample, data = ., geom = "histogram", bins = 50)
+
+y_pred_data %>% {quantile(.$perc_sample)}
+
+y_pred_data %>%
+  summarize(mean_perc = mean(perc_sample < 0.5))
+
+bayes_R2(mod_tracking)
+
+# Too few data points to predict integers, the distribution is full of empty spaces
+# The predictions are too wide! Only 41% of the predictions are between 0.45 and 0.55
+# accuracy. There's more underprediction than over prediction
+
+ready_data_two %>%
+  filter(!is.na(age_selection)) %>%
+  mutate(pred_median = posterior_predict(mod_tracking) %>% colMedians()) %>%
+  select(country, cum_diff, pred_median) %>%
+  gather(cat, value, -country) %>%
+  ggplot(aes(country, value, fill = cat)) +
+  geom_col(position = "dodge") +
+  coord_flip()
+@
+
+<<next_steps>>=
+# Next steps:
+
+# Continue by doing the multilevel models to see what explains what. Include
+# all indicators from the reardon/russian girl paper.
+  
+# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
+# Specially the 90/10
+
+# Calculate how big is the gap between reading and math
+  
+# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
+  
+# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
+
+# Should I add the parent's education in the lm model to see how trends change adjusted for that?
+
+# A weak welfare system, together with income inequality, what's their pattern?
+# What if we put the school differentiation/tracking aspect in? Are there country groups based on these
+# patterns.
+
+# In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
+@
+
 
 \end{document}
