@@ -2087,6 +2087,8 @@ ready_data_two %>%
   ggplot(aes(country, value, fill = cat)) +
   geom_col(position = "dodge") +
   coord_flip()
+
+# See how these models explain for the 90/80/70 gaps.
 @
 
 <<next_steps>>=
