@@ -57,7 +57,6 @@ opts_chunk$set(echo = FALSE,
 
 <<default_conf>>=
   library(matrixStats)
-  library(tidyverse)
   library(knitr)
   library(arm)
   library(saves)
@@ -78,6 +77,8 @@ opts_chunk$set(echo = FALSE,
   library(ggrepel)
   library(xtable)
   library(ggthemes)
+  library(tidyverse)
+
   
   # source("./transform_data.R")
 
@@ -1889,7 +1890,6 @@ ready_data <-
   difference_data %>%
   left_join(tracking_data, by = c("country" = "cntry_name")) %>%
   left_join(central_examination) %>%
-  left_join(school_data_ready) %>%
   mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
          age_selection = selage) %>%
   filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
@@ -1897,7 +1897,10 @@ ready_data <-
 ready_data_age <- mutate(ready_data, age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
 
 library(brms)
+# It under predicts the y value rather than over predict
+# It has problems predicting the central tendency of the model
 # This linear model explains the pooled 90/10 differences
+
 mod_tracking <-
   brms::brm(
     difference ~
@@ -1909,8 +1912,6 @@ mod_tracking <-
   )
 
 mod_tracking
-bayes_R2(mod_tracking)
-marginal_effects(mod_tracking)
 
 pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
 pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
@@ -1921,35 +1922,34 @@ pp_check(mod_tracking, type = "ecdf_overlay")
 pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
 pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
 
-# Check whether the previous model can be generalized to a multilevel
-# and see how much it can explain between country var
-mod_tracking <-
-  brms::brm(
-    difference ~
-      ztrack +
-      zvoc +
-      ztrack:zvoc + (1 | country),
-  family = gaussian(),
+bayes_R2(mod_tracking)
+marginal_effects(mod_tracking,
+                 effects = "ztrack:zvoc",
+                 int_conditions = list(zvoc = quantile))
+
+# I don't know how to estimate VIF's with bayesian reasoning
+model_formula <- difference ~ num_tracks + age_selection + zvoc + I(length > 0)
+mod_tracking_ext <-
+  brms::brm(model_formula, family = gaussian(),
   data = ready_data_age,
-  prior = c(set_prior("normal(0, 1)", coef = "ztrack"),
-            set_prior("normal(0, 1)", coef = "zvoc")),
-  warmup = 1000, iter = 2000, chains = 4
+  warmup = 1000, iter = 2000, chains = 5
   )
 
-# It under predicts the y value rather than over predict
-# It has problems predicting the central tendency of the model
+bayes_R2(mod_tracking_ext)
 
-
-# The code bloew needs to be adapted to the model from above (
-# this is from previous models)
+# This is the closest I could get to getting vif's:
+lm(model_formula, data = ready_data_age) %>%
+  vif()
 
 new_data <-
   ready_data_age %>%
-  filter(country %in% countries) %>%
-  expand(country, age_selection, num_tracks) %>%
-  filter(complete.cases(.))
+  with(crossing(country = countries,
+                num_tracks = unique(num_tracks),
+                age_selection = unique(age_selection),
+                zvoc = mean(zvoc, na.rm = TRUE),
+                length = typical(length > 0)))
 
-predictions <- posterior_predict(mod_tracking, newdata = new_data)
+predictions <- posterior_predict(mod_tracking_ext, newdata = new_data)
 sd_obs <- colSds(predictions)
 
 new_data <-
@@ -1970,7 +1970,6 @@ sum_ready_data <-
 
 new_data %>%
   left_join(sum_ready_data) %>%
-  filter(country %in% countries) %>%
   ggplot(aes(num_tracks %>% as.factor, avg_diff, fill = num_tracks)) +
   geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
   geom_point(colour = "red") +
@@ -1979,28 +1978,6 @@ new_data %>%
   geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
   facet_wrap(country ~ age_selection) +
   scale_fill_wsj()
-
-y_rep <- posterior_predict(mod_tracking)
-
-replication <-
-  map(1:2000, ~ {
-  ready_data %>%
-  mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
-  summarize(perc_sample = mean(pred_sample > difference),
-            minus_sample = mean(pred_sample - difference))
-})
-
-replication %>%
-  enframe() %>%
-  unnest() %>%
-  qplot(perc_sample, geom = "histogram", data = .)
-
-replication %>%
-  enframe() %>%
-  unnest() %>%
-  summarize(mean(perc_sample < 0.5))
-
-pp_check(mod_tracking, type = "error_binned", nsamples = 1000)
 @
 
 <<>>=
@@ -2030,7 +2007,7 @@ mod_tracking <-
   ready_data_two %>%
   filter(!is.na(age_selection)) %>%
   brm(
-    cum_diff ~ ztrack + zvoc,
+    cum_diff ~ I(age_selection >= 15),
     family = gaussian(),
     data = .,
     warmup = 1000, iter = 2000, chains = 5
@@ -2073,20 +2050,32 @@ y_pred_data %>% {quantile(.$perc_sample)}
 y_pred_data %>%
   summarize(mean_perc = mean(perc_sample < 0.5))
 
-bayes_R2(mod_tracking)
-
 # Too few data points to predict integers, the distribution is full of empty spaces
 # The predictions are too wide! Only 41% of the predictions are between 0.45 and 0.55
 # accuracy. There's more underprediction than over prediction
 
-ready_data_two %>%
+m_data <-
+  ready_data_two %>%
   filter(!is.na(age_selection)) %>%
-  mutate(pred_median = posterior_predict(mod_tracking) %>% colMedians()) %>%
-  select(country, cum_diff, pred_median) %>%
-  gather(cat, value, -country) %>%
-  ggplot(aes(country, value, fill = cat)) +
-  geom_col(position = "dodge") +
+  mutate(pred_median = posterior_predict(mod_tracking) %>% colMeans(),
+         ratio_pred = pred_median/cum_diff) %>%
+  select(country, ratio_pred, cum_diff, pred_median)
+
+m_data %>%
+  ggplot(aes(ratio_pred)) +
+  geom_histogram(bins = 50)
+
+m_data %>%
+  filter(ratio_pred < 1) %>%
+  ggplot(aes(reorder(country, -ratio_pred), 1 - ratio_pred)) +
+  geom_col() +
+  scale_y_continuous(breaks = seq(0, 0.30, 0.05), limits = c(0, 0.3)) +
   coord_flip()
+
+# Greece, France would have a decrease of about 20-25% of their cumulative
+# inequality when adjusting for the age of selection.
+
+# There is both under and over prediction but the over predictions are very extreme
 
 # See how these models explain for the 90/80/70 gaps.
 @
