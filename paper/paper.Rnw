@@ -1833,13 +1833,6 @@ tracking_data <-
   map_if(is_double, round, 2) %>%
   as_tibble
 
-difference_data <-
-  complete_gaps %>%
-  filter(type_test == "math", type == "90th/10th SES gap") %>%
-  select(wave, country, difference) %>%
-  rename(year = wave) %>%
-  mutate(year = as.character(year))
-
 library(inequalityintsvy)
 
 central_examination <-
@@ -1886,15 +1879,70 @@ central_examination <-
 # The tracking variables explain very nicely the difference in test scores
 # for all countries pooled, up to 50% R squared.
 
-ready_data <-
-  difference_data %>%
-  left_join(tracking_data, by = c("country" = "cntry_name")) %>%
-  left_join(central_examination) %>%
-  mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
-         age_selection = selage) %>%
-  filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
 
-ready_data_age <- mutate(ready_data, age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
+dif_data <- function(my_data, tracking, central, which_gap = "90th/10th SES gap") {
+  my_data %>%
+    filter(type_test == "math", type == which_gap) %>%
+    select(wave, country, difference) %>%
+    rename(year = wave) %>%
+    mutate(year = as.character(year)) %>%
+    left_join(tracking_data, by = c("country" = "cntry_name")) %>%
+    left_join(central_examination) %>%
+    mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
+           age_selection = selage) %>%
+    filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
+
+}
+
+ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
+
+ready_data_age <-
+  dif_data(complete_gaps, tracking_data, central_examination) %>%
+  mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
+
+gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
+
+all_gaps_models <-
+  map(gaps, function(gap) {
+    ready_data_age <-
+      dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap) %>%
+      mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
+    
+    mod_tracking <-
+      brms::brm(
+        difference ~
+          ztrack +
+          zvoc +
+          ztrack:zvoc, family = gaussian(),
+      data = ready_data_age,
+      warmup = 1000, iter = 2000, chains = 5
+      )
+    
+    mod_tracking
+})
+
+model_data_merged <-
+  map(all_gaps_models, ~ fixef(.x)[, c(1, 3, 4)] %>% as_tibble) %>%
+  setNames(gaps) %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate_if(is_double, round, 2) %>%
+  transmute(model = name,
+           terms = all_gaps_models[[1]] %>% fixef %>% row.names %>% rep(3),
+           estimate = Estimate,
+           lower = `2.5%ile`,
+           upper = `97.5%ile`)
+
+model_data_merged %>%
+  ggplot(aes(terms, estimate, colour = model)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  scale_colour_discrete(name = NULL) +
+  scale_y_continuous(limits = c(-0.5, 2)) +
+  ggtitle("Coef from linear model of inequality on degree of tracking and vocational tracking") +
+  coord_flip()
+
 
 library(brms)
 # It under predicts the y value rather than over predict
@@ -1911,7 +1959,12 @@ mod_tracking <-
   warmup = 1000, iter = 2000, chains = 5
   )
 
-mod_tracking
+bayes_R2(mod_tracking)
+
+plot_interaction <-
+  marginal_effects(mod_tracking,
+                 effects = "ztrack:zvoc",
+                 int_conditions = list(zvoc = quantile))
 
 pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
 pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
@@ -1922,10 +1975,6 @@ pp_check(mod_tracking, type = "ecdf_overlay")
 pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
 pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
 
-bayes_R2(mod_tracking)
-marginal_effects(mod_tracking,
-                 effects = "ztrack:zvoc",
-                 int_conditions = list(zvoc = quantile))
 
 # I don't know how to estimate VIF's with bayesian reasoning
 model_formula <- difference ~ num_tracks + age_selection + zvoc + I(length > 0)
@@ -2019,7 +2068,6 @@ pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
 pp_check(mod_tracking, type = "ecdf_overlay", nsamples = 10)
 pp_check(mod_tracking, type = "boxplot", nsamples = 30)
 pp_check(mod_tracking, type = "stat", nsamples = 200) # very nice to compare central tendency
-
 pp_check(mod_tracking, type = "error_scatter_avg", nsamples = 1000)
 
 pp_check(mod_tracking, type = "loo_pit")
@@ -2028,27 +2076,27 @@ pp_check(mod_tracking, type = "loo_pit")
 # more under-prediction than over prediction
 
 # update all of this for the previous model!
-y_rep <- posterior_predict(mod_tracking)
-
-replication <-
-  map(1:2000, ~ {
-  ready_data_two %>%
-  mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
-  summarize(perc_sample = mean(pred_sample > cum_diff),
-            minus_sample = mean(pred_sample - cum_diff))
-})
-
-y_pred_data <-
-  replication %>%
-  enframe() %>%
-  unnest()
-
-y_pred_data %>% qplot(perc_sample, data = ., geom = "histogram", bins = 50)
-
-y_pred_data %>% {quantile(.$perc_sample)}
-
-y_pred_data %>%
-  summarize(mean_perc = mean(perc_sample < 0.5))
+# y_rep <- posterior_predict(mod_tracking)
+# 
+# replication <-
+#   map(1:2000, ~ {
+#   ready_data_two %>%
+#   mutate(pred_sample = y_rep[sample(1:4000, 1), , drop = TRUE]) %>%
+#   summarize(perc_sample = mean(pred_sample > cum_diff),
+#             minus_sample = mean(pred_sample - cum_diff))
+# })
+# 
+# y_pred_data <-
+#   replication %>%
+#   enframe() %>%
+#   unnest()
+# 
+# y_pred_data %>% qplot(perc_sample, data = ., geom = "histogram", bins = 50)
+# 
+# y_pred_data %>% {quantile(.$perc_sample)}
+# 
+# y_pred_data %>%
+#   summarize(mean_perc = mean(perc_sample < 0.5))
 
 # Too few data points to predict integers, the distribution is full of empty spaces
 # The predictions are too wide! Only 41% of the predictions are between 0.45 and 0.55
@@ -2066,10 +2114,9 @@ m_data %>%
   geom_histogram(bins = 50)
 
 m_data %>%
-  filter(ratio_pred < 1) %>%
   ggplot(aes(reorder(country, -ratio_pred), 1 - ratio_pred)) +
   geom_col() +
-  scale_y_continuous(breaks = seq(0, 0.30, 0.05), limits = c(0, 0.3)) +
+  scale_y_continuous(breaks = seq(-0.3, 0.3, 0.5), limits = c(-0.3, 0.3)) +
   coord_flip()
 
 # Greece, France would have a decrease of about 20-25% of their cumulative
