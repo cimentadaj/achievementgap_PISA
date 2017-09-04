@@ -1780,7 +1780,7 @@ perc_increase_fun(complete_data_topbottom_70) %>%
 \end{center}
 \end{figure}
 
-<<eval = F>>=
+<<first_model_table>>=
 
 # 2000
 # SC03Q01 School public/private
@@ -1827,58 +1827,54 @@ perc_increase_fun(complete_data_topbottom_70) %>%
 # 8 Invalid
 # 9 Missing
 library(readxl)
+library(inequalityintsvy)
+library(brms)
 
 tracking_data <-
   read_xlsx("./paper/data/tracking.xlsx", sheet = "all_data") %>%
   map_if(is_double, round, 2) %>%
   as_tibble
 
-library(inequalityintsvy)
-
-central_examination <-
-  tribble(
-  ~ country, ~central_examination,
-  "Australia", 1, 
-  "Austria", 0, 
-  "Belgium", 0,
-  "Bulgaria", 1,
-  "Canada", rbinom(1, 1, prob = 0.51),
-  "Czech Republic", 1,
-  "Denmark", 1,
-  "Finland", 1,
-  "France", 1,
-  "Germany", 0,
-  "United Kingdom", 1,
-  "Greece", 0,
-  "Hong Kong", 1,
-  "Hungary", 1,
-  "Iceland", 1,
-  "Ireland", 1,
-  "Israel", 1,
-  "Italy", 1,
-  "Japan", 1,
-  "Korea", 1,
-  "Latvia", 1,
-  "Liechtenstein", 1,
-  "Luxembourg", 1,
-  "Netherlands", 1,
-  "New Zealand", 1,
-  "Norway", 1,
-  "Poland", 1,
-  "Portugal", 0,
-  "Russia", 1,
-  "Slovakia", 1,
-  "Slovenia", 1,
-  "Spain", 0,
-  "Sweden", 0,
-  "Switzerland", 0,
-  "Turkey", 1,
-  "United States", 1
-  )
-
-# The tracking variables explain very nicely the difference in test scores
-# for all countries pooled, up to 50% R squared.
-
+# central_examination <-
+#   tribble(
+#   ~ country, ~central_examination,
+#   "Australia", 1, 
+#   "Austria", 0, 
+#   "Belgium", 0,
+#   "Bulgaria", 1,
+#   "Canada", rbinom(1, 1, prob = 0.51),
+#   "Czech Republic", 1,
+#   "Denmark", 1,
+#   "Finland", 1,
+#   "France", 1,
+#   "Germany", 0,
+#   "United Kingdom", 1,
+#   "Greece", 0,
+#   "Hong Kong", 1,
+#   "Hungary", 1,
+#   "Iceland", 1,
+#   "Ireland", 1,
+#   "Israel", 1,
+#   "Italy", 1,
+#   "Japan", 1,
+#   "Korea", 1,
+#   "Latvia", 1,
+#   "Liechtenstein", 1,
+#   "Luxembourg", 1,
+#   "Netherlands", 1,
+#   "New Zealand", 1,
+#   "Norway", 1,
+#   "Poland", 1,
+#   "Portugal", 0,
+#   "Russia", 1,
+#   "Slovakia", 1,
+#   "Slovenia", 1,
+#   "Spain", 0,
+#   "Sweden", 0,
+#   "Switzerland", 0,
+#   "Turkey", 1,
+#   "United States", 1
+#   )
 
 dif_data <- function(my_data, tracking, central, which_gap = "90th/10th SES gap") {
   my_data %>%
@@ -1894,14 +1890,177 @@ dif_data <- function(my_data, tracking, central, which_gap = "90th/10th SES gap"
 
 }
 
-ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
-
 ready_data_age <-
   dif_data(complete_gaps, tracking_data, central_examination) %>%
   mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
 
-gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
+ivs <- c("num_tracks", "age_selection", "I(length > 0)", "zvoc")
 
+formula_seq <-
+  lapply(1:length(ivs), function(x) {
+    paste0("difference ~ ", paste0(ivs[1:x], collapse = " + ") %>% paste0(" + (1|year)"))
+  }) %>%
+  lapply(as.formula)
+
+all_track_models <- 
+  map(formula_seq, ~ {
+  
+  mod_tracking <-
+  brms::brm(
+    .x, family = gaussian(),
+    data = ready_data_age,
+    warmup = 1000, iter = 2000, chains = 5,
+    control = list(adapt_delta = 0.90)
+  )
+  
+  mod_tracking
+
+})
+
+tidy_dfs <-
+  map(all_track_models, ~ {
+
+  broom::tidy(.x) %>%
+    .[grepl("^b_", .$term), ] %>%
+    map_if(is_double, round, 2) %>%
+    as_tibble %>%
+    transmute(term,
+              estimate = paste0(estimate, " (", lower, "/", upper, ")"))
+  })
+
+tidy_dfs_two <-
+  reduce(tidy_dfs, full_join, by = "term") %>%
+  setNames(c(" ", paste("Model", 1:4))) %>%
+  mutate(" " = c(
+    "Intercept",
+    "Num of tracks = 1",
+    "Age at track >= 15",
+    "% curriculum tracked",
+    "Vocational Index"
+  )) %>%
+  .[c(2:5, 1), ]
+  
+
+r_square <-
+  paste0("\\hline ", paste0("R square: & ",
+         paste0(map(all_track_models, ~ bayes_R2(.x)[1] %>% round(2) * 100) %>% paste0("\\%"),
+                       collapse = " & ")), " \\\\")
+n_obs <-
+  paste0(paste0(" Sample size: & ",
+         paste0(map(all_track_models, nobs), collapse = " & ")), " \\\\ \\hline")
+
+command_to_row <- paste0(r_square, n_obs)
+
+addtorow_two <- list(pos = list(pos = 5), command = command_to_row)
+
+xtable(tidy_dfs_two) %>% print.xtable(
+  include.rownames = FALSE,
+  add.to.row = addtorow_two
+  )
+@
+
+<<>>=
+# This is the closest I could get to getting vif's fro the last model:
+
+lm(difference ~ num_tracks + age_selection + I(length > 0) + zvoc,
+   data = ready_data_age) %>%
+  vif()
+
+mod_tracking_ext <-
+  brms::brm(formula_seq[[4]],
+            family = gaussian(),
+            data = ready_data_age,
+            warmup = 1000, iter = 2000, chains = 5,
+            control = list(adapt_delta = 0.90)
+  )
+
+new_data <-
+  ready_data_age %>%
+  with(crossing(country = countries,
+                num_tracks = unique(num_tracks),
+                age_selection = unique(age_selection),
+                zvoc = mean(zvoc, na.rm = TRUE),
+                length = typical(length > 0),
+                year = "2009"))
+
+predictions <- posterior_predict(mod_tracking_ext, newdata = new_data)
+sd_obs <- colSds(predictions)
+
+new_data <-
+  new_data %>%
+  mutate(
+    pred = colMeans(predictions),
+    pred_low = pred - (2 * sd_obs),
+    pred_high = pred + (2 * sd_obs)
+  )
+
+sum_ready_data <-
+  ready_data_age %>%
+  group_by(country, num_tracks, age_selection) %>%
+  summarize(avg_diff = mean(difference),
+            diff_low = avg_diff - 2 * sd(difference),
+            diff_high = avg_diff + 2 * sd(difference)) %>%
+  ungroup()
+
+new_data %>%
+  left_join(sum_ready_data) %>%
+  mutate(age_selection = ifelse(age_selection == 1, ">= 15", "< 15")) %>%
+  ggplot(aes(num_tracks, avg_diff, fill = num_tracks)) +
+  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
+  geom_point(colour = "red") +
+  geom_col(aes(y = pred, alpha = 0.4)) +
+  geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
+  facet_wrap(country ~ age_selection) +
+  scale_y_continuous(name = "90/10 SD gap", limits = c(0, 4)) +
+  scale_alpha(guide = F) +
+  scale_x_discrete(name = "Number of tracks", labels = c("> 1 track", "1 track")) +
+  scale_fill_manual(values = c("orangered2", "blue3"), guide = F) +
+  ggtitle("Predicted 90/10 gap for different combinations of number of tracks and age of selection")
+@
+
+<<>>=
+pred_avg_diff<-
+  new_data %>%
+  left_join(sum_ready_data) %>%
+  filter(!is.na(avg_diff) | num_tracks == 1 & age_selection == 1) %>%
+  select(country, num_tracks, age_selection, pred, avg_diff)
+
+track_should_change <- pred_avg_diff$country[pred_avg_diff$country %>% duplicated]
+
+avg_diff_data <-
+  pred_avg_diff %>%
+  filter(country %in% track_should_change) %>%
+  transmute(country,
+            avg_diff = ifelse(avg_diff %>% is.na, pred, avg_diff),
+            combn = paste0(num_tracks, "_", age_selection)) %>%
+  filter(combn != "1_1")
+
+final_avg_diff_table <-
+  avg_diff_data %>%
+  left_join(pred_avg_diff %>%
+              filter(country %in% track_should_change & (num_tracks == 1 & age_selection == 1)) %>%
+              select(country, pred), by = "country") %>%
+  select(country, combn, avg_diff, pred) %>%
+  separate(combn, c("num_tracks", "age_selection"), sep = "_") %>%
+  transmute(
+    Country = country,
+    `Number of tracks` = ifelse(num_tracks == 0, "More than one track", "One track"),
+    `Age of selection` = ifelse(age_selection == 1, "15 or more", "Less than 15"),
+    `Actual inequality` = avg_diff %>% round(3),
+    `Predicted inequality` = pred %>% round(3),
+    `% reduction` = (((`Actual inequality` - `Predicted inequality`)/ `Actual inequality`) * 100) %>%
+      ceiling %>% paste0("%")
+    )
+  
+xtable(final_avg_diff_table) %>% print.xtable(
+  include.rownames = FALSE
+  )
+
+@
+
+<<>>=
+
+gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 all_gaps_models <-
   map(gaps, function(gap) {
     ready_data_age <-
@@ -1913,9 +2072,11 @@ all_gaps_models <-
         difference ~
           ztrack +
           zvoc +
-          ztrack:zvoc, family = gaussian(),
+          ztrack:zvoc +
+          (1|year), family = gaussian(),
       data = ready_data_age,
-      warmup = 1000, iter = 2000, chains = 5
+      warmup = 1000, iter = 2000, chains = 5,
+      control = list(adapt_delta = 0.95)
       )
     
     mod_tracking
@@ -1940,14 +2101,19 @@ model_data_merged %>%
   geom_hline(yintercept = 0) +
   scale_colour_discrete(name = NULL) +
   scale_y_continuous(limits = c(-0.5, 2)) +
-  ggtitle("Coef from linear model of inequality on degree of tracking and vocational tracking") +
+  scale_x_discrete(labels = c("Intercept",
+                              "Tracking Index",
+                              "Vocational * Tracking Index",
+                              "Vocational Index")) +
+  labs(y = "Estimate from linear model", x = "Predictors") +
+  ggtitle("Estimation of tracking/vocational models for different gaps") +
   coord_flip()
 
-
-library(brms)
 # It under predicts the y value rather than over predict
 # It has problems predicting the central tendency of the model
 # This linear model explains the pooled 90/10 differences
+
+ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
 
 mod_tracking <-
   brms::brm(
@@ -1966,67 +2132,24 @@ plot_interaction <-
                  effects = "ztrack:zvoc",
                  int_conditions = list(zvoc = quantile))
 
-pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
-pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
-pp_check(mod_tracking, type = "boxplot", nsamples = 20)
-pp_check(mod_tracking, type = "error_hist", nsamples = 6)
-pp_check(mod_tracking, type = "ecdf_overlay")
+plot(plot_interaction, plot = FALSE)[[1]] +
+  labs(x = "Tracking Index (SD)", y = "Difference in test scores (SD)") +
+  scale_colour_discrete(
+    name = "Vocational index \n quantiles",
+    labels = seq(100, 0, -25) %>% paste0("%")
+    ) +
+  scale_fill_discrete(guide = FALSE) +
+  ggtitle("Interaction between Tracking and Vocational index")
 
-pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
-pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
+# pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+# pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
+# pp_check(mod_tracking, type = "boxplot", nsamples = 20)
+# pp_check(mod_tracking, type = "error_hist", nsamples = 6)
+# pp_check(mod_tracking, type = "ecdf_overlay")
+# 
+# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
+# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
 
-
-# I don't know how to estimate VIF's with bayesian reasoning
-model_formula <- difference ~ num_tracks + age_selection + zvoc + I(length > 0)
-mod_tracking_ext <-
-  brms::brm(model_formula, family = gaussian(),
-  data = ready_data_age,
-  warmup = 1000, iter = 2000, chains = 5
-  )
-
-bayes_R2(mod_tracking_ext)
-
-# This is the closest I could get to getting vif's:
-lm(model_formula, data = ready_data_age) %>%
-  vif()
-
-new_data <-
-  ready_data_age %>%
-  with(crossing(country = countries,
-                num_tracks = unique(num_tracks),
-                age_selection = unique(age_selection),
-                zvoc = mean(zvoc, na.rm = TRUE),
-                length = typical(length > 0)))
-
-predictions <- posterior_predict(mod_tracking_ext, newdata = new_data)
-sd_obs <- colSds(predictions)
-
-new_data <-
-  new_data %>%
-  mutate(
-    pred = colMeans(predictions),
-    pred_low = pred - (2 * sd_obs),
-    pred_high = pred + (2 * sd_obs)
-  )
-
-sum_ready_data <-
-  ready_data_age %>%
-  group_by(country, num_tracks, age_selection) %>%
-  summarize(avg_diff = mean(difference),
-            diff_low = avg_diff - 2 * sd(difference),
-            diff_high = avg_diff + 2 * sd(difference)) %>%
-  ungroup()
-
-new_data %>%
-  left_join(sum_ready_data) %>%
-  ggplot(aes(num_tracks %>% as.factor, avg_diff, fill = num_tracks)) +
-  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
-  geom_point(colour = "red") +
-  scale_y_continuous(limits = c(0, 4)) +
-  geom_col(aes(y = pred, alpha = 0.4)) +
-  geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
-  facet_wrap(country ~ age_selection) +
-  scale_fill_wsj()
 @
 
 <<>>=
@@ -2119,7 +2242,7 @@ m_data %>%
   scale_y_continuous(breaks = seq(-0.3, 0.3, 0.5), limits = c(-0.3, 0.3)) +
   coord_flip()
 
-# Greece, France would have a decrease of about 20-25% of their cumulative
+ # Greece, France would have a decrease of about 20-25% of their cumulative
 # inequality when adjusting for the age of selection.
 
 # There is both under and over prediction but the over predictions are very extreme
