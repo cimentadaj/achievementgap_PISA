@@ -2046,20 +2046,58 @@ final_avg_diff_table <-
     Country = country,
     `Number of tracks` = ifelse(num_tracks == 0, "More than one track", "One track"),
     `Age of selection` = ifelse(age_selection == 1, "15 or more", "Less than 15"),
-    `Actual inequality` = avg_diff %>% round(3),
-    `Predicted inequality` = pred %>% round(3),
-    `% reduction` = (((`Actual inequality` - `Predicted inequality`)/ `Actual inequality`) * 100) %>%
+    `Inequality` = avg_diff %>% round(3),
+    `Predicted` = pred %>% round(3),
+    `% reduction` = (((`Inequality` - `Predicted`)/ `Inequality`) * 100) %>%
       ceiling %>% paste0("%")
     )
-  
+
 xtable(final_avg_diff_table) %>% print.xtable(
   include.rownames = FALSE
   )
 
 @
 
-<<>>=
+<<interaction_model>>=
+ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
 
+mod_tracking <-
+  brms::brm(
+    difference ~
+      ztrack +
+      zvoc +
+      ztrack:zvoc, family = gaussian(),
+  data = ready_data_age,
+  warmup = 1000, iter = 2000, chains = 5
+  )
+
+bayes_R2(mod_tracking)
+
+plot_interaction <-
+  marginal_effects(mod_tracking,
+                 effects = "ztrack:zvoc",
+                 int_conditions = list(zvoc = quantile))
+
+plot(plot_interaction, plot = FALSE)[[1]] +
+  labs(x = "Tracking Index (SD)", y = "Difference in test scores (SD)") +
+  scale_colour_discrete(
+    name = "Vocational index \n quantiles",
+    labels = seq(100, 0, -25) %>% paste0("%")
+    ) +
+  scale_fill_discrete(guide = FALSE) +
+  ggtitle("Interaction between Tracking and Vocational index")
+
+# pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+# pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
+# pp_check(mod_tracking, type = "boxplot", nsamples = 20)
+# pp_check(mod_tracking, type = "error_hist", nsamples = 6)
+# pp_check(mod_tracking, type = "ecdf_overlay")
+# 
+# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
+# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
+@
+
+<<all_gaps_plot>>=
 gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 all_gaps_models <-
   map(gaps, function(gap) {
@@ -2112,47 +2150,9 @@ model_data_merged %>%
 # It under predicts the y value rather than over predict
 # It has problems predicting the central tendency of the model
 # This linear model explains the pooled 90/10 differences
-
-ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
-
-mod_tracking <-
-  brms::brm(
-    difference ~
-      ztrack +
-      zvoc +
-      ztrack:zvoc, family = gaussian(),
-  data = ready_data_age,
-  warmup = 1000, iter = 2000, chains = 5
-  )
-
-bayes_R2(mod_tracking)
-
-plot_interaction <-
-  marginal_effects(mod_tracking,
-                 effects = "ztrack:zvoc",
-                 int_conditions = list(zvoc = quantile))
-
-plot(plot_interaction, plot = FALSE)[[1]] +
-  labs(x = "Tracking Index (SD)", y = "Difference in test scores (SD)") +
-  scale_colour_discrete(
-    name = "Vocational index \n quantiles",
-    labels = seq(100, 0, -25) %>% paste0("%")
-    ) +
-  scale_fill_discrete(guide = FALSE) +
-  ggtitle("Interaction between Tracking and Vocational index")
-
-# pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
-# pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
-# pp_check(mod_tracking, type = "boxplot", nsamples = 20)
-# pp_check(mod_tracking, type = "error_hist", nsamples = 6)
-# pp_check(mod_tracking, type = "ecdf_overlay")
-# 
-# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
-# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
-
 @
 
-<<>>=
+<<cumulative_modeling_table>>=
 
 # One idea I had was to make a cumulative sum of the trend,
 # so the cumulative inequality over time for each country
@@ -2164,36 +2164,83 @@ plot(plot_interaction, plot = FALSE)[[1]] +
 vars_unique <- c("length", "num_tracks", "age_selection", "central_examination", "ztrack",
                  "zvoc")
 
-ready_data_two <-
-  ready_data %>%
-  group_by(country) %>%
-  summarize_at(vars(vars_unique), unique) %>%
-  mutate(cum_diff = ready_data %>% group_by(country) %>% summarize(m = sum(difference)) %>% pull(m))
+all_gaps_models_cum <-
+  map(gaps, function(gap) {
+    
+    gap_data <- dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap)
+    
+    ready_data_age <-
+      gap_data %>%
+      mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor) %>%
+      group_by(country) %>%
+      summarize_at(vars(vars_unique), unique) %>%
+      mutate(cum_diff =
+               gap_data %>%
+               group_by(country) %>%
+               summarize(m = sum(difference)) %>%
+               pull(m))
+    
+    mod_tracking <-
+      ready_data_age %>%
+      filter(!is.na(age_selection)) %>%
+      brm(
+        cum_diff ~ ztrack + zvoc,
+        family = gaussian(),
+        data = .,
+        warmup = 1000, iter = 2000, chains = 5
+      )
 
-mod_tracking <-
-  ready_data_two %>%
-  lm(cum_diff ~ ztrack + zvoc, data = .) %>%
-  arm::display(detail = T)
+    mod_tracking
+})
 
-mod_tracking <-
-  ready_data_two %>%
-  filter(!is.na(age_selection)) %>%
-  brm(
-    cum_diff ~ I(age_selection >= 15),
-    family = gaussian(),
-    data = .,
-    warmup = 1000, iter = 2000, chains = 5
+tidy_dfs <-
+  map(all_gaps_models_cum, ~ {
+
+  broom::tidy(.x) %>%
+    .[grepl("^b_", .$term), ] %>%
+    mutate_if(is_double, round, 2) %>%
+    transmute(term,
+              estimate = paste0(estimate, " (", lower, "/", upper, ")"))
+  })
+
+tidy_dfs_two <-
+  reduce(tidy_dfs, full_join, by = "term") %>%
+  setNames(c(" ", gsub(" SES gap", "", gaps))) %>%
+  mutate(" " = c(
+    "Intercept",
+    "Track Index",
+    "Vocational Index"
+  )) %>%
+  .[c(2, 3, 1), ]
+  
+
+r_square <-
+  paste0("\\hline ", paste0("R square: & ",
+         paste0(map(all_gaps_models_cum, ~ bayes_R2(.x)[1] %>% round(2) * 100) %>% paste0("\\%"),
+                       collapse = " & ")), " \\\\")
+n_obs <-
+  paste0(paste0(" Sample size: & ",
+         paste0(map(all_gaps_models_cum, nobs), collapse = " & ")), " \\\\ \\hline")
+
+command_to_row <- paste0(r_square, n_obs)
+
+addtorow_two <- list(pos = list(pos = 3), command = command_to_row)
+
+xtable(tidy_dfs_two) %>%
+  print.xtable(
+    include.rownames = FALSE,
+    add.to.row = addtorow_two
   )
+@
 
-bayes_R2(mod_tracking)
-
-pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
-pp_check(mod_tracking, type = "ecdf_overlay", nsamples = 10)
-pp_check(mod_tracking, type = "boxplot", nsamples = 30)
-pp_check(mod_tracking, type = "stat", nsamples = 200) # very nice to compare central tendency
-pp_check(mod_tracking, type = "error_scatter_avg", nsamples = 1000)
-
-pp_check(mod_tracking, type = "loo_pit")
+<<>>=
+# pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+# pp_check(mod_tracking, type = "ecdf_overlay", nsamples = 10)
+# pp_check(mod_tracking, type = "boxplot", nsamples = 30)
+# pp_check(mod_tracking, type = "stat", nsamples = 200) # very nice to compare central tendency
+# pp_check(mod_tracking, type = "error_scatter_avg", nsamples = 1000)
+# 
+# pp_check(mod_tracking, type = "loo_pit")
 # over prediction
 # central tendency is not captured very well
 # more under-prediction than over prediction
@@ -2227,8 +2274,8 @@ pp_check(mod_tracking, type = "loo_pit")
 
 m_data <-
   ready_data_two %>%
-  filter(!is.na(age_selection)) %>%
-  mutate(pred_median = posterior_predict(mod_tracking) %>% colMeans(),
+  filter(!is.na(ztrack), !is.na(zvoc)) %>%
+  mutate(pred_median = posterior_predict(all_gaps_models_cum[[1]]) %>% colMeans(),
          ratio_pred = pred_median/cum_diff) %>%
   select(country, ratio_pred, cum_diff, pred_median)
 
