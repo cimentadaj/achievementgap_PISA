@@ -1611,6 +1611,8 @@ Looking at figure 9, we see a strong correspondence between the two variables. I
 
 Finally, the last notable pattern is that in some countries the average performance is so high that it actually overperforms the achievement gap. Only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality, which coincidentially, are countries that have the lower level of inequalities among the ones presented here.
 
+\section{The role of curricular tracking in explaining inequalities}
+
 % 90/80/70 gaps merged
 
 <<estimating_othergaps>>=
@@ -1711,512 +1713,567 @@ complete_gaps <-
 
 % end here
 
-% <<>>=
-% # 2000
-% # SC03Q01 School public/private
-% # 1 Public
-% # 2 Private
-% # 7 N/A
-% # 8 M/R
-% # 9 Mis
-% 
-% # 2003
-% # SC03Q01 (8) Public or private
-% # 1 Public
-% # 2 Private
-% # 7 N/A
-% # 8 Invalid
-% # 9 Miss
-% 
-% # 2006
-% # SC02Q01 (8) Public or private
-% #  1 Public
-% #  2 Private
-% #  7 N/A
-% #  8 Invalid
-% #  9 Missing 
-% 
-% # 2009
-% # SC02Q01
-% # 1 public
-% # 2 private
-% 
-% # 2012
-% # SC01Q01 Public or private Num
-% # 1 Public
-% # 2 Private
-% # 7 N/A
-% # 8 Invalid
-% # 9 Missing
-% 
-% # 2015
-% # SC013Q01TA
-% # 1 Public
-% # 2 Private
-% # 7 N/A
-% # 8 Invalid
-% # 9 Missing
-% 
-% # central_examination <-
-% #   tribble(
-% #   ~ country, ~central_examination,
-% #   "Australia", 1, 
-% #   "Austria", 0, 
-% #   "Belgium", 0,
-% #   "Bulgaria", 1,
-% #   "Canada", rbinom(1, 1, prob = 0.51),
-% #   "Czech Republic", 1,
-% #   "Denmark", 1,
-% #   "Finland", 1,
-% #   "France", 1,
-% #   "Germany", 0,
-% #   "United Kingdom", 1,
-% #   "Greece", 0,
-% #   "Hong Kong", 1,
-% #   "Hungary", 1,
-% #   "Iceland", 1,
-% #   "Ireland", 1,
-% #   "Israel", 1,
-% #   "Italy", 1,
-% #   "Japan", 1,
-% #   "Korea", 1,
-% #   "Latvia", 1,
-% #   "Liechtenstein", 1,
-% #   "Luxembourg", 1,
-% #   "Netherlands", 1,
-% #   "New Zealand", 1,
-% #   "Norway", 1,
-% #   "Poland", 1,
-% #   "Portugal", 0,
-% #   "Russia", 1,
-% #   "Slovakia", 1,
-% #   "Slovenia", 1,
-% #   "Spain", 0,
-% #   "Sweden", 0,
-% #   "Switzerland", 0,
-% #   "Turkey", 1,
-% #   "United States", 1
-% #   )
-% 
-% @
-% 
-% <<complete_tracking_model>>=
-% tracking_data <-
-%   read_xlsx("./data/tracking.xlsx", sheet = "all_data") %>%
-%   map_if(is_double, round, 2) %>%
-%   as_tibble
-% 
-% dif_data <- function(my_data, tracking, central, which_gap = "90th/10th SES gap") {
-%   my_data %>%
-%     filter(type_test == "math", type == which_gap) %>%
-%     select(wave, country, difference) %>%
-%     rename(year = wave) %>%
-%     mutate(year = as.character(year)) %>%
-%     left_join(tracking_data, by = c("country" = "cntry_name")) %>%
-%     left_join(central_examination) %>%
-%     mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
-%            age_selection = selage) %>%
-%     filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
-% 
-% }
-% formula_sequence <- function(dv, ivs, random_effect) {
-%   formula_seq <-
-%     lapply(1:length(ivs), function(x) {
-%       paste0(dv ," ~ ", paste0(ivs[1:x], collapse = " + ") %>% paste0(" + ", random_effect))
-%     }) %>%
-%     lapply(as.formula)
-% 
-%   formula_seq  
-% }
-% stan_model_builder <- function(dv, iv, random, data) {
-%   all_formulas <- formula_sequence(dv, iv, random)
-% 
-%   mod_tracking <-
-%     map(all_formulas, ~ {
-%       brms::brm(
-%         .x,
-%         family = gaussian(),
-%         data = data,
-%         warmup = 1000, iter = 2000, chains = 5
-%       )
-%     })
-%   
-% }
-% stan_extractor <- function(models) {
-%   coef_list <-
-%     map(models, ~ {
-%     broom::tidy(.x) %>%
-%       .[grepl("^b_", .$term), ] %>%
-%       map_if(is_double, round, 2) %>%
-%       as_tibble %>%
-%       transmute(term,
-%                 estimate = paste0(estimate, " (", lower, "/", upper, ")"))
-%   })
-%   
-%   coef_list
-% }
-% stan_table_builder <- function(models_extracted) {
-%   intermediate_table <-
-%     reduce(models_extracted, full_join, by = "term") %>%
-%     setNames(c(" ", paste("Model", seq_len(models_extracted %>% length))))
-%   
-%   row_order <-
-%     setdiff(seq_len(nrow(intermediate_table)),
-%             grep("Intercept", intermediate_table$` `)) %>%
-%     `c`(grep("Intercept", intermediate_table$` `))
-% 
-%     intermediate_table[row_order, ]
-% }
-% stan_table <- function(models) {
-% 
-%   table_ready <-
-%     models %>%
-%     stan_extractor() %>%
-%     stan_table_builder()
-%   
-%   table_ready
-% }
-% 
-% table_details <- function(models) {
-%   
-%   random_effect <- nrow(models[[length(models)]]$ranef) > 0
-%   
-%   where_to_place <- 
-%     models[[length(models)]]$formula$formula %>%
-%     as.character %>%
-%     .[-(1:2)] %>% 
-%     stringr::str_split(" \\+ ") %>%
-%     pluck(1) %>%
-%     .[if (random_effect) -length(.) else 1:length(.)] %>%
-%     length
-%   
-%   r_square <-
-%     paste0("\\hline ",
-%            paste0("R square: & ",
-%                   paste0(map(models, ~ bayes_R2(.x)[1] %>% round(2) * 100) %>% paste0("\\%"),
-%                                      collapse = " & ")), " \\\\")
-%   n_obs <-
-%     paste0(paste0(" Sample size: & ",
-%                   paste0(map(models, nobs), collapse = " & ")), " \\\\ \\hline")
-%   
-%   command_to_row <- paste0(r_square, n_obs)
-%   addtorow_two <- list(pos = list(pos = where_to_place + 1), command = command_to_row)
-%   
-%   addtorow_two
-% }
-% 
-% ready_data_age <-
-%   dif_data(complete_gaps, tracking_data, central_examination) %>%
-%   mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
-% 
-% all_track_models <-
-%   stan_model_builder(
-%   dv = "difference",
-%   iv = c("num_tracks", "age_selection", "I(length > 0)", "zvoc"),
-%   random = "(1 | year)",
-%   data = ready_data_age
-% )
-% 
-% all_track_models %>%
-%   stan_table() %>%
-%   mutate(" " = c(
-%     "Only 1 track",
-%     "Age selection >= 15",
-%     "% of curric tracked",
-%     "Vocational Index",
-%     "Intercept"
-%   )) %>%
-%   xtable() %>%
-%   print.xtable(
-%   include.rownames = FALSE,
-%   add.to.row = table_details(all_track_models)
-%   )
-% @
-% 
-% <<graph_complete_tracking_model>>=
-% # This is the closest I could get to getting vif's fro the last model:
-% 
-% lm(difference ~ num_tracks + age_selection + I(length > 0) + zvoc,
-%    data = ready_data_age) %>%
-%   vif()
-% 
-% mod_tracking_ext <-
-%   brms::brm(formula_seq[[4]],
-%             family = gaussian(),
-%             data = ready_data_age,
-%             warmup = 1000, iter = 2000, chains = 5,
-%             control = list(adapt_delta = 0.90)
-%   )
-% 
-% new_data <-
-%   ready_data_age %>%
-%   with(crossing(country = countries,
-%                 num_tracks = unique(num_tracks),
-%                 age_selection = unique(age_selection),
-%                 zvoc = mean(zvoc, na.rm = TRUE),
-%                 length = typical(length > 0),
-%                 year = "2009"))
-% 
-% predictions <- posterior_predict(mod_tracking_ext, newdata = new_data)
-% sd_obs <- colSds(predictions)
-% 
-% new_data <-
-%   new_data %>%
-%   mutate(
-%     pred = colMeans(predictions),
-%     pred_low = pred - (2 * sd_obs),
-%     pred_high = pred + (2 * sd_obs)
-%   )
-% 
-% sum_ready_data <-
-%   ready_data_age %>%
-%   group_by(country, num_tracks, age_selection) %>%
-%   summarize(avg_diff = mean(difference),
-%             diff_low = avg_diff - 2 * sd(difference),
-%             diff_high = avg_diff + 2 * sd(difference)) %>%
-%   ungroup()
-% 
-% new_data %>%
-%   left_join(sum_ready_data) %>%
-%   mutate(age_selection = ifelse(age_selection == 1, ">= 15", "< 15")) %>%
-%   ggplot(aes(num_tracks, avg_diff, fill = num_tracks)) +
-%   geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
-%   geom_point(colour = "red") +
-%   geom_col(aes(y = pred, alpha = 0.4)) +
-%   geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
-%   facet_wrap(country ~ age_selection) +
-%   scale_y_continuous(name = "90/10 SD gap", limits = c(0, 4)) +
-%   scale_alpha(guide = F) +
-%   scale_x_discrete(name = "Number of tracks", labels = c("> 1 track", "1 track")) +
-%   scale_fill_manual(values = c("orangered2", "blue3"), guide = F) +
-%   ggtitle("Predicted 90/10 gap for different combinations of number of tracks and age of selection")
-% @
-% 
-% <<counterfactual_tracking>>=
-% pred_avg_diff<-
-%   new_data %>%
-%   left_join(sum_ready_data) %>%
-%   filter(!is.na(avg_diff) | num_tracks == 1 & age_selection == 1) %>%
-%   select(country, num_tracks, age_selection, pred, avg_diff)
-% 
-% track_should_change <- pred_avg_diff$country[pred_avg_diff$country %>% duplicated]
-% 
-% avg_diff_data <-
-%   pred_avg_diff %>%
-%   filter(country %in% track_should_change) %>%
-%   transmute(country,
-%             avg_diff = ifelse(avg_diff %>% is.na, pred, avg_diff),
-%             combn = paste0(num_tracks, "_", age_selection)) %>%
-%   filter(combn != "1_1")
-% 
-% final_avg_diff_table <-
-%   avg_diff_data %>%
-%   left_join(pred_avg_diff %>%
-%               filter(country %in% track_should_change & (num_tracks == 1 & age_selection == 1)) %>%
-%               select(country, pred), by = "country") %>%
-%   select(country, combn, avg_diff, pred) %>%
-%   separate(combn, c("num_tracks", "age_selection"), sep = "_") %>%
-%   transmute(
-%     Country = country,
-%     `Number of tracks` = ifelse(num_tracks == 0, "More than one track", "One track"),
-%     `Age of selection` = ifelse(age_selection == 1, "15 or more", "Less than 15"),
-%     `Inequality` = avg_diff %>% round(3),
-%     `Predicted` = pred %>% round(3),
-%     `% reduction` = (((`Inequality` - `Predicted`)/ `Inequality`) * 100) %>%
-%       ceiling %>% paste0("%")
-%     )
-% 
-% xtable(final_avg_diff_table) %>% print.xtable(
-%   include.rownames = FALSE
-%   )
-% 
-% @
-% 
-% <<interaction_model>>=
-% ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
-% 
-% stan_models <-
-%   stan_model_builder(
-%   dv = "difference",
-%   iv = c("ztrack", "zvoc", "ztrack:zvoc"),
-%   random = "(1 | year)",
-%   data = ready_data
-%   )
-% 
-% table_ready <-
-%   stan_models %>%
-%   stan_table() %>%
-%   mutate(" " = c(
-%     "Tracking Index",
-%     "Vocational Index",
-%     "Trackin * Vocational Index",
-%     "Intercept"
-%   )) %>%
-%   xtable() %>%
-%   print.xtable(
-%     include.rownames = FALSE,
-%     add.to.row = table_details(stan_models)
-%   )
-% 
-% plot_interaction <-
-%   marginal_effects(stan_models[[length(stan_models)]],
-%                  effects = "ztrack:zvoc",
-%                  int_conditions = list(zvoc = quantile))
-% 
-% plot(plot_interaction, plot = FALSE)[[1]] +
-%   labs(x = "Tracking Index (SD)", y = "Difference in test scores (SD)") +
-%   scale_colour_discrete(
-%     name = "Vocational index \n quantiles",
-%     labels = seq(100, 0, -25) %>% paste0("%")
-%     ) +
-%   scale_fill_discrete(guide = FALSE) +
-%   ggtitle("Interaction between Tracking and Vocational index")
-% 
-% # pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
-% # pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
-% # pp_check(mod_tracking, type = "boxplot", nsamples = 20)
-% # pp_check(mod_tracking, type = "error_hist", nsamples = 6)
-% # pp_check(mod_tracking, type = "ecdf_overlay")
-% # 
-% # pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
-% # pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
-% @
-% 
-% <<all_gaps_plot>>=
-% gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
-% all_gaps_models <-
-%   map(gaps, function(gap) {
-%     ready_data_age <-
-%       dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap) %>%
-%       mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
-%     
-%     mod_tracking <-
-%       brms::brm(
-%         difference ~
-%           ztrack +
-%           zvoc +
-%           ztrack:zvoc +
-%           (1|year), family = gaussian(),
-%       data = ready_data_age,
-%       warmup = 1000, iter = 2000, chains = 5,
-%       control = list(adapt_delta = 0.95)
-%       )
-%     
-%     mod_tracking
-% })
-% 
-% model_data_merged <-
-%   map(all_gaps_models, ~ fixef(.x)[, c(1, 3, 4)] %>% as_tibble) %>%
-%   setNames(gaps) %>%
-%   enframe() %>%
-%   unnest(value) %>%
-%   mutate_if(is_double, round, 2) %>%
-%   transmute(model = name,
-%            terms = all_gaps_models[[1]] %>% fixef %>% row.names %>% rep(3),
-%            estimate = Estimate,
-%            lower = `2.5%ile`,
-%            upper = `97.5%ile`)
-% 
-% model_data_merged %>%
-%   ggplot(aes(terms, estimate, colour = model)) +
-%   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
-%   geom_point() +
-%   geom_hline(yintercept = 0) +
-%   scale_colour_discrete(name = NULL) +
-%   scale_y_continuous(limits = c(-0.5, 2)) +
-%   scale_x_discrete(labels = c("Intercept",
-%                               "Tracking Index",
-%                               "Vocational * Tracking Index",
-%                               "Vocational Index")) +
-%   labs(y = "Estimate from linear model", x = "Predictors") +
-%   ggtitle("Estimation of tracking/vocational models for different gaps") +
-%   coord_flip()
-% 
-% # It under predicts the y value rather than over predict
-% # It has problems predicting the central tendency of the model
-% # This linear model explains the pooled 90/10 differences
-% @
-% 
-% <<cumulative_modeling_table>>=
-% 
-% # One idea I had was to make a cumulative sum of the trend,
-% # so the cumulative inequality over time for each country
-% # and see how each tracking feature explains this cumulative
-% # pattern, and it does so very well, with each one
-% # separately (because I have only 30 observations) explaining
-% # about 22% each. Age selection, up to 30% alone.
-% 
-% vars_unique <- c("length", "num_tracks", "age_selection", "central_examination", "ztrack",
-%                  "zvoc")
-% 
-% all_gaps_models_cum <-
-%   map(gaps, function(gap) {
-%     
-%     gap_data <- dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap)
-%     
-%     ready_data_age <-
-%       gap_data %>%
-%       mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor) %>%
-%       group_by(country) %>%
-%       summarize_at(vars(vars_unique), unique) %>%
-%       mutate(cum_diff =
-%                gap_data %>%
-%                group_by(country) %>%
-%                summarize(m = sum(difference)) %>%
-%                pull(m))
-%     
-%     mod_tracking <-
-%       ready_data_age %>%
-%       filter(!is.na(age_selection)) %>%
-%       brm(
-%         cum_diff ~ ztrack + zvoc,
-%         family = gaussian(),
-%         data = .,
-%         warmup = 1000, iter = 2000, chains = 5
-%       )
-% 
-%     mod_tracking
-% })
-% 
-% all_gaps_models_cum %>%
-%   stan_table() %>%
-%   mutate(" " = c(
-%     "Track Index",
-%     "Vocational Index",
-%     "Intercept"
-%   )) %>%
-%   setNames(c(" ", gsub(" SES gap", "", gaps))) %>%
-%   xtable() %>%
-%   print.xtable(
-%     include.rownames = FALSE,
-%     add.to.row = table_details(all_gaps_models_cum)
-%   )
-% 
-% @
-% 
-% <<next_steps>>=
-% # Next steps:
-% 
-% # Continue by doing the multilevel models to see what explains what. Include
-% # all indicators from the reardon/russian girl paper.
-%   
-% # Graph the increase in each country vs the increase/decrease of the economic inequality indicators
-% # Specially the 90/10
-% 
-% # Calculate how big is the gap between reading and math
-%   
-% # Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
-%   
-% # Get each country trendline adjusted for the inequality indicators and place in the same country graph.
-% 
-% # Should I add the parent's education in the lm model to see how trends change adjusted for that?
-% 
-% # A weak welfare system, together with income inequality, what's their pattern?
-% # What if we put the school differentiation/tracking aspect in? Are there country groups based on these
-% # patterns.
-% 
-% # In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
-% @
+<<preparing_data>>=
+tracking_data <-
+  read_xlsx("./data/tracking.xlsx", sheet = "all_data") %>%
+  map_if(is_double, round, 2) %>%
+  as_tibble
+
+dif_data <- function(my_data, tracking, central, which_gap = "90th/10th SES gap") {
+  my_data %>%
+    filter(type_test == "math", type == which_gap) %>%
+    select(wave, country, difference) %>%
+    rename(year = wave) %>%
+    mutate(year = as.character(year)) %>%
+    left_join(tracking_data, by = c("country" = "cntry_name")) %>%
+    left_join(central_examination) %>%
+    mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
+           age_selection = selage) %>%
+    filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
+
+}
+formula_sequence <- function(dv, ivs, random_effect) {
+  formula_seq <-
+    lapply(1:length(ivs), function(x) {
+      paste0(dv ," ~ ", paste0(ivs[1:x], collapse = " + ") %>% paste0(" + ", random_effect))
+    }) %>%
+    lapply(as.formula)
+
+  formula_seq
+}
+stan_model_builder <- function(dv, iv, random, data) {
+  all_formulas <- formula_sequence(dv, iv, random)
+
+  mod_tracking <-
+    map(all_formulas, ~ {
+      brms::brm(
+        .x,
+        family = gaussian(),
+        data = data,
+        warmup = 1000, iter = 2000, chains = 5
+      )
+    })
+
+}
+stan_extractor <- function(models) {
+  coef_list <-
+    map(models, ~ {
+    broom::tidy(.x) %>%
+      .[grepl("^b_", .$term), ] %>%
+      map_if(is_double, round, 2) %>%
+      as_tibble %>%
+      transmute(term,
+                estimate = paste0(estimate, " (", lower, "/", upper, ")"))
+  })
+
+  coef_list
+}
+stan_table_builder <- function(models_extracted) {
+  intermediate_table <-
+    reduce(models_extracted, full_join, by = "term") %>%
+    setNames(c(" ", paste("Model", seq_len(models_extracted %>% length))))
+
+  row_order <-
+    setdiff(seq_len(nrow(intermediate_table)),
+            grep("Intercept", intermediate_table$` `)) %>%
+    `c`(grep("Intercept", intermediate_table$` `))
+
+    intermediate_table[row_order, ]
+}
+stan_table <- function(models) {
+
+  table_ready <-
+    models %>%
+    stan_extractor() %>%
+    stan_table_builder()
+
+  table_ready
+}
+
+table_details <- function(models) {
+
+  random_effect <- nrow(models[[length(models)]]$ranef) > 0
+
+  where_to_place <-
+    models[[length(models)]]$formula$formula %>%
+    as.character %>%
+    .[-(1:2)] %>%
+    stringr::str_split(" \\+ ") %>%
+    pluck(1) %>%
+    .[if (random_effect) -length(.) else 1:length(.)] %>%
+    length
+
+  r_square <-
+    paste0("\\hline ",
+           paste0("R square: & ",
+                  paste0(map(models, ~ bayes_R2(.x)[1] %>% round(2) * 100) %>% paste0("\\%"),
+                                     collapse = " & ")), " \\\\")
+  n_obs <-
+    paste0(paste0(" Sample size: & ",
+                  paste0(map(models, nobs), collapse = " & ")), " \\\\ \\hline")
+
+  command_to_row <- paste0(r_square, n_obs)
+  addtorow_two <- list(pos = list(pos = where_to_place + 1), command = command_to_row)
+
+  addtorow_two
+}
+
+ready_data_age <-
+  dif_data(complete_gaps, tracking_data, central_examination) %>%
+  mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
+@
+
+The reason why countries differ in their evolution of inequality is still unknown. There is ample evidence showing the inequality between countries, to a certain extent, can be explained by the degree of tracking (Hanushek and Woessman). But we are also interested in what explains the between country evolution of inequality, that is, the explanation as to why in certain countries it is increasing more than others over time.
+
+This is clearly a difficult task given than, at least the country-level, not many features of the educational system change in a 15-year time span, resulting in a practically invariant variable from which to explain the level of inequality (without any variance, we can't explain anything.). However, there are other strategies that can at least partially help us to understand the phenomena, and these are precisely the ones we follow.
+
+Following the literature on the topic, we suspect that this evolution is in part very tightly related to the degree of stratification of the educational system. In a very simple frame-work, Hanushek and Woessman found that tracking indeed exarcebates inequality in the life course of children. Following the same strategy, we believe that tracking is also allowing the same gap in 15 year olds to grow over time, acompannied by other things. Yet, instead of concetrating only on the age of selection (just as they do), we explore a more fine grained definition of tracking, which is possible through the work of Thijs and Van der Werfhorst(). Excluding the age of first selection into tracks, we also use the the number of tracks in the country, the percentage of the entire curriculum that is tracked and a vocational index \footnote{This index is a factor loading from a principal factor analysis of the percentage of students in upper secondary vocational education (taken from two sources, to reduce measurement error)}.
+
+Considering that our summarized data has very few observartions \footnote{We have per year, per country, one single inequality indicator, leaving the total sample size at \sexpr{nrow(ready_data_age)}}, we want to asses the uncertainty of our model by using a fully bayesian hierarchichal linear model. The benefits of this approach are twofold: first, we can asses the model fit much more intuitively, something very important given our sample size, and secondly, given that our countries are clustered into years, we can control for country heterogeneity within years, removing any bias in the standard errors.
+
+In the final model, we regress the inequality of a country on a dummy variable where 1 equals only 1 track vs more than 1 track, whether the age of first selection is 15 or more vs below 15, a dummy stating whether the percentage of tracked curriculum is above 1, and the standardized vocational index. We are reluctant to include more variable in the model, first to keep it more parsimonious, and secondly to prevent overfitting due to our sample size. We present the results in the table below.
+
+<<>>=
+# 2000
+# SC03Q01 School public/private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 M/R
+# 9 Mis
+
+# 2003
+# SC03Q01 (8) Public or private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Miss
+
+# 2006
+# SC02Q01 (8) Public or private
+#  1 Public
+#  2 Private
+#  7 N/A
+#  8 Invalid
+#  9 Missing
+
+# 2009
+# SC02Q01
+# 1 public
+# 2 private
+
+# 2012
+# SC01Q01 Public or private Num
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# 2015
+# SC013Q01TA
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# central_examination <-
+#   tribble(
+#   ~ country, ~central_examination,
+#   "Australia", 1,
+#   "Austria", 0,
+#   "Belgium", 0,
+#   "Bulgaria", 1,
+#   "Canada", rbinom(1, 1, prob = 0.51),
+#   "Czech Republic", 1,
+#   "Denmark", 1,
+#   "Finland", 1,
+#   "France", 1,
+#   "Germany", 0,
+#   "United Kingdom", 1,
+#   "Greece", 0,
+#   "Hong Kong", 1,
+#   "Hungary", 1,
+#   "Iceland", 1,
+#   "Ireland", 1,
+#   "Israel", 1,
+#   "Italy", 1,
+#   "Japan", 1,
+#   "Korea", 1,
+#   "Latvia", 1,
+#   "Liechtenstein", 1,
+#   "Luxembourg", 1,
+#   "Netherlands", 1,
+#   "New Zealand", 1,
+#   "Norway", 1,
+#   "Poland", 1,
+#   "Portugal", 0,
+#   "Russia", 1,
+#   "Slovakia", 1,
+#   "Slovenia", 1,
+#   "Spain", 0,
+#   "Sweden", 0,
+#   "Switzerland", 0,
+#   "Turkey", 1,
+#   "United States", 1
+#   )
+
+@
+
+<<complete_tracking_model>>=
+all_track_models <-
+  stan_model_builder(
+  dv = "difference",
+  iv = c("num_tracks", "age_selection", "I(length > 0)", "zvoc"),
+  random = "(1 | year)",
+  data = ready_data_age
+)
+
+all_track_models %>%
+  stan_table() %>%
+  mutate(" " = c(
+    "Only 1 track",
+    "Age selection >= 15",
+    "% of curric tracked",
+    "Vocational Index",
+    "Intercept"
+  )) %>%
+  xtable() %>%
+  print(
+  include.rownames = FALSE,
+  add.to.row = table_details(all_track_models)
+  )
+@
+
+Given that the classical p values are inexistent in bayesian modelling, I present uncertainty intervals next to each coefficient. The first model only includes the 1 track dummy. This variable shows that countries that have one track, have on average, half a standard deviation less inequality than other countries. This covariate alone explains about 23\% of the variance of the evolution of the 90/10 achievement gap. The second model now includes the dummy of whether the country has an age selection of 15 or more and we can see that countries with late selection into tracking have about -.38 less standard deviations in inequality. Also note that the number of tracks dummy was also reduced, suggesting these two variables are explaining similar things. This is expected given that late tracking is usually associated with fewer tracks, such as in the scandinavian countries. The third model now includes whether the country has any degree of tracking, meaning whether the country has above 0\% of the curriculum tracked. The coding of the variable comes from visual inspection of the distribution, where some countries, such as the United States and Canada, have untracked curriculums. We see now relationship at all, but after including the vocational index, the model is completely reversed with countries with tracked curriculum having about 0.6 more standard deviations in inequality that countries with no tracking.
+
+We also note that vocational enrollment is associated with less inequality. Not surprisingly, the age of selection coefficient, also increased due to the correlation between age of selection and vocational enrollment. Countries with high vocational enrollment are also those with early age selection, such as Germany and Austria. These two variables should be inspected further, perhaps with an interaction, given than both coefficients are sizable and very correlated. This final model explains over one third of the variance in the evolution of the 90/10 SES gap, with an R square of 40\%. The uncertainty of each of the covariates varies a lot with the percentage of curriculum tracked dummy ranging all the way from 0.9 to 0.3. Nonetheless, we see that the other coefficients are very strong and have reasonable intervals. It is very important to consider the uncertainty of our estimates, to give confidence in our model fit. So far, this model seems to fit the data quite reasonably. \footnote{These variables are very correlated, but no collinearity is present with a maximum VIF of 2.2.}
+
+All of these countries have a different tracking structure, with some setups being more egalitarian than others. Using the previous model we make a simulation and predict the level of the 90/10 achievement gap for all possible tracking setups for all countries. Below we plot all these combinations. The x axis has the number of tracks that a country has, the y axis has the predicted 90/10 achievement gap and below each country name we have whether the country has an age selection of 15 or more or below. In addition, to confirm how accurate is the model, we also plot the actual level of inequality in the actual tracking setup of the country. Let's take Germany for example.
+
+<<graph_complete_tracking_model>>=
+# This is the closest I could get to getting vif's fro the last model:
+
+our_formula <- difference ~ num_tracks + age_selection + I(length > 0) + zvoc
+lm(our_formula,
+   data = ready_data_age) %>%
+  vif()
+
+mod_tracking_ext <-
+  brms::brm(our_formula,
+            family = gaussian(),
+            data = ready_data_age,
+            warmup = 1000, iter = 2000, chains = 5,
+            control = list(adapt_delta = 0.90)
+  )
+
+new_data <-
+  ready_data_age %>%
+  with(crossing(country = countries,
+                num_tracks = unique(num_tracks),
+                age_selection = unique(age_selection),
+                zvoc = mean(zvoc, na.rm = TRUE),
+                length = typical(length > 0),
+                year = "2009"))
+
+predictions <- posterior_predict(mod_tracking_ext, newdata = new_data)
+sd_obs <- colSds(predictions)
+
+new_data <-
+  new_data %>%
+  mutate(
+    pred = colMeans(predictions),
+    pred_low = pred - (2 * sd_obs),
+    pred_high = pred + (2 * sd_obs)
+  )
+
+sum_ready_data <-
+  ready_data_age %>%
+  group_by(country, num_tracks, age_selection) %>%
+  summarize(avg_diff = mean(difference),
+            diff_low = avg_diff - 2 * sd(difference),
+            diff_high = avg_diff + 2 * sd(difference)) %>%
+  ungroup()
+
+new_data %>%
+  left_join(sum_ready_data) %>%
+  mutate(age_selection = ifelse(age_selection == 1, ">= 15", "< 15")) %>%
+  ggplot(aes(num_tracks, avg_diff, fill = num_tracks)) +
+  geom_point(colour = "red") +
+  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
+  geom_col(aes(y = pred, alpha = 0.4)) +
+  geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
+  facet_wrap(country ~ age_selection) +
+  scale_y_continuous(name = "90/10 SD gap", limits = c(0, 4)) +
+  scale_alpha(guide = F) +
+  scale_x_discrete(name = "Number of tracks", labels = c("> 1 track", "1 track")) +
+  scale_fill_manual(values = c("orangered2", "blue3"), guide = F) +
+  ggtitle("Predicted 90/10 gap for different combinations of number of tracks and age of selection")
+@
+
+The red point for Germany is in the '> 1 track' and '< 15' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately, relative to the actual level (red point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. Generally speaking, this applies to virtually every country in the plot. Virtually for all countries which are not in this ideal tracking, a switch to the ideal would reflect a reduction in the achievement gap.
+
+For those countries which are not in the 'ideal tracking' setup, we compute below the percentage change from switching to the ideal tracking. The results are in the table below.
+
+<<counterfactual_tracking>>=
+pred_avg_diff<-
+  new_data %>%
+  left_join(sum_ready_data) %>%
+  filter(!is.na(avg_diff) | num_tracks == 1 & age_selection == 1) %>%
+  select(country, num_tracks, age_selection, pred, avg_diff)
+
+track_should_change <- pred_avg_diff$country[pred_avg_diff$country %>% duplicated]
+
+avg_diff_data <-
+  pred_avg_diff %>%
+  filter(country %in% track_should_change) %>%
+  transmute(country,
+            avg_diff = ifelse(avg_diff %>% is.na, pred, avg_diff),
+            combn = paste0(num_tracks, "_", age_selection)) %>%
+  filter(combn != "1_1")
+
+final_avg_diff_table <-
+  avg_diff_data %>%
+  left_join(pred_avg_diff %>%
+              filter(country %in% track_should_change & (num_tracks == 1 & age_selection == 1)) %>%
+              select(country, pred), by = "country") %>%
+  select(country, combn, avg_diff, pred) %>%
+  separate(combn, c("num_tracks", "age_selection"), sep = "_") %>%
+  transmute(
+    Country = country,
+    `Number of tracks` = ifelse(num_tracks == 0, "More than one track", "One track"),
+    `Age of selection` = ifelse(age_selection == 1, "15 or more", "Less than 15"),
+    `Inequality` = avg_diff %>% round(3),
+    `Predicted` = pred %>% round(3),
+    `% reduction` = (((`Inequality` - `Predicted`)/ `Inequality`) * 100) %>%
+      ceiling %>% paste0("%")
+    )
+
+xtable(final_avg_diff_table) %>%
+  print(
+  include.rownames = FALSE
+  )
+
+@
+
+The biggest reductions are for both Hungary and Germany, with 46\% and 36\% respectively. France, which had a particularly steep increase in the last 15 years, would see a reduction of the 90/10 SES gap of 31\% and Austria, with a very similar tracking structure as the German one, would see their achievement gap reduced by 20\%. The very suprising result is the Dutch case, for which a switch from the 'worst' tracking setup to the 'best' case would result in an increase of the gap of 20\%.
+
+This result could mean two things. First and foremost, the Dutch educational system has built other mechanisms that, despite the tracking system, help children from social origin escalate socially. This explanation is not very speculative given than in most mobility research, the Netherlands stands out as a very equal country relative to other countries with a similary tracking structure, like Germany or Hungary (cite Gosta study and something from Breen and Goldthorpe). Another explanation, and something which needs to assessed, is whether our model is predicting accurately. If we look at the plot from above, we see that for some countries, the model is a bit off from the actual level of inequality. Moreover, although we see that if all countries switched to the 'ideal' tracking setup we would see a vast reduction in inequality, we also see that each of these predictions is followed by a wide uncertainty interval. Considering that the results are very consistent for every country, and in most countries the prediction matches the actual value, this could simply be a consequence of low sample size. Whether these results stand the test of a different empirical strategy or a higher sample size, we leave up to future research.
+
+A more summarized empirical strategy is to actually standardize all the tracking indicator into one index, something that Bol and Van der Werfhorst() already do quite nicely. Using this standardized tracking variable and the same bayesian multievel model, we now model the tracking and vocational index as before, but add an interaction between two, given that in the previous model we recorded a strong shift in the model when tracking-related variables and the vocational model we both included in the same model. Below are the results for this model.
+
+<<interaction_model>>=
+
+sig_vs_sig <- function(coef1, se1, coef2, se2) {
+  diff <- c(coef1, se1) - c(coef2, se2)
+  abs(diff[1]) - 2 * diff[2]
+}
+
+ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
+
+stan_models <-
+  stan_model_builder(
+  dv = "difference",
+  iv = c("ztrack", "zvoc", "ztrack:zvoc"),
+  random = "(1 | year)",
+  data = ready_data
+  )
+
+
+stan_models %>%
+  stan_table() %>%
+  mutate(" " = c(
+    "Tracking Index",
+    "Vocational Index",
+    "Trackin * Vocational Index",
+    "Intercept"
+  )) %>%
+  xtable() %>%
+  print.xtable(
+    include.rownames = FALSE,
+    add.to.row = table_details(stan_models)
+  )
+@
+
+We confirm the results from the previous models, where more tracking is associated with an achievement gap of about 0.4 standard deviations wider and more vocational enrollment is associated with a reduction of about 0.2 standard deviations, half the slope of tracking. Meaning that the tracking effect might be offsetting the effect of the vocational index given that it's half the size of the slope. Both these coefficients are actually significantly different from each other, so it is possible. Before we explore this visually, let's note that the interaction between the two is very reliable and significant, considering that small sample size. Below we graph the interaction for different quantiles of the vocational index.
+
+<<interaction_plot>>=
+plot_interaction <-
+  marginal_effects(stan_models[[length(stan_models)]],
+                 effects = "ztrack:zvoc",
+                 int_conditions = list(zvoc = quantile))
+
+plot(plot_interaction, plot = FALSE)[[1]] +
+  labs(x = "Tracking Index (SD)", y = "90/10 Achievement gap (SD)") +
+  scale_colour_discrete(
+    name = "Vocational index \n quantiles",
+    labels = seq(100, 0, -25) %>% paste0("%")
+    ) +
+  scale_fill_discrete(guide = FALSE) +
+  ggtitle("Interaction between Tracking and Vocational index")
+
+# pp_check(mod_tracking, type = "dens_overlay", nsamples = 100)
+# pp_check(mod_tracking, type = "scatter_avg", nsamples = 100)
+# pp_check(mod_tracking, type = "boxplot", nsamples = 20)
+# pp_check(mod_tracking, type = "error_hist", nsamples = 6)
+# pp_check(mod_tracking, type = "ecdf_overlay")
+#
+# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "zvoc")
+# pp_check(mod_tracking, type = "error_scatter_avg_vs_x", x = "ztrack")
+@
+
+The results are very interesting. We see that for lower levels of tracking (meaning little to no tracking) theres a very low achievement gap, regardless of whether the country has very high or very low vocational enrollment. However, once tracking enters the picture, vocational enrollment can be a strong equalizer. We see that the bottom quantile of vocational enrollment has almost twice the achievement gap as the top quantile for vocational enrollment. Moreover, our earlier interpretation (that tracking is more important than vocational enrollment for reducing the achievement gap) still holds and is very evident here. Despite the equalizing power of vocational enrollment, a high level of tracking with the highest level of vocational enrollment still leaves a country with an achievement of over 1.5 standard deviations. However, a country with low levels of tracking and \textit{any} level of vocational enrollment is nearly 1.3 standard deviations. A key finding from these results is that tracking is reasonably explaining the 90/10 achievement gap, and we should consider it as a very important component in the reduction of the achievement gap. However, it should not be studied in isolation from other features such as the vocational enrollment. We see a very sizable change in the achievement gap for a given country with the same level of tracking and high and low levels of vocational enrollment.
+
+% We need to define key numbers, to refer in the abstract, like the achievement gap closes % percent in the counterfactual and there's a difference of % percent between same level of tracking but different vocational enrollments.
+
+To test whether these results hold for other samples, we compute the same models as before but also for the 80/20 and 70/30 SES gap. Up next we plot these coefficients for the three SES gaps.
+
+<<all_gaps_plot>>=
+gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
+
+all_gaps_models <-
+  map(gaps, function(gap) {
+    ready_data_age <-
+      dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap) %>%
+      mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
+
+    mod_tracking <-
+      brms::brm(
+        difference ~
+          ztrack +
+          zvoc +
+          ztrack:zvoc +
+          (1|year), family = gaussian(),
+      data = ready_data_age,
+      warmup = 1000, iter = 2000, chains = 5,
+      control = list(adapt_delta = 0.95)
+      )
+
+    mod_tracking
+})
+
+model_data_merged <-
+  map(all_gaps_models, ~ fixef(.x)[, c(1, 3, 4)] %>% as_tibble) %>%
+  setNames(gaps) %>%
+  enframe() %>%
+  unnest(value) %>%
+  mutate_if(is_double, round, 2) %>%
+  transmute(model = name,
+           terms = all_gaps_models[[1]] %>% fixef %>% row.names %>% rep(3),
+           estimate = Estimate,
+           lower = `2.5%ile`,
+           upper = `97.5%ile`)
+
+model_data_merged %>%
+  ggplot(aes(terms, estimate, colour = model)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  scale_colour_discrete(name = NULL) +
+  scale_y_continuous(limits = c(-0.5, 2)) +
+  scale_x_discrete(labels = c("Intercept",
+                              "Tracking Index",
+                              "Vocational * Tracking Index",
+                              "Vocational Index")) +
+  labs(y = "Estimate from linear model", x = "Predictors") +
+  ggtitle("Estimation of tracking/vocational models for different gaps") +
+  coord_flip()
+
+# It under predicts the y value rather than over predict
+# It has problems predicting the central tendency of the model
+# This linear model explains the pooled 90/10 differences
+@
+
+With the exception of the Intercept, the coefficients of the three models look pretty much the same. The tracking index seems a but stronger for the 90/10 model but the uncertainty intervals overlap with the other two models. These results give our claims much more credibility.
+
+Finally, until now, we've studied how we can explain the evolution of the 90/10 achievement gap, by clustering on the year dimension of each country and then performing a linear multilevel model. This approach was adopted given that tracking hardly changes over time, making it impossible to model the change over time directly. However, there is another way of estimating the evolution of the achievement gap, which we try up next.
+
+Instead of estimating the evolution over time, we calculate the cumulative change over time for each country, summarizing the 6 year-time span of achievement gaps into one cumulative inequality gap. This approach dramatically reduces the total sample size to 34, the number of total countries available \footnote{We've been presenting a selected number of countries given the lack of space, but for every estimation we include all countries available.}. It is for this reason that I only include at most 2 covariates in the model, the tracking and vocational index, which both summarize the previous models and keep the model parsimonious.
+
+<<cumulative_modeling_table>>=
+
+# One idea I had was to make a cumulative sum of the trend,
+# so the cumulative inequality over time for each country
+# and see how each tracking feature explains this cumulative
+# pattern, and it does so very well, with each one
+# separately (because I have only 30 observations) explaining
+# about 22% each. Age selection, up to 30% alone.
+
+vars_unique <- c("length", "num_tracks", "age_selection", "central_examination", "ztrack",
+                 "zvoc")
+
+all_gaps_models_cum <-
+  map(gaps, function(gap) {
+
+    gap_data <- dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap)
+
+    ready_data_age <-
+      gap_data %>%
+      mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor) %>%
+      group_by(country) %>%
+      summarize_at(vars(vars_unique), unique) %>%
+      mutate(cum_diff =
+               gap_data %>%
+               group_by(country) %>%
+               summarize(m = sum(difference)) %>%
+               pull(m))
+
+    mod_tracking <-
+      ready_data_age %>%
+      filter(!is.na(age_selection)) %>%
+      brm(
+        cum_diff ~ ztrack + zvoc,
+        family = gaussian(),
+        data = .,
+        warmup = 1000, iter = 2000, chains = 5
+      )
+
+    mod_tracking
+})
+
+all_gaps_models_cum %>%
+  stan_table() %>%
+  mutate(" " = c(
+    "Track Index",
+    "Vocational Index",
+    "Intercept"
+  )) %>%
+  setNames(c(" ", gsub(" SES gap", "", gaps))) %>%
+  xtable() %>%
+  print.xtable(
+    include.rownames = FALSE,
+    add.to.row = table_details(all_gaps_models_cum)
+  )
+
+@
+
+We see that 1 standard deviation increase in the tracking index widens the 90/10 SES gap by 1.66 standard deviations over time, and the vocational index reduces it by 1 standard deviation and these two covariates explain nearly one third of the cumulative gap. As we decrease the achievement gap (80/20, 70/30) these coefficients become smaller, but keep their strength and their predictive power. Comparing this model to the previous models, we see a very similar landscape, but an even more reassuring one, given than we're tackling the evolution of the achievement gap directly with this indicator. We can safely say that these results, at worse, are supporting the previous findings and making the claim even more credible.
+
+<<next_steps>>=
+# Next steps:
+
+# Continue by doing the multilevel models to see what explains what. Include
+# all indicators from the reardon/russian girl paper.
+
+# Graph the increase in each country vs the increase/decrease of the economic inequality indicators
+# Specially the 90/10
+
+# Calculate how big is the gap between reading and math
+
+# Continue with the PIRLS to see if there are specific patterns in 4th and 8th graders gap.
+
+# Get each country trendline adjusted for the inequality indicators and place in the same country graph.
+
+# Should I add the parent's education in the lm model to see how trends change adjusted for that?
+
+# A weak welfare system, together with income inequality, what's their pattern?
+# What if we put the school differentiation/tracking aspect in? Are there country groups based on these
+# patterns.
+
+# In countries where there is high differentiation/tracking, is there a jump in the evolution of the gap between PIRLS/TIMSS and PISA?
+@
 
 \bibliography{mybibliography.bib}
 
