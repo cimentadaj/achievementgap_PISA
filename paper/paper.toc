@@ -9,4 +9,5 @@
 \contentsline {subsection}{\numberline {5.2}Evolution of the achievement gap}{12}{subsection.5.2}
 \contentsline {subsection}{\numberline {5.3}Source of the achievement gap}{16}{subsection.5.3}
 \contentsline {subsection}{\numberline {5.4}Performance-equality tradeoff}{20}{subsection.5.4}
-\contentsline {section}{\numberline {6}Appendix}{25}{section.6}
+\contentsline {section}{\numberline {6}The role of curricular tracking in explaining inequalities}{22}{section.6}
+\contentsline {section}{\numberline {7}Appendix}{31}{section.7}

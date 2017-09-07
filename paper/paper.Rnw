@@ -412,7 +412,7 @@ results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ",
 % You have a bunch of citations to take from here
 Educational inequality and its long term impacts is a topic that has been prominent in the social science literature for the past 30 years. The idea of meritocracy and intergenerational transfers have motivated, in conservative terms, much of the research on social mobility and social inequalities, for a good part of the 20th century and 21st century. When James Coleman released his famous Coleman report \citep{coleman1966}, it raised the topic to starlight by suggesting that family SES and student performance are tightly linked. The topic has been studied extensively since the report was released and several authors have contested whether the relationship is an invariable social law or a product of institutional arrangements. For a detailed review of the long literature on educational inequality, please see \citet{gamoran2001}. But fast-forward until today, we've understood the relationship much better.
 
-Developmental psychology has been studying the subject for a long time and they find that the early stages in a child's life course are extremely important, if not the most, for cognitive and personality definition \citep{duyme1999, waldfogel1996}. Economists and educators have long neglected this branch of literature but the work of James Heckman has brought our attention to it. For example, he has clearly showed that cognitive and non-cognitive inequalities are present before entering school \citep{heckman2006}. This means that inequality starts strong before the schooling of a child begins and schools have the potential to equalize the learning ground. These inequalities can be narrowed significantly with high quality learning environments, specially for children coming from unfavourable conditions. But one of the most important findings from \citet{cunha2006} is that the cognitive level of a child in time \(t\) is a direct function of the experiencies from time \(t-1\). Although this sounds logical, it's importance is not understood entirely.
+Developmental psychology has been studying the subject for a long time and they find that the early stages in a child's life course are extremely important, if not the most, for cognitive and personality definition \citep{duyme1999, waldfogel2006}. Economists and educators have long neglected this branch of literature but the work of James Heckman has brought our attention to it. For example, he has clearly showed that cognitive and non-cognitive inequalities are present before entering school \citep{heckman2006}. This means that inequality starts strong before the schooling of a child begins and schools have the potential to equalize the learning ground. These inequalities can be narrowed significantly with high quality learning environments, specially for children coming from unfavourable conditions. But one of the most important findings from \citet{cunha2006} is that the cognitive level of a child in time \(t\) is a direct function of the experiencies from time \(t-1\). Although this sounds logical, it's importance is not understood entirely.
 
 The implications of this cumulative model suggests that it is much less cost-effective to invest in children in time \(t\) that in \(t-1\). That is why the whole debate about narrowing inequality between high and low SES families should start in early education -- it is the cheaper than investing in later education and it brings about the largest returns. Despite all of these findings and investments to reduce the gaps, we still find that the relationship between parental education or socio-economic status is present in virtually all empirical studies of social mobility and inequalities \citep{breen1997, breen2007, waldfogel2006, bradbury2015, chetty2016}. What we don't know is how and why this relationship is formed from such an early age. Moreover, many have suggested different explanations and the topic has been very contested \citep{brooks1997}.
 
@@ -1719,14 +1719,13 @@ tracking_data <-
   map_if(is_double, round, 2) %>%
   as_tibble
 
-dif_data <- function(my_data, tracking, central, which_gap = "90th/10th SES gap") {
+dif_data <- function(my_data, tracking, which_gap = "90th/10th SES gap") {
   my_data %>%
     filter(type_test == "math", type == which_gap) %>%
     select(wave, country, difference) %>%
     rename(year = wave) %>%
     mutate(year = as.character(year)) %>%
     left_join(tracking_data, by = c("country" = "cntry_name")) %>%
-    left_join(central_examination) %>%
     mutate(num_tracks = ifelse(tracks15y == 1, 1, 0) %>% as.factor,
            age_selection = selage) %>%
     filter(!is.na(num_tracks), !is.na(age_selection), !is.na(difference))
@@ -1819,7 +1818,7 @@ table_details <- function(models) {
 }
 
 ready_data_age <-
-  dif_data(complete_gaps, tracking_data, central_examination) %>%
+  dif_data(complete_gaps, tracking_data) %>%
   mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
 @
 
@@ -1829,7 +1828,7 @@ This is clearly a difficult task given than, at least the country-level, not man
 
 Following the literature on the topic, we suspect that this evolution is in part very tightly related to the degree of stratification of the educational system. In a very simple frame-work, Hanushek and Woessman found that tracking indeed exarcebates inequality in the life course of children. Following the same strategy, we believe that tracking is also allowing the same gap in 15 year olds to grow over time, acompannied by other things. Yet, instead of concetrating only on the age of selection (just as they do), we explore a more fine grained definition of tracking, which is possible through the work of Thijs and Van der Werfhorst(). Excluding the age of first selection into tracks, we also use the the number of tracks in the country, the percentage of the entire curriculum that is tracked and a vocational index \footnote{This index is a factor loading from a principal factor analysis of the percentage of students in upper secondary vocational education (taken from two sources, to reduce measurement error)}.
 
-Considering that our summarized data has very few observartions \footnote{We have per year, per country, one single inequality indicator, leaving the total sample size at \sexpr{nrow(ready_data_age)}}, we want to asses the uncertainty of our model by using a fully bayesian hierarchichal linear model. The benefits of this approach are twofold: first, we can asses the model fit much more intuitively, something very important given our sample size, and secondly, given that our countries are clustered into years, we can control for country heterogeneity within years, removing any bias in the standard errors.
+Considering that our summarized data has very few observartions \footnote{We have per year, per country, one single inequality indicator, leaving the total sample size at \Sexpr{nrow(ready_data_age)}}, we want to asses the uncertainty of our model by using a fully bayesian hierarchichal linear model. The benefits of this approach are twofold: first, we can asses the model fit much more intuitively, something very important given our sample size, and secondly, given that our countries are clustered into years, we can control for country heterogeneity within years, removing any bias in the standard errors.
 
 In the final model, we regress the inequality of a country on a dummy variable where 1 equals only 1 track vs more than 1 track, whether the age of first selection is 15 or more vs below 15, a dummy stating whether the percentage of tracked curriculum is above 1, and the standardized vocational index. We are reluctant to include more variable in the model, first to keep it more parsimonious, and secondly to prevent overfitting due to our sample size. We present the results in the table below.
 
@@ -1922,7 +1921,7 @@ In the final model, we regress the inequality of a country on a dummy variable w
 
 @
 
-<<complete_tracking_model>>=
+<<complete_tracking_model, results = 'hide'>>=
 all_track_models <-
   stan_model_builder(
   dv = "difference",
@@ -1930,7 +1929,9 @@ all_track_models <-
   random = "(1 | year)",
   data = ready_data_age
 )
+@
 
+<<complete_tracking_results, include = TRUE>>=
 all_track_models %>%
   stan_table() %>%
   mutate(" " = c(
@@ -1953,7 +1954,7 @@ We also note that vocational enrollment is associated with less inequality. Not 
 
 All of these countries have a different tracking structure, with some setups being more egalitarian than others. Using the previous model we make a simulation and predict the level of the 90/10 achievement gap for all possible tracking setups for all countries. Below we plot all these combinations. The x axis has the number of tracks that a country has, the y axis has the predicted 90/10 achievement gap and below each country name we have whether the country has an age selection of 15 or more or below. In addition, to confirm how accurate is the model, we also plot the actual level of inequality in the actual tracking setup of the country. Let's take Germany for example.
 
-<<graph_complete_tracking_model>>=
+<<graph_complete_tracking_model, results = 'hide'>>=
 # This is the closest I could get to getting vif's fro the last model:
 
 our_formula <- difference ~ num_tracks + age_selection + I(length > 0) + zvoc
@@ -1968,7 +1969,9 @@ mod_tracking_ext <-
             warmup = 1000, iter = 2000, chains = 5,
             control = list(adapt_delta = 0.90)
   )
+@
 
+<<graph_complete_tracking_graph, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 new_data <-
   ready_data_age %>%
   with(crossing(country = countries,
@@ -2013,11 +2016,11 @@ new_data %>%
   ggtitle("Predicted 90/10 gap for different combinations of number of tracks and age of selection")
 @
 
-The red point for Germany is in the '> 1 track' and '< 15' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately, relative to the actual level (red point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. Generally speaking, this applies to virtually every country in the plot. Virtually for all countries which are not in this ideal tracking, a switch to the ideal would reflect a reduction in the achievement gap.
+The red point for Germany is in the '\textgreater 1 track' and '\textless 15' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately, relative to the actual level (red point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. Generally speaking, this applies to virtually every country in the plot. Virtually for all countries which are not in this ideal tracking, a switch to the ideal would reflect a reduction in the achievement gap.
 
 For those countries which are not in the 'ideal tracking' setup, we compute below the percentage change from switching to the ideal tracking. The results are in the table below.
 
-<<counterfactual_tracking>>=
+<<counterfactual_tracking, include = TRUE>>=
 pred_avg_diff<-
   new_data %>%
   left_join(sum_ready_data) %>%
@@ -2064,14 +2067,14 @@ This result could mean two things. First and foremost, the Dutch educational sys
 
 A more summarized empirical strategy is to actually standardize all the tracking indicator into one index, something that Bol and Van der Werfhorst() already do quite nicely. Using this standardized tracking variable and the same bayesian multievel model, we now model the tracking and vocational index as before, but add an interaction between two, given that in the previous model we recorded a strong shift in the model when tracking-related variables and the vocational model we both included in the same model. Below are the results for this model.
 
-<<interaction_model>>=
+<<interaction_model, results = 'hide'>>=
 
 sig_vs_sig <- function(coef1, se1, coef2, se2) {
   diff <- c(coef1, se1) - c(coef2, se2)
   abs(diff[1]) - 2 * diff[2]
 }
 
-ready_data <- dif_data(complete_gaps, tracking_data, central_examination)
+ready_data <- dif_data(complete_gaps, tracking_data)
 
 stan_models <-
   stan_model_builder(
@@ -2080,8 +2083,9 @@ stan_models <-
   random = "(1 | year)",
   data = ready_data
   )
+@
 
-
+<<interaction_table,  include = TRUE>>=
 stan_models %>%
   stan_table() %>%
   mutate(" " = c(
@@ -2099,7 +2103,7 @@ stan_models %>%
 
 We confirm the results from the previous models, where more tracking is associated with an achievement gap of about 0.4 standard deviations wider and more vocational enrollment is associated with a reduction of about 0.2 standard deviations, half the slope of tracking. Meaning that the tracking effect might be offsetting the effect of the vocational index given that it's half the size of the slope. Both these coefficients are actually significantly different from each other, so it is possible. Before we explore this visually, let's note that the interaction between the two is very reliable and significant, considering that small sample size. Below we graph the interaction for different quantiles of the vocational index.
 
-<<interaction_plot>>=
+<<interaction_plot, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 plot_interaction <-
   marginal_effects(stan_models[[length(stan_models)]],
                  effects = "ztrack:zvoc",
@@ -2130,13 +2134,13 @@ The results are very interesting. We see that for lower levels of tracking (mean
 
 To test whether these results hold for other samples, we compute the same models as before but also for the 80/20 and 70/30 SES gap. Up next we plot these coefficients for the three SES gaps.
 
-<<all_gaps_plot>>=
+<<all_gaps_model, results = 'hide'>>=
 gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 all_gaps_models <-
   map(gaps, function(gap) {
     ready_data_age <-
-      dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap) %>%
+      dif_data(complete_gaps, tracking_data, which_gap = gap) %>%
       mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
 
     mod_tracking <-
@@ -2153,7 +2157,9 @@ all_gaps_models <-
 
     mod_tracking
 })
+@
 
+<<all_gaps_plot, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 model_data_merged <-
   map(all_gaps_models, ~ fixef(.x)[, c(1, 3, 4)] %>% as_tibble) %>%
   setNames(gaps) %>%
@@ -2192,7 +2198,7 @@ Finally, until now, we've studied how we can explain the evolution of the 90/10 
 
 Instead of estimating the evolution over time, we calculate the cumulative change over time for each country, summarizing the 6 year-time span of achievement gaps into one cumulative inequality gap. This approach dramatically reduces the total sample size to 34, the number of total countries available \footnote{We've been presenting a selected number of countries given the lack of space, but for every estimation we include all countries available.}. It is for this reason that I only include at most 2 covariates in the model, the tracking and vocational index, which both summarize the previous models and keep the model parsimonious.
 
-<<cumulative_modeling_table>>=
+<<cumulative_modeling, results = 'hide'>>=
 
 # One idea I had was to make a cumulative sum of the trend,
 # so the cumulative inequality over time for each country
@@ -2201,13 +2207,13 @@ Instead of estimating the evolution over time, we calculate the cumulative chang
 # separately (because I have only 30 observations) explaining
 # about 22% each. Age selection, up to 30% alone.
 
-vars_unique <- c("length", "num_tracks", "age_selection", "central_examination", "ztrack",
+vars_unique <- c("length", "num_tracks", "age_selection", "ztrack",
                  "zvoc")
 
 all_gaps_models_cum <-
   map(gaps, function(gap) {
 
-    gap_data <- dif_data(complete_gaps, tracking_data, central_examination, which_gap = gap)
+    gap_data <- dif_data(complete_gaps, tracking_data, which_gap = gap)
 
     ready_data_age <-
       gap_data %>%
@@ -2232,7 +2238,9 @@ all_gaps_models_cum <-
 
     mod_tracking
 })
+@
 
+<<cumulative_modeling_table, include = TRUE>>=
 all_gaps_models_cum %>%
   stan_table() %>%
   mutate(" " = c(
