@@ -1344,11 +1344,13 @@ complete_data_topbottom %>%
 
 Figure 4 shows the evolution for both low and high SES groups separately. The middle line is a summary line showing whether one of the groups is growing/shrinking faster than the other. We find plenty of variation in these patterns. For example, in the United States the top seems to be equalizing much stronger than than the bottom is catching up. The U.K seems to be following the same path as the United States as well. On the other hand, in Poland the gap seems to be closing because the bottom SES group is catching up much faster. The Netherlands shows a similar pattern as the U.S, U.K patterns but upon closer inspection the explanation is very different. We see that the slope is negative (like in the previous two countries) but that's because the low SES group is decreasing at a greater rate than the high SES is decreasing.
 
-% Make country summaries: Like the US is decreaing but because of bla bla (summing up everything up until now). Look at the graph and build rough summaries.
+We now pay attention to the flat summary lines. These lines should be interpreted with caution because it doesn't mean that the gap is not increasing. Denmark, Belgium, Netherlands, Norway and Spain show a flat line because the gap is growing very little, if at all. On the other hand, Sweden, France, Finland, New Zealand, Austria, among other countries, show a flat line because both groups are distancing themselves at a very similar rate. These results highlight the importance of not only summarizing average achievement gaps. The source of these gaps vary greatly between countries and we see how each of these patterns contibutes to the overall inequality of a country.
 
-Finally, we pay attention to the flat summary lines. These lines should be interpreted with caution because it doesn't mean that the gap is not increasing. Denmark, Belgium, Netherlands, Norway and Spain show a flat line because the gap is growing very little, if at all. On the other hand, Sweden, France, Finland, New Zealand, Austria, among other countries, show a flat line because both groups are distancing themselves at a very similar rate. These results highlight the importance of not only summarizing average achievement gaps. The source of these gaps vary greatly between countries and we see how each of these patterns contibutes to the overall inequality of a country.
+After analyzing the trend for each country and where this trend is coming from we start to find some interesting results. We see that the United States is closing the achievement gap at a very rapid rate, but at the same time we notice that it's because the top SES group is going down faster than the bottom is catching up. In contrast, we see countries like Germany and Poland where the gap is closing as well but because bottom group is catching up faster than the high SES group is coming down. In fact, the Polish case is the most egalitarian of all the countries presented here; the bottom group is catching up at a rapid pace and the top group is maintaining their high levels of performance, fostering a trully equalizing effect.
 
-Ths source of this gap can be deconstructed further into two broader gaps. We want to know if these gaps have increased because the 90th SES group has distanced itself from the 50th SES group or because the middle has been also distancing itself from 10th SES group. For example, we're interested in searching which gap is bigger between countries, the 90th/50th or the 50th/10th? Moreover, are some of these gaps contributing more to the 90th/10th gap we saw earlier? Up next we plot all the combinations of the 90th/50th/10th gaps and pay attention to the magnitude of each gap in figure 5. Because we visualize three plots for every country, we only plot a selected number of countries that represent the overall patterns from the previous graphs \footnote{United States and Germany show a decrease, France shows a steep increase and Denmark shows no significant change.}.
+Quite interestingly, in countries where the gap is widening, both groups are distancing themselves at a very similar pace. Finland, France and Austria, show this exact pattern. Give or take, we have a solid pattern that when the gap widens, it's because there's top-to-bottom inequality. But when the gap is being reduced, the source can vary between top and bottom changes.
+
+To help assess these results even further, the source of this gap can be deconstructed further into two broader gaps. We want to know if these gaps have increased because the 90th SES group has distanced itself from the 50th SES group or because the middle has been also distancing itself from 10th SES group. For example, we're interested in searching which gap is bigger between countries, the 90th/50th or the 50th/10th? Moreover, are some of these gaps contributing more to the 90th/10th gap we saw earlier? Up next we plot all the combinations of the 90th/50th/10th gaps and pay attention to the magnitude of each gap in figure 5. Because we visualize three plots for every country, we only plot a selected number of countries that represent the overall patterns from the previous graphs \footnote{United States and Germany show a decrease, France shows a steep increase and Denmark shows no significant change.}.
 
 \begin{figure}
 \begin{center}
@@ -1494,9 +1496,9 @@ full_data %>%
 \end{center}
 \end{figure}
 
-We see that there are more countries where High SES is increasing inequality faster than low SES is catching up (top-left panel) but there's also a fair share where low SES is catching up faster, such as the United States and Germany. Regardless of this, we see an overall negative relationship where countries in which the low SES group is catching up, the high SES group goes down. This is very interesting because it suggests that there's a trend for countries to have the bottom SES groups are climbing upwards, a trait of meritocracy. However, this means that the top group comes down, rather than stagnate or increase. Equally important, we see very few countries where low SES are decreasing (so going even further down) and High SES is also decresing (bottom left panel). On the other hand, we do see more countries where the both groups are increasing (top right panel). We plot all remaining countries in the back, together with a trendline and we see that the relation holds for all PISA countries. To sum up, we see no definitive evidence of equality in all of these countries. Regardless of different tracking setups, we see that there's a tradeoff: either the bottom comes up or the top comes down or the top goes even further up and the bottom further down.
+We see that there are more countries where High SES is increasing inequality faster than low SES is catching up (top-left panel) but there's also a fair share where low SES is catching up faster, such as the United States and Germany. Regardless of this, we see an overall negative relationship where countries in which the low SES group is catching up, the high SES group goes down. This is very interesting because it suggests that there's a trend for countries to have the bottom SES groups are climbing upwards, a trait of meritocracy. However, this means that the top group comes down, rather than stagnate or increase. Equally important, we see very few countries where low SES are decreasing (so going even further down) and High SES is also decresing (bottom left panel). On the other hand, we do see more countries where the both groups are increasing (top right panel). We plot all remaining countries in the back, together with a trendline and we see that the relation holds for all PISA countries.
 
-% Make country summary of each country for the tracking hypothesis #3. Like for example, countries in the bottom-right quadrant have low catching up and high coming down, do they have a common tracking structure? Do the same for the three quadrants.
+To sum up, we find no evidence in support of our first hypothesis. We uncover that the tracking setup of a country doesn't imminently mean a certain degree of equality/inequality. Countries where the top SES group is increasing and the bottom is decreasing (top-left panel) have dramatically different tracking setups. Austria is an early tracker with several tracks, while Sweden is a late tracker with only 1 track. On the opossite panel (bottom-right), where we find countries that the bottom group is catching up while the top is coming down, we find similar results. Denmark and Germany are opposite poles in terms of tracking, while the U.S is distinctive in that it has little formal curricular stratification. We see no definitive evidence of top-to-bottom equality in all of these countries (except for Poland). We find that regardless of the different tracking setups, we see that there's a tradeoff: either the bottom comes up and the top comes down or the top goes even further up and the bottom further down.
 
 But, similar as before, we don't know which group is causing the decrease/increase of the gap in the 90th/50th and 50th/10th gap. For that we plot the evolution of these gaps in figure 7.
 
@@ -1625,7 +1627,7 @@ Looking at figure 9, we see a strong correspondence between the two variables. I
 
 Finally, the last notable pattern is that in some countries the average performance is so high that it actually overperforms the achievement gap. Only Finland, Canada and Netherlands (three very equal countries) have their average performance in standard deviations above their level of inequality, which coincidentially, are countries that have the lower level of inequalities among the ones presented here.
 
-These results actually confirm that there exists a partial ecological fallacy. We see countries like Poland, Canada and Germany where the pattern is just as the aggregate trend, namely that as the average performance increases, inequality seems to be reduced in parallel. Conversely, France, Austria and Australia, to name a few, portray the opposite: as average performance decreases inequality increases. With these results we confirm our second hypothesis, that there is negative relationship. But we also unconver important variation within countries in the relationship between average achievement and dispersion of achievement.
+These results actually confirm our second hypothesis, that there's a negative relationship between the two variables. We see countries like Poland, Canada and Germany where the pattern is just as the aggregate trend, namely that as the average performance increases, inequality seems to be reduced in parallel. Conversely, France, Austria and Australia, to name a few, portray the opposite: as average performance decreases inequality increases. But we also unconver important variation within countries in the relationship between average achievement and dispersion of achievement (have a look at the Netherlands, Italy and the U.S).
 
 \subsection{The role of curricular tracking in explaining inequalities}
 
@@ -2033,20 +2035,19 @@ new_data %>%
   ggtitle("Predicted 90/10 gap for different combinations of number of tracks and age of selection")
 @
 
-The red point for Germany is in the '\textgreater 1 track' and '\textless 15 age' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately, relative to the actual level (red point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. Generally speaking, this applies to all countries in the plot. Virtually for all countries which are not in this 'ideal' tracking, a switch to the 'ideal' would reflect a reduction of the achievement gap.
+The red point for Germany is in the '\textgreater 1 track' and '\textless 15 age' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately, relative to the actual level (red point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. 
 
-% Comment on the above graph for particular countries! Make some observations
-
-For those countries which are not in the 'ideal' tracking setup, we compute below the percentage change from switching to the ideal tracking.
+These graph reveals some interesting patterns. Generally speaking, we find that the simulation shows that virtually all countries which are not in this 'ideal' tracking, that would switch to the 'ideal' setup would see a reduction of the achievement gap. Yet we also find the opposite result. Countries which are in the 'ideal' tracking setup that would change to the 'worst' setup, all countries would see a widening of the achievement gap. On average, we find that if all countries switched to the 'ideal' setup, we would see an average reduction of 20\%. This is a very important figure considering that \citet{reardon2011} found that the US gap increased by about 40-50\% in 30 years. Had all countries in the 'ideal' tracking switched to the 'worst' tracking, we would see an average widening of nearly 72\%. For those countries which are not in the 'ideal' tracking setup, we compute below the percentage change from switching to the ideal tracking.
 
 <<counterfactual_tracking, include = TRUE>>=
-pred_avg_diff<-
+pred_avg_diff <-
   new_data %>%
   left_join(sum_ready_data) %>%
   filter(!is.na(avg_diff) | num_tracks == 1 & age_selection == 1) %>%
   select(country, num_tracks, age_selection, pred, avg_diff)
 
 track_should_change <- pred_avg_diff$country[pred_avg_diff$country %>% duplicated]
+track_should_not_change <- setdiff(pred_avg_diff$country, track_should_change)
 
 avg_diff_data <-
   pred_avg_diff %>%
@@ -2078,6 +2079,31 @@ xtable(final_avg_diff_table) %>%
   include.rownames = FALSE
   )
 
+@
+
+<<other_counterfactual, eval = F>>=
+
+# This is for when calculating the mean 'widening' of the gap if countries with 'ideal' tracking swtiched to the 'worse' tracking
+
+pred_avg_diff <-
+  new_data %>%
+  left_join(sum_ready_data) %>%
+  filter(!is.na(avg_diff) | as.numeric(num_tracks) > 1 & age_selection == 0) %>%
+  select(country, num_tracks, age_selection, pred, avg_diff)
+
+avg_increase <-
+  pred_avg_diff %>%
+  filter(country %in% track_should_not_change) %>%
+  fill(avg_diff, .direction = "up") %>%
+  group_by(country, num_tracks = ifelse(as.numeric(num_tracks) > 1, "more", "one")) %>%
+  summarize(pred = mean(pred, na.rm = TRUE),
+            avg_diff = mean(avg_diff, na.rm = TRUE)) %>%
+  filter(num_tracks == "more") %>%
+  mutate(reduction = ((pred - avg_diff) / avg_diff) * 100) %>%
+  pull(reduction) %>%
+  mean
+
+avg_increase
 @
 
 The biggest reductions are for both Hungary and Germany, with 46\% and 36\% respectively. France, which had a particularly steep increase in the last 15 years, would see a reduction of the 90/10 SES gap of 31\% and Austria, with a very similar tracking structure as the German case, would see their achievement gap reduced by 20\%. The very suprising result is the Dutch case, for which a switch from the 'worst' tracking setup to the 'best' case would result in an increase of the gap of 19\%.
