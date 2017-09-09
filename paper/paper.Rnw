@@ -194,36 +194,36 @@ reliability_pisa <-
 @
 
 <<merge_escs_pisa>>=
-   # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
+  # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
   # 2015) doesn't need to be merged so I exclude it with this vector
   exclude <- -6
   
   # Loop in parallel to the PISA data, the ESCS data and the year vector (which is seq(2012, 2015, 3))
   pisa_all2$value[exclude] <-
     pmap(list(pisa_all2$value[exclude], escs_trend, years[exclude]), function(.x, .y, .z) {
-    
-    # The escs data needs to have the key variables the same class as the
-    # same data.
-    escs <-
-      .y %>% mutate(schoolid = as.numeric(schoolid),
-                    stidstd = as.numeric(stidstd))
-    
-    # .z is the corresponding year that will be created as a column
-    # And perform the same transformation of the key variables as in the ESCS data
-    data_trend <-
-      .x %>%
+      
+      # The escs data needs to have the key variables the same class as the
+      # same data.
+      escs <-
+        .y %>% mutate(schoolid = as.numeric(schoolid),
+                      stidstd = as.numeric(stidstd))
+      
+      # .z is the corresponding year that will be created as a column
+      # And perform the same transformation of the key variables as in the ESCS data
+      data_trend <-
+        .x %>%
         mutate(
           year = .z,
           schoolid = as.numeric(as.character(SCHOOLID)),
           stidstd = as.numeric(as.character(STIDSTD))
-          ) %>%
-   left_join(escs,
-              by = c("country", "schoolid", "stidstd"))
-    
-    message(paste(unique(.x$wave), "done"))
-    
-    data_trend
-  })
+        ) %>%
+        left_join(escs,
+                  by = c("country", "schoolid", "stidstd"))
+      
+      message(paste(unique(.x$wave), "done"))
+      
+      data_trend
+    })
   
   pisa_all2$value[[6]] <-
     pisa_all2$value[[6]] %>%
@@ -831,8 +831,7 @@ table_coming <-
   spread(all_vals, vals) %>%
   select(name, country, `0_n`, `0_Mean`, `0_s.e.`, `1_n`, `1_Mean`, `1_s.e.`) %>%
   mutate(`0_n` = as.character(`0_n`),
-         `1_n` = as.character(`1_n`)) %>%
-  xtable::xtable()
+         `1_n` = as.character(`1_n`))
 
 addtorow <- list()
 addtorow$pos <- list(0)
@@ -852,15 +851,15 @@ addtorow$command <- paste("\\hline \\
                             collapse = " & "),
                           "\\\\ \\hline")
 
-print(table_coming,
-      scalebox = '0.75',
-      floating = FALSE,
-      add.to.row = addtorow,
-      include.colnames = FALSE,
-      include.rownames = FALSE,
-      hline.after = nrow(table_coming),
-      caption.placement = "top",
-      caption = "SES sample size and ISCED composition")
+xtable(table_coming,
+       caption = "SES sample size and ISCED composition"
+       ) %>%
+  print(
+    add.to.row = addtorow,
+    include.colnames = FALSE,
+    include.rownames = FALSE,
+    hline.after = nrow(table_coming)
+  )
 @
 
 The first table shows a description of the sample size and mean score of both top and bottom SES groups for only the first and last time point. One main concern from the planned analysis is that getting the top 90th percentile and bottom 10th percentile would result in a small sample size. The table suggests that we have a reasonable number of respondents to actually estimate gaps accurately. Moreover, we can see that in all instances the bottom SES group has a lower score than all top SES groups.
@@ -1150,7 +1149,7 @@ Given that no one has estimated the evolution of the gap we can't cross-check ho
 
 Other countries have reasonable increases such as Finland and Hungary, with increases of nearly \Sexpr{diff_data$math[["Finland"]]} and \Sexpr{diff_data$math[["Hungary"]]}, respectively. Aside from these countries, there are other cases that have no change at all, specifically, Canada, Netherlands and Spain. Canada excels here not only because the gap has been stable over time, but because it has the smallest gap of all countries presented here. It's nearly 0.5 standard deviations in 2000 and it increased only by \Sexpr{diff_data$math[["Canada"]]} in 2015. We can't really say Italy has had a significant increase since it has a sort of wiggly pattern that looks like it cancels itself out.
 
-On the other hand, we do have some countries which show a decrease in the SES achievement gap. Poland decreased by about \Sexpr{diff_data$math[["Poland"]]} and Denmark by \Sexpr{diff_data$math[["Denmark"]]}. However, the most notable cases are the United States and Germany. These two countries show a very high level of dispersion in the year 2000 with SES gaps of over 2 standard deviations. But in the 15-year time trend both countries reduced the gaps by \Sexpr{diff_data$math[["United States"]]} and \Sexpr{diff_data$math[["Germany"]]} respectively. Their distinctively big gaps in 2000 also show up in the work of \citet{micklewright}. This corroborates the findings of \citet{reardon_portilla}, which found a decreasing gap for kindergarteners. This decline is evident also for 15 year olds, suggesting it might be more of an institutional change rather than a specific grade-level policy. Do note that the trendline is for both mathematics and literacy. If it were only for mathematics, then the trendline would probably be even more extreme. Despite this, pooling both subjects gives even more strength to the analysis given that the results stand for both subjects together \footnote{Same graph is availabe for reading upon request, where we find pretty much the same results if not even more steep/downward slopes.}.
+On the other hand, we do have some countries which show a decrease in the SES achievement gap. Poland decreased by about \Sexpr{diff_data$math[["Poland"]]} and Denmark by \Sexpr{diff_data$math[["Denmark"]]}. However, the most notable cases are the United States and Germany. These two countries show a very high level of dispersion in the year 2000 with SES gaps of over 2 standard deviations. But in the 15-year time trend both countries reduced the gaps by \Sexpr{diff_data$math[["United States"]]} and \Sexpr{diff_data$math[["Germany"]]} respectively. Their distinctively big gaps in 2000 also show up in the work of \citet{micklewright}. This corroborates the findings of \citet{reardon_portilla}, which found a decreasing gap for kindergarteners. This decline is evident also for 15 year olds, suggesting it might be more of an institutional change rather than a specific grade-level policy. Do note that the trendline is for both mathematics and literacy. If it were only for mathematics, then the trendline would probably be even more extreme. Despite this, pooling both subjects gives even more strength to the analysis given that the results stand for both subjects together \footnote{Same graph is availabe for reading upon request, where we find pretty much the same results if not even more steep/downward slopes.}. We also plot the 80/20 and 70/30 SES gaps and find that very similar patterns as in the 90/10 SES gap (see figure 10 in the appendix).
 
 Analyzing this graph we might naively conclude that these trends are not very steep and they should not be very important to consider. However, remember that the Y axis is measured in standard deviations. Small changes are actually very huge in practical terms. Take the case of Sweden. The slope doesn't look that steep but in reality it increased the gap from 1 standard deviation in 2000 to around 1.5 standard deviation in 2015. Now that we know that, the trends of Poland, United States, France and Germany are particularly shocking.
 
@@ -1274,7 +1273,7 @@ perc_graph(top_bottom_perc, "math", "90/10 achievement gap", "Percentage change 
 \end{center}
 \end{figure}
 
-Generally speaking, we see that most countries increased their achievement gap over time. France had an average increase of about 80\% since 2000 varying down to 40\%, whereas Germany had a similar figure but decreasing. Many of the countries we saw before that didn't have a very steep slope, such as Hungary or Australia, in fact had increases of about 40\% of their gap. In contrast, we see that the U.S and Poland had also quite significant decreases of about 40\%. The benefit of presenting these estimates this way is that we can actually asses the uncertainty of each calculation, and we do find that some of these estimates have wide variability. Despite this, most countries show a clear sign of either decreasing or increasing.
+Generally speaking, we see that most countries increased their achievement gap over time. France had an average increase of about 80\% since 2000 varying down to 40\%, whereas Germany had a similar figure but decreasing. Many of the countries we saw before that didn't have a very steep slope, such as Hungary or Australia, in fact had increases of about 40\% of their gap. In contrast, we see that the U.S and Poland had also quite significant decreases of about 40\%. The benefit of presenting these estimates this way is that we can actually asses the uncertainty of each calculation, and we do find that some of these estimates have wide variability. Despite this, most countries show a clear sign of either decreasing or increasing. We plot the same graph for the 80/20 and 70/30 SES gaps in the appendix and the results hold for these achievement gaps as well.
 
 % Code chunks for the same plots as above for reading. Available upon request.
 <<evolution_reading, eval = F>>=
@@ -1320,8 +1319,8 @@ complete_data_topbottom %>%
   # gather(lower_bound, lower, matches("\\d_lower")) %>%
   # gather(upper_bound, upper, matches("\\d_upper"))
   ggplot(aes(as.factor(wave), gap_size, group = ses, colour = ses, shape = ses)) +
-  geom_point(size = 2, alpha = 0.4) +
-  geom_line(alpha = 0.4) +
+  geom_point(size = 2) +
+  geom_line() +
   geom_line(stat = "smooth", method = "lm", aes(group = 1),
             formula = y ~ splines::ns(x, 1), linetype = "longdash",
             colour = "black") +
@@ -1519,8 +1518,8 @@ complete_data_topbottom %>%
   separate(score, c("ses", "score"), sep = 2) %>%
   spread(score, value) %>%
   ggplot(aes(as.factor(wave), mean_math, group = ses, colour = ses, shape = ses)) +
-  geom_line(alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.4) +
+  geom_line() +
+  geom_point(size = 2) +
   coord_cartesian(ylim = c(-1, 2)) +
   scale_y_continuous(name = "Standardized test scores (mean 0)") +
   scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
@@ -1605,13 +1604,13 @@ data_to_plot %>%
   gather(type, value, difference, Mean) %>%
   filter(country %in% countries) %>%
   ggplot(aes(as.character(wave), value, group = type, colour = type, shape = type)) +
-  geom_point(size = 2, alpha = 0.4) +
-  geom_line(alpha = 0.4) +
+  geom_point(size = 2) +
+  geom_line() +
   scale_y_continuous(name = "Test scores in SD") +
   scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
   scale_colour_discrete(name = NULL, labels = c("Achievement gap", "Avg performance")) +
   scale_shape_discrete(name = NULL, labels = c("Achievement gap", "Avg performance")) +
-  ggtitle("Evolution of the top/bottom groups by different gaps") +
+  ggtitle("Evolution of the relationship between achievement and inequality") +
   facet_wrap(~ country, ncol = 5) +
   theme_few() +
   theme(panel.spacing = unit(1, "lines"),
@@ -1840,7 +1839,6 @@ ready_data_age <-
   mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor)
 @
 
-
 We now move to the final section of the paper, where we discuss what is a likely explanation to the patterns from before. The reason why countries differ in their evolution of inequality is still unknown. There is ample evidence showing the inequality between countries, to a certain extent, can be explained by the degree of tracking \citep{hanushek_woesmann_tracking}. But we are also interested in what explains the between country evolution of inequality, that is, the explanation as to why in certain countries it is increasing more than others over time.
 
 This is clearly a difficult task given that, at least at the country-level, not many features of the educational system change in a 15-year time span, resulting in a practically invariant variable from which to explain the level of inequality (without any variance, we can't explain anything.). However, there are other strategies that can at least partially help us to understand the phenomena, and these are precisely the ones we follow.
@@ -1960,7 +1958,9 @@ all_track_models %>%
     "Vocational Index",
     "Intercept"
   )) %>%
-  xtable() %>%
+  xtable(
+    caption = "Explaining 90/10 achievement gap - all countries pooled - Multilevel model"
+  ) %>%
   print(
   include.rownames = FALSE,
   add.to.row = table_details(all_track_models)
@@ -2023,21 +2023,22 @@ new_data %>%
   left_join(sum_ready_data) %>%
   mutate(age_selection = ifelse(age_selection == 1, ">= 15", "< 15")) %>%
   ggplot(aes(num_tracks, avg_diff, fill = num_tracks)) +
-  geom_point(colour = "red") +
-  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
-  geom_col(aes(y = pred, alpha = 0.4)) +
+  geom_col(aes(y = pred, colour = num_tracks)) +
   geom_errorbar(aes(ymin = pred_low, ymax = pred_high), width = 0.2) +
+  geom_point(colour = "red", shape = 8) +
+  geom_errorbar(aes(ymin = diff_low, ymax = diff_high), width = 0.2, colour = "red") +
   facet_wrap(country ~ age_selection) +
   scale_y_continuous(name = "90/10 SD gap", limits = c(0, 4)) +
   scale_alpha(guide = F) +
   scale_x_discrete(name = "Number of tracks", labels = c("> 1 track", "1 track")) +
-  scale_fill_manual(values = c("orangered2", "blue3"), guide = F) +
+  scale_fill_manual(values = c("white", "white"), guide = F) +
+  scale_colour_manual(values = c("black", "black"), guide = F) +
   ggtitle("Predicted 90/10 gap for different combinations of number of tracks and age of selection")
 @
 
-The red point for Germany is in the '\textgreater 1 track' and '\textless 15 age' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately, relative to the actual level (red point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. 
+The star point for Germany is in the '\textgreater 1 track' and '\textless 15 age' setup, meaning that Germany has a tracking system that has more than 1 track and an age of selection of below 15. We see that the model predicts the level of inequality for that set up quite accurately (height of the bar), relative to the actual level (the star point). But if the setup would be in the ideal '1 track' and age of selection above or equal to 15, the inequality would be much lower. 
 
-These graph reveals some interesting patterns. Generally speaking, we find that the simulation shows that virtually all countries which are not in this 'ideal' tracking, that would switch to the 'ideal' setup would see a reduction of the achievement gap. Yet we also find the opposite result. Countries which are in the 'ideal' tracking setup that would change to the 'worst' setup, all countries would see a widening of the achievement gap. On average, we find that if all countries switched to the 'ideal' setup, we would see an average reduction of 20\%. This is a very important figure considering that \citet{reardon2011} found that the US gap increased by about 40-50\% in 30 years. Had all countries in the 'ideal' tracking switched to the 'worst' tracking, we would see an average widening of nearly 72\%. For those countries which are not in the 'ideal' tracking setup, we compute below the percentage change from switching to the ideal tracking.
+These graph reveals some interesting patterns. Generally speaking, we find that the simulation predicts that virtually all countries which are not in this 'ideal' tracking, that would switch to the 'ideal' setup, would experience a reduction of the achievement gap. Yet we also find the opposite result. Countries which are in the 'ideal' setup that would change to the 'worst' setup would see a widening of the achievement gap. On average, we find that if all countries switched to the 'ideal' setup, we would see an average reduction of 20\%. This is a very important figure considering that \citet{reardon2011} found that the US gap increased by about 40-50\% in 30 years. Had all countries in the 'ideal' tracking switched to the 'worst' tracking, we would see an average widening of nearly 72\%. For those countries which are not in the 'ideal' tracking setup, we compute below the percentage change from switching to the ideal tracking.
 
 <<counterfactual_tracking, include = TRUE>>=
 pred_avg_diff <-
@@ -2073,17 +2074,19 @@ final_avg_diff_table <-
     `% reduction` = (((`Inequality` - `Predicted`)/ `Inequality`) * 100) %>%
       ceiling %>% paste0("%")
     )
-
-xtable(final_avg_diff_table) %>%
+final_avg_diff_table %>%
+  xtable(
+    caption = "Simulation: reduction of achievement gap if countries switched to 'ideal' tracking"
+  ) %>%
   print(
   include.rownames = FALSE
   )
 
 @
 
-<<other_counterfactual, eval = F>>=
+% This is for when calculating the mean 'widening' of the gap if countries with 'ideal' tracking swtiched to the 'worse' tracking
 
-# This is for when calculating the mean 'widening' of the gap if countries with 'ideal' tracking swtiched to the 'worse' tracking
+<<other_counterfactual, eval = F>>=
 
 pred_avg_diff <-
   new_data %>%
@@ -2115,12 +2118,6 @@ Considering that the results are very consistent for every country, and in most 
 A more summarized empirical strategy is to actually standardize all the tracking indicator into one index, something that \citet{bol2013} already do quite nicely. Using this standardized tracking variable and the same bayesian multilevel model, we now model the tracking and vocational index as before, but add an interaction between two, given that in the previous model we recorded a strong shift in the model when tracking-related variables and the vocational model where both included in the same model. Below are the results for this model.
 
 <<interaction_model, results = 'hide'>>=
-
-sig_vs_sig <- function(coef1, se1, coef2, se2) {
-  diff <- c(coef1, se1) - c(coef2, se2)
-  abs(diff[1]) - 2 * diff[2]
-}
-
 ready_data <- dif_data(complete_gaps, tracking_data)
 
 stan_models <-
@@ -2141,7 +2138,9 @@ stan_models %>%
     "Trackin * Vocational Index",
     "Intercept"
   )) %>%
-  xtable() %>%
+  xtable(
+    caption = "What explains 90/10 achievement gap? Tracking and Vocational interaction"
+  ) %>%
   print.xtable(
     include.rownames = FALSE,
     add.to.row = table_details(stan_models)
@@ -2150,18 +2149,48 @@ stan_models %>%
 
 We confirm the results from the previous models, where more tracking is associated with an achievement gap of about 0.4 standard deviations wider and more vocational enrollment is associated with a reduction of about 0.2 standard deviations, half the slope of tracking. Meaning that the tracking effect might be offsetting the effect of the vocational index given that it's half the size of the slope. Both these coefficients are actually significantly different from each other, so it is possible. Before we explore it visually, note that the interaction between the two is very reliable and significant, considering that small sample size. Below we graph the interaction for different quantiles of the vocational index.
 
+<<coefficents_sif_diff, eval = F>>=
+
+sig_vs_sig <- function(coef1, se1, coef2, se2) {
+  diff <- c(coef1, se1) - c(coef2, se2)
+  abs(diff[1]) - 2 * diff[2]
+}
+
+sig(0.41, , -0.22, ) # the two arguments missing are the SE's of both coefficients.
+# take from the model from above and finish calculate (already did before, they're sig different from each other but I don't want to rerun again! :P)
+
+@
+
 <<interaction_plot, include = T, out.height = '5in', out.width = '5.5in', fig.align = 'center'>>=
 plot_interaction <-
   marginal_effects(stan_models[[length(stan_models)]],
                  effects = "ztrack:zvoc",
                  int_conditions = list(zvoc = quantile))
 
-plot(plot_interaction, plot = FALSE)[[1]] +
+data_interaction <-
+  plot(plot_interaction, plot = FALSE)[[1]] %>% ggplot_build() %>% pluck(1) %>% pluck(1)
+
+order_colour <-
+  data_interaction %>%
+  distinct(group, colour) %>%
+  mutate(colour = rev(colour)) %>%
+  pull(colour)
+
+data_interaction %>%
+  mutate(linetype = group %>% as.factor,
+         colour = factor(colour, levels = order_colour)) %>%
+  ggplot(aes(x, y)) +
+  geom_line(aes(colour = colour, linetype = linetype), size = 1) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax, fill = colour), alpha = 0.4) +
   labs(x = "Tracking Index (SD)", y = "90/10 Achievement gap (SD)") +
   scale_colour_discrete(
     name = "Vocational index \n quantiles",
     labels = seq(100, 0, -25) %>% paste0("%")
-    ) +
+  ) +
+  scale_linetype_discrete(
+    name = "Vocational index \n quantiles",
+    labels = seq(100, 0, -25) %>% paste0("%")
+  ) +
   scale_fill_discrete(guide = FALSE) +
   ggtitle("Interaction between Tracking and Vocational index")
 
@@ -2177,11 +2206,7 @@ plot(plot_interaction, plot = FALSE)[[1]] +
 
 The results are very interesting. We see that for lower levels of tracking (meaning little to no tracking) theres a very low achievement gap, regardless of whether the country has very high or very low vocational enrollment. However, once tracking enters the picture, vocational enrollment can be a strong equalizer. We see that the bottom quantile of vocational enrollment has almost twice the achievement gap as the top quantile for vocational enrollment. Moreover, our earlier interpretation (that tracking is more important than vocational enrollment for reducing the achievement gap) still holds and is very evident here. Despite the equalizing power of vocational enrollment, a high level of tracking with the highest level of vocational enrollment still leaves a country with an achievement gap of over 1.5 standard deviations. However, a country with low levels of tracking and \textit{any} level of vocational enrollment is nearly 1.3 standard deviations at best. A key finding from these results is that tracking is a reasonable explanation of the 90/10 achievement gap, and we should consider it as a very important component in the reduction of the achievement gap. However, these results highlight that it should not be studied in isolation from other features such as the degree of vocational enrollment. We see a very sizable change in the achievement gap for a given country with the same level of tracking and high and low levels of vocational enrollment.
 
-% Talk about the mechanisms why tracking might be explaining this, although tracking doesn't change over time.
-
-% Because it might've caused it at the beginning and now it just exarcebates it.
-
-% Because when combined with vocational enrollment, it might be exarcebarting even more, if enrollment is not high.
+The exact mechanisms through whick the tracking setup is explaining these inequalities is still very speculative. We could argue that tracking might've introduced the inequality once it was implemented. Another possibility is that tracking, althought not changing, is currently exarcebating it every year. Another explanation, which we find strong evidence for, is that the tracking setup interacts very closely with the vocational setup. These explanations are very speculative and further research should carry the task of looking for a more concrete explanation.
 
 % We need to define key numbers, to refer in the abstract, like the achievement gap closes % percent in the counterfactual and there's a difference of % percent between same level of tracking but different vocational enrollments.
 
@@ -2302,7 +2327,9 @@ all_gaps_models_cum %>%
     "Intercept"
   )) %>%
   setNames(c(" ", gsub(" SES gap", "", gaps))) %>%
-  xtable() %>%
+  xtable(
+    caption = "What explains the cumulative achievement gaps? Models for three different achievement gaps"
+  ) %>%
   print.xtable(
     include.rownames = FALSE,
     add.to.row = table_details(all_gaps_models_cum)
