@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  11 SEP 2017 14:06
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  12 SEP 2017 13:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -188,10 +188,16 @@ Package caption3 Info: TeX engine: e-TeX on input line 67.
 \c@subfigure=\count104
 \c@subtable=\count105
 )
+(/usr/local/texlive/2016/texmf-dist/tex/latex/titling/titling.sty
+Package: titling 2009/09/04 v2.1d maketitle typesetting
+\thanksmarkwidth=\skip47
+\thanksmargin=\skip48
+\droptitle=\skip49
+)
 (/usr/local/texlive/2016/texmf-dist/tex/latex/natbib/natbib.sty
 Package: natbib 2010/09/13 8.31b (PWD, AO)
-\bibhang=\skip47
-\bibsep=\skip48
+\bibhang=\skip50
+\bibsep=\skip51
 LaTeX Info: Redefining \cite on input line 694.
 \c@NAT@ctr=\count106
 )
@@ -304,7 +310,7 @@ Package: rerunfilecheck 2016/05/16 v1.8 Rerun checks for auxiliary files (HO)
 Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 82.
 )
-\Hy@SectionHShift=\skip49
+\Hy@SectionHShift=\skip52
 )
 (/usr/local/texlive/2016/texmf-dist/tex/latex/booktabs/booktabs.sty
 Package: booktabs 2016/04/27 v1.618033 publication quality tables
@@ -332,20 +338,20 @@ tim
 ) (./paper.aux)
 \openout1 = `paper.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 87.
-LaTeX Font Info:    ... okay on input line 87.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
  (/usr/local/texlive/2016/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count121
@@ -412,7 +418,7 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
 \AtBeginShipoutBox=\box29
-Package hyperref Info: Link coloring ON on input line 87.
+Package hyperref Info: Link coloring ON on input line 88.
 (/usr/local/texlive/2016/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
 
@@ -421,35 +427,31 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count127
 )
-LaTeX Info: Redefining \ref on input line 87.
-LaTeX Info: Redefining \pageref on input line 87.
-LaTeX Info: Redefining \nameref on input line 87.
+LaTeX Info: Redefining \ref on input line 88.
+LaTeX Info: Redefining \pageref on input line 88.
+LaTeX Info: Redefining \nameref on input line 88.
 
 (./paper.out) (./paper.out)
 \@outlinefile=\write3
 \openout3 = `paper.out'.
 
- (./paper.toc)
-\tf@toc=\write4
-\openout4 = `paper.toc'.
-
  [1
 
 {/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
  [4] [5] [6]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 206.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 208.
 
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 206.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 208.
  [7]
 Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
 Missing character: There is no ™ in font cmr10!
- [8] [9]
+ [8]
 Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
 Missing character: There is no ™ in font cmr10!
@@ -459,79 +461,80 @@ Missing character: There is no ™ in font cmr10!
 Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
 Missing character: There is no ™ in font cmr10!
-
-<figure/variance_pisa-1.pdf, id=358, 505.89pt x 505.89pt>
+ [9]
+<figure/variance_pisa-1.pdf, id=346, 505.89pt x 505.89pt>
 File: figure/variance_pisa-1.pdf Graphic file (type pdf)
 
 <use figure/variance_pisa-1.pdf>
-Package pdftex.def Info: figure/variance_pisa-1.pdf used on input line 276.
+Package pdftex.def Info: figure/variance_pisa-1.pdf used on input line 278.
 (pdftex.def)             Requested size: 252.94437pt x 216.81056pt.
- [10] [11 <./figure/variance_pisa-1.pdf>]
-<figure/graphing_9010gaps-1.pdf, id=390, 505.89pt x 505.89pt>
+ [10 <./figure/variance_pisa-1.pdf>] [11]
+[12] <figure/graphing_9010gaps-1.pdf, id=383, 505.89pt x 505.89pt>
 File: figure/graphing_9010gaps-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_9010gaps-1.pdf>
-Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 451.
+Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 453.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [12] [13 <./figure/graphing_9010gaps-1.pdf>] [14] <figure/graphing_perc_increa
-se-1.pdf, id=425, 505.89pt x 505.89pt>
+ [13 <./figure/graphing_9010gaps-1.pdf>]
+<figure/graphing_perc_increase-1.pdf, id=407, 505.89pt x 505.89pt>
 File: figure/graphing_perc_increase-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_perc_increase-1.pdf>
 Package pdftex.def Info: figure/graphing_perc_increase-1.pdf used on input line
- 486.
+ 488.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [15 <./figure/graphing_perc_increase-1.pdf>] <figure/rate_increase/decrease-1.
-pdf, id=443, 505.89pt x 505.89pt>
+
+<figure/rate_increase/decrease-1.pdf, id=409, 505.89pt x 505.89pt>
 File: figure/rate_increase/decrease-1.pdf Graphic file (type pdf)
 
 <use figure/rate_increase/decrease-1.pdf>
 Package pdftex.def Info: figure/rate_increase/decrease-1.pdf used on input line
- 512.
+ 514.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [16 <./figure/rate_increase/decrease-1.pdf>] <figure/graphing_allgaps-1.pdf, i
-d=456, 505.89pt x 505.89pt>
+ [14] [15 <./figure/graphing_perc_increase-1.pdf>] [16 <./figure/rate_increase/
+decrease-1.pdf>]
+<figure/graphing_allgaps-1.pdf, id=443, 505.89pt x 505.89pt>
 File: figure/graphing_allgaps-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_allgaps-1.pdf>
-Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 538.
+Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 540.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [17] [18 <./figure/graphing_allgaps-1.pdf>] <figure/rate_change_graph-1.pdf, i
-d=478, 505.89pt x 505.89pt>
+ [17 <./figure/graphing_allgaps-1.pdf>]
+<figure/rate_change_graph-1.pdf, id=461, 505.89pt x 505.89pt>
 File: figure/rate_change_graph-1.pdf Graphic file (type pdf)
 
 <use figure/rate_change_graph-1.pdf>
-Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 564.
+Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 566.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [19 <./figure/rate_change_graph-1.pdf>]
-<figure/graphing_ses_growth-1.pdf, id=499, 505.89pt x 505.89pt>
+ [18] [19 <./figure/rate_change_graph-1.pdf>] <figure/graphing_ses_growth-1.pdf
+, id=486, 505.89pt x 505.89pt>
 File: figure/graphing_ses_growth-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_ses_growth-1.pdf>
 Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 58
-6.
+8.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [20 <./figure/graphing_ses_growth-1.pdf>] <figure/avgperformance_inequality-1.
-pdf, id=510, 505.89pt x 505.89pt>
+
+<figure/avgperformance_inequality-1.pdf, id=487, 505.89pt x 505.89pt>
 File: figure/avgperformance_inequality-1.pdf Graphic file (type pdf)
 
 <use figure/avgperformance_inequality-1.pdf>
 Package pdftex.def Info: figure/avgperformance_inequality-1.pdf used on input l
-ine 612.
+ine 614.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
-
+ [20 <./figure/graphing_ses_growth-1.pdf>] [21 <./figure/avgperformance_inequal
+ity-1.pdf>]
 <figure/country_achievement_and_inequality-1.pdf, id=514, 505.89pt x 505.89pt>
 File: figure/country_achievement_and_inequality-1.pdf Graphic file (type pdf)
 
 <use figure/country_achievement_and_inequality-1.pdf>
 Package pdftex.def Info: figure/country_achievement_and_inequality-1.pdf used o
-n input line 631.
+n input line 633.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [21 <./figure/avgperformance_inequality-1.pdf>] [22 <./figure/country_achievem
-ent_and_inequality-1.pdf>]
-Overfull \hbox (22.577pt too wide) in paragraph at lines 683--694
+ [22 <./figure/country_achievement_and_inequality-1.pdf>]
+Overfull \hbox (22.577pt too wide) in paragraph at lines 685--696
  [][] 
 
 \hbox(58.93744+53.46246)x483.69684
@@ -585,38 +588,37 @@ Overfull \hbox (22.577pt too wide) in paragraph at lines 683--694
 .\glue(\parfillskip) 0.0
 .etc.
 
-[23]
-<figure/graph_complete_tracking_graph-1.pdf, id=560, 686.565pt x 505.89pt>
+[23] <figure/graph_complete_tracking_graph-1.pdf, id=548, 650.43pt x 650.43pt>
 File: figure/graph_complete_tracking_graph-1.pdf Graphic file (type pdf)
 
 <use figure/graph_complete_tracking_graph-1.pdf>
 Package pdftex.def Info: figure/graph_complete_tracking_graph-1.pdf used on inp
-ut line 708.
-(pdftex.def)             Requested size: 469.74944pt x 505.89645pt.
-LaTeX Font Info:    Try loading font information for OML+cmr on input line 717.
+ut line 710.
+(pdftex.def)             Requested size: 469.76817pt x 505.90419pt.
+LaTeX Font Info:    Try loading font information for OML+cmr on input line 719.
 
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/omlcmr.fd
 File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 717.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 719.
  [24] [25 <./figure/graph_complete_tracking_graph-1.pdf>] [26]
-<figure/interaction_plot-1.pdf, id=590, 505.89pt x 505.89pt>
+<figure/interaction_plot-1.pdf, id=579, 578.16pt x 505.89pt>
 File: figure/interaction_plot-1.pdf Graphic file (type pdf)
 
 <use figure/interaction_plot-1.pdf>
-Package pdftex.def Info: figure/interaction_plot-1.pdf used on input line 782.
-(pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
-
-<figure/all_gaps_plot-1.pdf, id=591, 505.89pt x 505.89pt>
+Package pdftex.def Info: figure/interaction_plot-1.pdf used on input line 784.
+(pdftex.def)             Requested size: 469.75385pt x 361.35352pt.
+ [27 <./figure/interaction_plot-1.pdf>]
+<figure/all_gaps_plot-1.pdf, id=593, 505.89pt x 505.89pt>
 File: figure/all_gaps_plot-1.pdf Graphic file (type pdf)
 
 <use figure/all_gaps_plot-1.pdf>
-Package pdftex.def Info: figure/all_gaps_plot-1.pdf used on input line 808.
+Package pdftex.def Info: figure/all_gaps_plot-1.pdf used on input line 810.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
- [27] [28 <./figure/interaction_plot-1.pdf>]
-[29 <./figure/all_gaps_plot-1.pdf>] (./paper.bbl [30]
+ [28 <./figure/all_gaps_plot-1.pdf>] [29]
+(./paper.bbl [30]
 Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
 Missing character: There is no œ in font cmr10!
@@ -627,48 +629,48 @@ Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
 Missing character: There is no ™ in font cmr10!
  [31]) [32]
-<figure/graph_all_gaps-1.pdf, id=638, 505.89pt x 505.89pt>
+<figure/graph_all_gaps-1.pdf, id=628, 505.89pt x 505.89pt>
 File: figure/graph_all_gaps-1.pdf Graphic file (type pdf)
 
 <use figure/graph_all_gaps-1.pdf>
-Package pdftex.def Info: figure/graph_all_gaps-1.pdf used on input line 857.
+Package pdftex.def Info: figure/graph_all_gaps-1.pdf used on input line 871.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/percentage_change_8020-1.pdf, id=639, 505.89pt x 505.89pt>
+<figure/percentage_change_8020-1.pdf, id=629, 505.89pt x 505.89pt>
 File: figure/percentage_change_8020-1.pdf Graphic file (type pdf)
 
 <use figure/percentage_change_8020-1.pdf>
 Package pdftex.def Info: figure/percentage_change_8020-1.pdf used on input line
- 868.
+ 882.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
-<figure/percentage_change_7030-1.pdf, id=640, 505.89pt x 505.89pt>
+<figure/percentage_change_7030-1.pdf, id=630, 505.89pt x 505.89pt>
 File: figure/percentage_change_7030-1.pdf Graphic file (type pdf)
 
 <use figure/percentage_change_7030-1.pdf>
 Package pdftex.def Info: figure/percentage_change_7030-1.pdf used on input line
- 879.
+ 893.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 890.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 904.
  [33 <./figure/graph_all_gaps-1.pdf>]
 [34 <./figure/percentage_change_8020-1.pdf>] [35 <./figure/percentage_change_70
 30-1.pdf>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 890.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 904.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 890.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 890.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 904.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 904.
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: 8687EBA2DBDDBA6BD00024DDD25B7AE2;867.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 890.
+(rerunfilecheck)             Checksum: 5D2506DB9505853EAD054AED6BD54FC9;881.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 904.
  ) 
 Here is how much of TeX's memory you used:
- 8116 strings out of 493014
- 123761 string characters out of 6133351
- 233369 words of memory out of 5000000
- 11408 multiletter control sequences out of 15000+600000
+ 8174 strings out of 493014
+ 124624 string characters out of 6133351
+ 233150 words of memory out of 5000000
+ 11465 multiletter control sequences out of 15000+600000
  12117 words of font info for 43 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,17n,40p,1722b,482s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 42i,17n,40p,1705b,478s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
@@ -684,10 +686,10 @@ ive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive
 2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2
 016/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/20
 16/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb>
-Output written on paper.pdf (35 pages, 455366 bytes).
+Output written on paper.pdf (35 pages, 453051 bytes).
 PDF statistics:
- 760 PDF objects out of 1000 (max. 8388607)
- 671 compressed objects within 7 object streams
+ 750 PDF objects out of 1000 (max. 8388607)
+ 661 compressed objects within 7 object streams
  135 named destinations out of 1000 (max. 500000)
  188 words of extra memory for PDF output out of 10000 (max. 10000000)
 
