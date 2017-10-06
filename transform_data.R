@@ -4,7 +4,6 @@ library(PISA2000lite)
 library(PISA2003lite)
 library(PISA2006lite)
 library(PISA2009lite)
-library(PISA2012lite)
 library(intsvy)
 library(cimentadaj) # For pisa_countrynames
 library(countrycode) # For region variable
