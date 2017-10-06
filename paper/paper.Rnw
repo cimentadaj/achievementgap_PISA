@@ -131,6 +131,14 @@ The literature on achievement inequality has only recently started studying the 
 
 % pisa_listcol.Rdata is a dataset produced by the source() expression from the above
 % code chunk
+
+<<creating_data, eval = F>>=
+# For now I don't run it, but it should be run when you leave the paper as done.
+  
+# This file downloads PISA 2012 and PISA 2015 and saves them in ./data/pisa_listcol.Rdata
+source("./transform_data.R")
+@
+
 <<loading_data-recoding>>=
 pisa_all <- read_rds("./data/pisa_listcol.Rdata")
   
