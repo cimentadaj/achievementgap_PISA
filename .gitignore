@@ -3,3 +3,5 @@ paper/cache/
 paper/data/
 paper/figure/
 *.RData
+packrat/lib*/
+packrat/src/
