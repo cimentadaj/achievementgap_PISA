@@ -210,8 +210,8 @@ Requires: Brobdingnag, Matrix, coda, mvtnorm, scales, stringr
 
 Package: brms
 Source: CRAN
-Version: 1.9.0
-Hash: b4bc5e543b93c0484be68e9568cf36c2
+Version: 1.10.0
+Hash: 05536823f9845b468bbb79fa74557c36
 Requires: Matrix, Rcpp, abind, bayesplot, bridgesampling, coda,
     ggplot2, loo, matrixStats, mgcv, nlme, rstan, rstantools, shinystan
 
