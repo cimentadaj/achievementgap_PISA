@@ -229,8 +229,8 @@ Requires: bitops
 
 Package: car
 Source: CRAN
-Version: 2.1-4
-Hash: d8cc2f66d4ba0c91312f1c1c5773d502
+Version: 2.1-5
+Hash: 3c9e1eac57d1c381f7ce9562895eb33b
 Requires: MASS, mgcv, nnet, pbkrtest, quantreg
 
 Package: cellranger

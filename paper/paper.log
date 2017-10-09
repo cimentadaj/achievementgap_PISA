@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  6 OCT 2017 17:06
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  9 OCT 2017 11:45
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -439,14 +439,14 @@ LaTeX Info: Redefining \nameref on input line 88.
 
 {/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
  [4] [5] [6]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 208.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 211.
 
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 208.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 211.
  [7]
 Missing character: There is no â in font cmr10!
 Missing character: There is no € in font cmr10!
@@ -466,14 +466,14 @@ Missing character: There is no ™ in font cmr10!
 File: figure/variance_pisa-1.pdf Graphic file (type pdf)
 
 <use figure/variance_pisa-1.pdf>
-Package pdftex.def Info: figure/variance_pisa-1.pdf used on input line 278.
+Package pdftex.def Info: figure/variance_pisa-1.pdf used on input line 281.
 (pdftex.def)             Requested size: 252.94437pt x 216.81056pt.
  [10 <./figure/variance_pisa-1.pdf>] [11]
 [12] <figure/graphing_9010gaps-1.pdf, id=383, 505.89pt x 505.89pt>
 File: figure/graphing_9010gaps-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_9010gaps-1.pdf>
-Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 453.
+Package pdftex.def Info: figure/graphing_9010gaps-1.pdf used on input line 456.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [13 <./figure/graphing_9010gaps-1.pdf>]
@@ -482,7 +482,7 @@ File: figure/graphing_perc_increase-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_perc_increase-1.pdf>
 Package pdftex.def Info: figure/graphing_perc_increase-1.pdf used on input line
- 488.
+ 491.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
 <figure/rate_increase/decrease-1.pdf, id=409, 505.89pt x 505.89pt>
@@ -490,7 +490,7 @@ File: figure/rate_increase/decrease-1.pdf Graphic file (type pdf)
 
 <use figure/rate_increase/decrease-1.pdf>
 Package pdftex.def Info: figure/rate_increase/decrease-1.pdf used on input line
- 514.
+ 517.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [14] [15 <./figure/graphing_perc_increase-1.pdf>] [16 <./figure/rate_increase/
 decrease-1.pdf>]
@@ -498,14 +498,14 @@ decrease-1.pdf>]
 File: figure/graphing_allgaps-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_allgaps-1.pdf>
-Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 540.
+Package pdftex.def Info: figure/graphing_allgaps-1.pdf used on input line 543.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [17 <./figure/graphing_allgaps-1.pdf>]
 <figure/rate_change_graph-1.pdf, id=461, 505.89pt x 505.89pt>
 File: figure/rate_change_graph-1.pdf Graphic file (type pdf)
 
 <use figure/rate_change_graph-1.pdf>
-Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 566.
+Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 569.
 
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [18] [19 <./figure/rate_change_graph-1.pdf>] <figure/graphing_ses_growth-1.pdf
@@ -513,8 +513,8 @@ Package pdftex.def Info: figure/rate_change_graph-1.pdf used on input line 566.
 File: figure/graphing_ses_growth-1.pdf Graphic file (type pdf)
 
 <use figure/graphing_ses_growth-1.pdf>
-Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 58
-8.
+Package pdftex.def Info: figure/graphing_ses_growth-1.pdf used on input line 59
+1.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
 <figure/avgperformance_inequality-1.pdf, id=487, 505.89pt x 505.89pt>
@@ -522,7 +522,7 @@ File: figure/avgperformance_inequality-1.pdf Graphic file (type pdf)
 
 <use figure/avgperformance_inequality-1.pdf>
 Package pdftex.def Info: figure/avgperformance_inequality-1.pdf used on input l
-ine 614.
+ine 617.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [20 <./figure/graphing_ses_growth-1.pdf>] [21 <./figure/avgperformance_inequal
 ity-1.pdf>]
@@ -531,10 +531,10 @@ File: figure/country_achievement_and_inequality-1.pdf Graphic file (type pdf)
 
 <use figure/country_achievement_and_inequality-1.pdf>
 Package pdftex.def Info: figure/country_achievement_and_inequality-1.pdf used o
-n input line 633.
+n input line 636.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [22 <./figure/country_achievement_and_inequality-1.pdf>]
-Overfull \hbox (22.577pt too wide) in paragraph at lines 685--696
+Overfull \hbox (22.577pt too wide) in paragraph at lines 688--699
  [][] 
 
 \hbox(58.93744+53.46246)x483.69684
@@ -593,29 +593,29 @@ File: figure/graph_complete_tracking_graph-1.pdf Graphic file (type pdf)
 
 <use figure/graph_complete_tracking_graph-1.pdf>
 Package pdftex.def Info: figure/graph_complete_tracking_graph-1.pdf used on inp
-ut line 710.
+ut line 713.
 (pdftex.def)             Requested size: 469.76817pt x 505.90419pt.
-LaTeX Font Info:    Try loading font information for OML+cmr on input line 719.
+LaTeX Font Info:    Try loading font information for OML+cmr on input line 722.
 
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/omlcmr.fd
 File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <10.95> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 719.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 722.
  [24] [25 <./figure/graph_complete_tracking_graph-1.pdf>] [26]
 <figure/interaction_plot-1.pdf, id=579, 578.16pt x 505.89pt>
 File: figure/interaction_plot-1.pdf Graphic file (type pdf)
 
 <use figure/interaction_plot-1.pdf>
-Package pdftex.def Info: figure/interaction_plot-1.pdf used on input line 784.
+Package pdftex.def Info: figure/interaction_plot-1.pdf used on input line 787.
 (pdftex.def)             Requested size: 469.75385pt x 361.35352pt.
  [27 <./figure/interaction_plot-1.pdf>]
 <figure/all_gaps_plot-1.pdf, id=593, 505.89pt x 505.89pt>
 File: figure/all_gaps_plot-1.pdf Graphic file (type pdf)
 
 <use figure/all_gaps_plot-1.pdf>
-Package pdftex.def Info: figure/all_gaps_plot-1.pdf used on input line 810.
+Package pdftex.def Info: figure/all_gaps_plot-1.pdf used on input line 813.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
  [28 <./figure/all_gaps_plot-1.pdf>] [29]
 (./paper.bbl [30]
@@ -633,7 +633,7 @@ Missing character: There is no ™ in font cmr10!
 File: figure/graph_all_gaps-1.pdf Graphic file (type pdf)
 
 <use figure/graph_all_gaps-1.pdf>
-Package pdftex.def Info: figure/graph_all_gaps-1.pdf used on input line 871.
+Package pdftex.def Info: figure/graph_all_gaps-1.pdf used on input line 874.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
 <figure/percentage_change_8020-1.pdf, id=629, 505.89pt x 505.89pt>
@@ -641,7 +641,7 @@ File: figure/percentage_change_8020-1.pdf Graphic file (type pdf)
 
 <use figure/percentage_change_8020-1.pdf>
 Package pdftex.def Info: figure/percentage_change_8020-1.pdf used on input line
- 882.
+ 885.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
 
 <figure/percentage_change_7030-1.pdf, id=630, 505.89pt x 505.89pt>
@@ -649,19 +649,19 @@ File: figure/percentage_change_7030-1.pdf Graphic file (type pdf)
 
 <use figure/percentage_change_7030-1.pdf>
 Package pdftex.def Info: figure/percentage_change_7030-1.pdf used on input line
- 893.
+ 896.
 (pdftex.def)             Requested size: 397.49504pt x 361.35352pt.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 904.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 907.
  [33 <./figure/graph_all_gaps-1.pdf>]
 [34 <./figure/percentage_change_8020-1.pdf>] [35 <./figure/percentage_change_70
 30-1.pdf>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 904.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 907.
  (./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 904.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 904.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 907.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 907.
 Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: 5D2506DB9505853EAD054AED6BD54FC9;881.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 904.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 907.
  ) 
 Here is how much of TeX's memory you used:
  8174 strings out of 493014
@@ -670,7 +670,7 @@ Here is how much of TeX's memory you used:
  11465 multiletter control sequences out of 15000+600000
  12117 words of font info for 43 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 42i,17n,40p,1705b,478s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 42i,17n,40p,1708b,478s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
 </usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
@@ -686,7 +686,7 @@ ive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive
 2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2
 016/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/20
 16/texmf-dist/fonts/type1/public/amsfonts/cm/cmti9.pfb>
-Output written on paper.pdf (35 pages, 453122 bytes).
+Output written on paper.pdf (35 pages, 453177 bytes).
 PDF statistics:
  750 PDF objects out of 1000 (max. 8388607)
  661 compressed objects within 7 object streams
