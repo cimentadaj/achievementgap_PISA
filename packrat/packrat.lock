@@ -88,7 +88,6 @@ GithubSha1: de1b2af5e3aa106a0d71d76fe55d1ceea809af93
 Package: PKI
 Source: CRAN
 Version: 0.1-5.1
-Hash: 8c194fb34ebaab38a13e43ce84feedee
 Requires: base64enc
 
 Package: R6
@@ -183,7 +182,6 @@ Requires: dplyr, ggplot2, reshape2
 Package: beepr
 Source: CRAN
 Version: 1.2
-Hash: 01dddbcdecbb5c51ce495fa1d96fe92b
 Requires: audio, stringr
 
 Package: bindr
@@ -787,7 +785,6 @@ Requires: magrittr, stringi
 Package: survey
 Source: CRAN
 Version: 3.32-1
-Hash: e0d6920f9e5b04015ca679f6621e6416
 Requires: Matrix, lattice, survival
 
 Package: survival

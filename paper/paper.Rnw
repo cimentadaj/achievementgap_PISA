@@ -32,7 +32,7 @@
     linkcolor=blue,   
     urlcolor=blue}}
 
-\title{Do educational institutions explain SES gaps?: an interntational comparison of the SES achievement gap from 2000-2015}
+\title{Do educational institutions explain SES gaps? an international comparison of the SES achievement gap from 2000-2015}
 \author{Jorge Cimentada}
 
 
@@ -415,16 +415,31 @@ results_read_midbottom <- test_diff(adapted_year_data, reliability_pisa, "READ",
 
 \section{Introduction}
 
-% You have a bunch of citations to take from here
+The impact of inequality, be it economic or of non pecuniary causes, is a crucial determinant for the opportunities of a child. Evidence from disciplines as disparate as epidemiology, psychology, sociology and economics keep piling evidence that suggests that inequality in the life course is something present in virtually all societies. This is something that politicians and policymakers are aware of and, yet despite their many efforts, inequality has not abated.
+
+The literature has found conclusive evidence showing that, for example, the United States has increased both economic inequality \citep{piketty2003}, inequality of opportunity \citep{chetty2014} and inequality of achievement \citep{reardon2011}. All of these findings, however, are from the United States. Other countries such as the United Kingdom or other developed countries have their fair share of studies when there is data available. However, very rarely can we compare levels of inequality (of any kind), across several countries with a great degree of confidence.
+
+This paper looks to study the cognitive achievement gap between the 90th and 10th percentile of the SES distribution. This gap can be termed as the SES achievement gap between the top and bottom SES groups. Using the PISA database, we calculate the achievement gap for every country and for all six available PISA waves, building a country panel that shows a time trend of 15 years for each country.
+
+More concretely, we aim to study the evolution of the achievement gap. We aim to answer two broad question: Which countries are changing over time while others are stagnated? Equally important, what explains these changes? Building on the literature on educational institutions we suggest the degree of tracking of a country and it's level of vocational enrollments as possible explanations for the changes of a country over time.
+
+Findings suggest that there's reasonable variation in the evolution of the gap. For example, the United States has been closing its 90/10 gap by about 50\% with a wide interval going down to nearly 35\%. This reduction is also present in other countries such as Germany and Poland. Other countries such as France and Austria experience the contrary with persistent increases in the achievement gap. Robustness checks shows that also the 80/20 and 70/30 replicate the results for nearly all countries.
+
+We then assess whether this gap is correlated with the country's average performance, and find a very strong negative correlation for all country pooled. This suggests that countries with high levels of achievement have low levels of inequality. Yet these results are aggregated for every year. A more disaggregate analysis shows that this pattern is also present for every country over time, although some exceptions are encountered, like the United States where achievement and inequality as positively correlated.
+
+To finish, we find that the degree of tracking of a country seems to be a likely explanation to the changes in the achievement gap, but it should not be studied without factoring in the degree of vocational enrollment. We find that if a country has a low level of tracking, vocational enrollment will not help decrease the achievement gap. Conversely, once tracking enters the picture, vocational enrollment can help unease the burden of inequality and reduce the achievement gap very strongly. Simulations show that if every country switched to little or no tracking their gaps would shrink by about 20\%.
+
+These findings have two specific implications. First, inequality should not be 'generalized' or 'summarized' with one single indicator for many countries. There are widespread differences between countries, where each one should be studied in context. Secondly, now that we know that, further research should attempt to explain why some countries follow such different evolutions. We propose a possible explanation, the degree of tracking and vocational enrollment of the country. Tracking seems to exacerbate inequality, but if coped with a reasonable level of vocational enrollment it can alleviate the negative effects of tracking. Further research should confirm these results hold for other empirical tests and if so, policymakers should incorporate vocational enrollment not only as a 'labor market' solution to youth unemployment but as a compensatory mechanism for highly tracked curriculums.
+
+\section{Literature Review}
 Educational inequality and its long term impacts is a topic that has been prominent in the social science literature for the past 30 years. The idea of meritocracy and intergenerational transfers has motivated, for a good part of the 20th and 21st century, much of the research on social mobility and social inequalities. When James Coleman released his famous Coleman report \citep{coleman1966}, it raised the topic to starlight by suggesting that family socio-economic status (SES) and student performance are tightly linked. The topic has been studied extensively since the report was released and several authors have contested whether the relationship is an invariable social law or a product of institutional arrangements \footnote{For a detailed review of the long literature on educational inequality, please see \citet{gamoran2001}.}. But fast-forward until today, we've understood the relationship much better.
 
 Developmental psychology has been studying the subject for a long time and they find that the early stages in a child's life course are extremely important, if not the most, for cognitive development and defining personality traits \citep{duyme1999, waldfogel2006}. Economists and educators have long neglected these findings until the work of James Heckman brought our attention to it. For example, he has showed that cognitive and non-cognitive inequalities are present before entering school \citep{heckman2006}. To explain these, and other findings, \citet{cunha2006} suggest that the cognitive level of a child in time \(t\) is a direct function of the experiences of time \(t-1\). Although this sounds logical, it's importance is not understood entirely. The model implies that investments on children are not perfect substitutes at different time points but rather complements. There are specific periods of skill formation where it is much more cost-effective to invest in, which are the early stages of the life course. In fact, when tested against the data, \citet{cunha2006} show that their explanation fits the results of most of the empirical literature very well.
 
-
 For this reason, children who receive less (or worse) investments have a cumulative disadvantage against children who do receive quality investments. This leads, as early as preschool, to an unequal start in life. That is why the whole debate about narrowing inequality between high and low SES families should start in early education -- it is cheaper than investing at later stages and it brings about the largest returns \citep{elango15}. Despite all of these findings and strategies to reduce the gaps, we still find that the relationship between children's parental education and future destination is present in virtually all empirical studies of social mobility and inequalities \citep{breen1997, breen2007, waldfogel2006, bradbury2015, chetty2016}.
 
 
-For this reason, it is incomplete to study educational inequalities without considering the prevalence of intergenerational transmission of human and social capital. Social mobility has deepen our knowledge on the relationship between intergenerational transmission of SES and inequality of opportunity. The field of economics of education has also helped to understand that early high-quality education is by far the best investment in terms of cognitive development and acquiring personality skills. Research has constantly found that early education helps low-income children boost their performance to levels similar to their well-off peers \citep{heckman_oecd}. Yet the positive results are not only limited to the cognitive realm: studies have found that that early stimuli is associated with less propensity to criminal activity, more stable relationships, higher levels of persistance, higher income and improved labor market opportunities in late stages in life \citep{heckman_oecd}.
+For this reason, it is incomplete to study educational inequalities without considering the prevalence of intergenerational transmission of human and social capital. Social mobility has deepen our knowledge on the relationship between intergenerational transmission of SES and inequality of opportunity. The field of economics of education has also helped to understand that early high-quality education is by far the best investment in terms of cognitive development and acquiring personality skills. Research has constantly found that early education helps low-income children boost their performance to levels similar to their well-off peers \citep{heckman_oecd}. Yet the positive results are not only limited to the cognitive realm: studies have found that that early stimuli is associated with less propensity to criminal activity, more stable relationships, higher levels of persistence, higher income and improved labor market opportunities in late stages in life \citep{heckman_oecd}.
 
 This is not only for the child and his/her family, but to society as a whole as it boosts economic activity, it helps the labor market improve job conditions and maintain a rapid economic growth \citep{hanushek2007}. Since \citet{coleman1966} we've spent most of our time studying the mechanisms through which this inequality comes about. Naturally, we want to do that in order to reverse it and help every child reach its fullest potential. Despite our good intentions, we've concentrated little on the magnitude of the gaps, specially in terms of cognitive abilities. We have very little comparative evidence on which countries have big or small cognitive gaps resulting from SES origins. And even more importantly, we haven't assessed whether policy efforts to reduce inequality have actually had an impact in reducing the achievement gap over time.
 
@@ -468,56 +483,66 @@ In fact, the evolution of high/low SES gaps for preschool children might be much
 % Talk more about how countries with high social mobility has been linked to smallest achievement gaps
 % Talk about Durpiez and Dumay and how there's not relationship between inequality income - inequality achievement in contrast to reardon and anna who find some relationship.
 
-\section{Research framework}
+\section{Research questions and hypothesis}
 
-\subsection{Research questions and hypothesis}
+The overarching aim of this paper is to study the evolution of the high/low SES achievement gap in the past 15 years for all PISA participating countries and search for a likely explanation for the evolution.
 
-The overaching aim of this paper is to study the evolution of the high/low SES achievement gap in the past 15 years for all PISA participating countries and search for a likely explanation for the evolution.
-
+\noindent
 We develop the subquestions and their corresponding hypothesis separately in more detail.
 
 \begin{enumerate}
 
-\item The seminal work of \citet{reardon2011} suggests that achievement gaps change, and they do so much quicker than we though. After recording a SES gap increase of about 40\% in 30 years, \citet{reardon_portilla} stress that they also found a significant decrease in only 15 years of data, showing how important it is to study the changes in the achievement gap. First, we will concentrate on the evolution of the gap only for 15 year olds (which as we've seen before, there are reasons to think that specific age-groups have seen changes in the achievement gap), which will serve as a comparison to the single year-country snapshot of \citet{anna2016} and the evolution of the kindergarten gap in \citet{reardon_portilla}. Secondly, we will compare the percentage change at which the gap widened/narrowed from the first to the last year available. This will give us a general idea of the overall change over time, and will allow us to compare our estimates to the actual literature. \footnote{Although no study has performed this age-specific achievement gap for comparable tests over such a long time. Our results will serve as comparison for other studies that use age-specific groups, such as 4th graders using PIRLS.}. We posit no specific hypothesis for this question given that it's purely explanatory.
+\item The seminal work of \citet{reardon2011} suggests that achievement gaps change, and they do so much quicker than we though after recording a SES gap increase of about 40\% in 30 years. \citet{reardon_portilla} stress that they also found a significant decrease in only 15 years of data, showing how important it is to study the changes in the achievement gap. First, we will concentrate on the evolution of the gap only for 15 year olds (which as we've seen before, there are reasons to think that specific age-groups have seen changes in the achievement gap), which will serve as a comparison to the single year-country snapshot of \citet{anna2016} and the evolution of the kindergarten gap in \citet{reardon_portilla}. Secondly, we will compare the percentage change at which the gap widened/narrowed from the first to the last year available. This will give us a general idea of the overall change over time, and will allow us to compare our estimates to the actual literature. \footnote{Although no study has performed this age-specific achievement gap for comparable tests over such a long time. Our results will serve as comparison for other studies that use age-specific groups, such as 4th graders using PIRLS.}. We posit no specific hypothesis for this question given that it's purely explanatory.
 
-\begin{enumerate}
+\begin{itemize}
 \item Research question:
 \begin{enumerate}
+
 \item Which countries are experiencing changes in the achievement gap?
+
 \end{enumerate}
+\end{itemize}
+
+\item The widening/narrowing of the achievement gap has a source, which has been often studied to be related to everything from educational spending, income inequality, time allocation to students and preschool enrollment. The literature has concentrated very narrowly on whether the gap is increasing because the top performers are getting ahead, because the bottom performers are falling behind or because both are changing at the same time. We shall pay particular attention to identifying the rate at which the top/bottom groups are evolving over time. Following that strategy will put us closer to understanding the source of the evolution of the achievement gap. 
+
+\begin{itemize}
+\item Research question:
+\begin{enumerate}
+
+\item Is the gap originating because the top is gaining ground, the top is falling behind or because of a dynamic interaction between the two?
+
+\item Hypothesis 1: The theoretical argument in favor of tracking posits that in countries where there is a high degree of tracking we should expect the top and bottom to be evolving at a similar rate given that tracking is thought to maximize the learning experience of both groups. We expect to find the opposite, i.e for countries with a highly tracked curriculum, we should find more inequality and children from low-SES groups at a greater disadvantage. Conversely, in countries with low tracking we should expect for the achievement gap to be narrowing.
+
 \end{enumerate}
+\end{itemize}
+
+\item Our study itself is composed of six cross-sectional surveys, which limits the design to single country snapshots, but given that most countries participated in all six surveys we can model the evolution of the achievement gap over time. We want to test whether several dimensions of the tracking setup and vocational enrollment explain the changes in the gaps, something already discussed in \citet{werfhorst_mijs} and \citet{hanushek_woesmann_tracking} but not empirically tested before in an international context.
+
+\begin{itemize}
+\item Research question:
+\begin{enumerate}
+
+\item Are tracking and vocational enrollment related to the evolution of the gap?
+
+\item Hypothesis 2: Building on the previous hypothesis, tracking should play an important role on the evolution of the achievement gap. We hypothesize that the degree of tracking of an educational system is tightly related to changes in the gap, and the more tracking, the more inequality. Moreover, the more vocational tracking, the less inequality considering that it gives short term returns in terms of labor market opportunities.
+
 \end{enumerate}
+\end{itemize}
 
-b)
+\item Lastly, we want to investigate whether better performing countries have lower levels of inequality than other countries. \citet{werfhorst_mijs} emphasize that there is empirical evidence that suggests this. This pattern is not so obvious, however. For example, countries with high levels of tracking could maximize student performance, specially the high SES students, raising their overall performance and thus raising the national performance score. But if the bottom performers are not gaining at the same rate, then the achievement gap will inevitable grow resulting in a high performing countries with a widening achievement gap.
 
-The widening/narrowing of the achievement gap has a source, which has been often studied to be related to everything from educational spending, income inequality, time allocation to students and preschool enrollment. The literature has concentrated very narrowly on whether the gap is increasing because the top performers are getting ahead, because both are distancing or because the bottom is falling behind. We shall pay particular attention to identifying the rate at which the top/bottom groups are evolving over time. Following that strategy will put us closer to understanding the source of the evolution of the achievement gap. 
+\begin{itemize}
+\item Research question:
+\begin{enumerate}
 
-Research question:
-* Is the gap originating because the top is gaining ground, the top is falling behind or because of a dyanmic interaction between the two?
+\item Are achievement and inequality correlated? and if so, has the relationship weakened/strengthen over time?
 
-Hypothesis 1:
-* The theorical arugment in favor of tracking posits that in countries where there is a high degree of tracking we should expect the top and bottom to be evolving at a similar rate given that tracking is thought to maximize the learning experience of both groups. We expect to find the opposite, i.e for countries with a highly tracked curriculum, we should find more inequality and children from low-ses groups at a greater disadvantage. Conversely, in countries with low tracking we should expect for the achievement gap to be narrowing.
+\item Hypothesis 3: Building on \citet{werfhorst_mijs}, then there should be a negative relationship between the average country performance and their level of inequality. Countries with high performance should have less inequality and countries with low performance should have greater inequality
 
+\end{enumerate}
+\end{itemize}
 
-c)
-
-Our study itself is composed of several cross-sectional surveys, which is limited to single cross-sectional snapshots, but given we have 6 times points for most countries we can model the evolution of the achievement gap over time, something not done before in an international context. We want to test whether several dimensions of the tracking setup and vocational enrollment explain the changes in the gaps, something already discussed in \citet{werfhorst_mijs} and \citet{hanushek_woesmann_tracking}.
-
-Research question:
-* Are tracking and vocational enrollment related to the evolution of the gap?
-
-Hypothesis 2:
-* Building on the previous hypotheiss, tracking should play an important role on the evolution of the achievement gap. We hypothesize that the degree of tracking of an educational system is tightly related to changes in the gap, and the more tracking, the more inequality. Moreover, the more vocational tracking, the less inequality considering that it gives short term returns in terms of labor market opportunities.
-
-d)
-
-We want to investigate whether better performing countries have lower levels of inequality than other countries. \citet{werfhorst_mijs} emphasize that there is empirical evidence that suggests this. This pattern is not so obvious, however. For example, countries with high levels of tracking could maximize student performance, specially the high SES students, raising their overall performance and thus raising the national performance score. But if the bottom performers are not gaining at the same rate, then the achievement gap will inevitable grow resulting in a high performing countries with a widening achievement gap.
-
-Research question:
-* Are achievement and inequality correlated? and if so, has the relationship weakeaned/strengthend over time?
-
-Hypothesis 3:
-* Building on \citet{werfhorst_mijs}, then there should be a negative relationship between the average country performance and their level of inequality. Countries with high performance should have less inequality and countries with low performance should have greater inequality
+\end{enumerate}
 
 \section{Methods}
 \subsection{Data}
@@ -530,7 +555,7 @@ country_rows <-
 
 To investigate the above mentioned questions we will be using the Programme for International Student Assessment (PISA). PISA is a survey carried out every three years that aims to evaluate education systems by testing the skills and knowledge of 15-year-old students. Currently, PISA has six waves starting in 2000 up until 2015, where recently, over half a million students were tested in mathematics, literacy and science in over 70 developed/developing countries.
 
-PISA collects data through a two-stage stratified sampling design. With the help of official governments, PISA randomly chooses 150 schools in each country, where they then randomly pick thirty 15 year olds to undertake the two hour tests. The sample size for PISA 2000 is \Sexpr{country_rows[1]}, \Sexpr{country_rows[2]} for PISA 2003, \Sexpr{country_rows[3]} for PISA 2006, \Sexpr{country_rows[4]} for PISA 2009, \Sexpr{country_rows[5]} for PISA 2012, and \Sexpr{country_rows[6]} for PISA 2015. Together with the subject tests, PISA collects personal information from students, their families and their school environment (including teacher surveys), that serves as relevant background information that can be matched to the students performance. With the recent inclusion of PISA 2015, these six waves make up a time-series analysis of 15 years, enough to visualize changes in the structure of an educational system. None of the literature cited so far has used the last PISA wave, which was recently released in December 2016.
+PISA collects data through a two-stage stratified sampling design. With the help of official governments, PISA randomly chooses 150 schools in each country, where they then randomly pick thirty 15 year olds to undertake the two hour tests. The sample size for PISA 2000 is \Sexpr{country_rows[1]}, \Sexpr{country_rows[2]} for PISA 2003, \Sexpr{country_rows[3]} for PISA 2006, \Sexpr{country_rows[4]} for PISA 2009, \Sexpr{country_rows[5]} for PISA 2012, and \Sexpr{country_rows[6]} for PISA 2015. Together with the subject tests, PISA collects personal information from students, their families and their school environment (including teacher surveys), that serves as relevant background information that can be matched to the students performance. With the recent inclusion of PISA 2015, these six waves make up a time-series analysis of 15 years, enough to visualize changes in the structure of an educational system. None of the literature cited so far has used the last PISA wave, which was recently released in December 2016. This paper takes advantage of these six waves to build a country pseudo-panel where each country-wave will have its corresponding achievement gap, making it possible to study changes in nearly 15 years for each country.
 
 To identify a family's socio-economic status PISA collects several variables that measure different dimensions. Classically, they ask student's their parent's educational level. Scholars have considered this to be a reliable recall given that we expect fifteen year olds to know their parent's level of education \citep{reardon2011}. This question has been asked in every wave and holds a somewhat similar coding across time, although the first two waves have small differences. In spite of this, another limitation is the fact that parent's education is measured using the ISCED classification, something that has changed over time. For example, until PISA 2009, the preferred framework was ISCED 1997, whereas the next wave switched to the newly developed ISCED 2011 classification. Both these classification schemes have equivalent look-up tables, but this requires a detailed inspection of the codings.
 
