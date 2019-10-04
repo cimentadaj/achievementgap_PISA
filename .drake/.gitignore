@@ -1,2 +1,4 @@
 *
 !/.gitignore
+raw_data/
+.Rhistory
