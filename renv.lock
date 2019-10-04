@@ -58,6 +58,12 @@ RemotePkgType=source
 RemoteSha=1.2-17
 Hash=a60009c832f495604f54399f21d89cc8
 
+[R/Package/MatrixModels]
+Package=MatrixModels
+Version=0.4-1
+Source=CRAN
+Hash=90c434e285aaf2b8e9116a4009721021
+
 [R/Package/PISA2000lite]
 Package=PISA2000lite
 Version=1.0
@@ -129,11 +135,39 @@ Version=1.0.2
 Source=CRAN
 Hash=c25fa7d5684fa7001ddfea3755243975
 
+[R/Package/RcppEigen]
+Package=RcppEigen
+Version=0.3.3.5.0
+Source=CRAN
+RemoteType=standard
+RemoteRef=RcppEigen
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=0.3.3.5.0
+Hash=b86bf100354fb8fe4a20b5689e40c7b3
+
 [R/Package/SAScii]
 Package=SAScii
 Version=1.0
 Source=CRAN
 Hash=e053d0fec08fa1d850a3fa533cf5e119
+
+[R/Package/SparseM]
+Package=SparseM
+Version=1.77
+Source=CRAN
+Hash=8cfc3b9a39a1f80b83962e66ddc9daa9
+
+[R/Package/abind]
+Package=abind
+Version=1.4-5
+Source=CRAN
+RemoteType=standard
+RemoteRef=abind
+RemoteRepos=https://cran.rstudio.com/
+RemotePkgType=source
+RemoteSha=1.4-5
+Hash=14cdb8eed4adcbe6e463b0dd82bd778c
 
 [R/Package/askpass]
 Package=askpass
@@ -175,6 +209,12 @@ RemotePkgType=source
 RemoteSha=1.4
 Hash=205ca9cc59dc1fff1a7ba55fee9dad57
 
+[R/Package/boot]
+Package=boot
+Version=1.3-23
+Source=CRAN
+Hash=7acd7cd8da575cbe664ae2301d127007
+
 [R/Package/broom]
 Package=broom
 Version=0.5.2
@@ -191,6 +231,18 @@ Package=callr
 Version=3.3.2
 Source=CRAN
 Hash=3826226af5ca33cd8fa0b1d9c190b300
+
+[R/Package/car]
+Package=car
+Version=3.0-3
+Source=CRAN
+Hash=2dda47b579a78ab1565b0e2306dd1184
+
+[R/Package/carData]
+Package=carData
+Version=3.0-2
+Source=CRAN
+Hash=7b9977f0204b85b63f0db6464b8e3314
 
 [R/Package/cellranger]
 Package=cellranger
@@ -237,6 +289,12 @@ Package=curl
 Version=4.2
 Source=CRAN
 Hash=63410438360944341b6bba487340a466
+
+[R/Package/data.table]
+Package=data.table
+Version=1.12.4
+Source=CRAN
+Hash=2a68bf7934581715911a6f1378ac9150
 
 [R/Package/dbplyr]
 Package=dbplyr
@@ -305,6 +363,12 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=0.4.0
 Hash=4d7e4a2ed5adadda6714eb7b9361213b
+
+[R/Package/foreign]
+Package=foreign
+Version=0.8-72
+Source=CRAN
+Hash=646c8f8861ef8e1d6e9e8eb0b3912495
 
 [R/Package/fs]
 Package=fs
@@ -465,6 +529,17 @@ Version=0.1.0
 Source=CRAN
 Hash=670a552ae202a4f69e2e644f524dfffd
 
+[R/Package/lme4]
+Package=lme4
+Version=1.1-21
+Source=CRAN
+RemoteType=standard
+RemoteRef=lme4
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=1.1-21
+Hash=0a3458480f4caf92fc26f7afc54340a4
+
 [R/Package/lubridate]
 Package=lubridate
 Version=1.7.4
@@ -481,6 +556,12 @@ Package=magrittr
 Version=1.5
 Source=CRAN
 Hash=dee1d97cffddfd3ed969e224bd0826d0
+
+[R/Package/maptools]
+Package=maptools
+Version=0.9-5
+Source=CRAN
+Hash=79431ccd208e6158fce9f6e0ee81299b
 
 [R/Package/markdown]
 Package=markdown
@@ -504,6 +585,17 @@ Package=mime
 Version=0.7
 Source=CRAN
 Hash=908d95ccbfd1dd274073ef07a7c93934
+
+[R/Package/minqa]
+Package=minqa
+Version=1.2.4
+Source=CRAN
+RemoteType=standard
+RemoteRef=minqa
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=1.2.4
+Hash=280c889bf39c330ab77b0d92c1c38931
 
 [R/Package/modelr]
 Package=modelr
@@ -538,11 +630,39 @@ RemotePkgType=source
 RemoteSha=3.1-140
 Hash=ad3b02c6f154deac3584133e6e015cd3
 
+[R/Package/nloptr]
+Package=nloptr
+Version=1.2.1
+Source=CRAN
+RemoteType=standard
+RemoteRef=nloptr
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=1.2.1
+Hash=f2696200757bbf2ed222a9d8e72f0a06
+
+[R/Package/nnet]
+Package=nnet
+Version=7.3-12
+Source=CRAN
+RemoteType=standard
+RemoteRef=nnet
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=7.3-12
+Hash=2a92e339b2aeab90147147e2cf7c8310
+
 [R/Package/openssl]
 Package=openssl
 Version=1.4.1
 Source=CRAN
 Hash=6c438de366d5693238d1c400deb66cb6
+
+[R/Package/openxlsx]
+Package=openxlsx
+Version=4.1.0.1
+Source=CRAN
+Hash=70d7bf3b6565c00c63421240dfac651c
 
 [R/Package/patchwork]
 Package=patchwork
@@ -555,6 +675,12 @@ RemoteUsername=thomasp85
 RemoteRef=master
 RemoteSha=36b4918777c25393df605a4959a4c9690d2af186
 Hash=6623b17bc5bf1f15411b57e31248fb37
+
+[R/Package/pbkrtest]
+Package=pbkrtest
+Version=0.4-7
+Source=CRAN
+Hash=188d51e37526d3a5525daab0c6a92c3a
 
 [R/Package/pillar]
 Package=pillar
@@ -625,6 +751,12 @@ RemotePkgType=source
 RemoteSha=0.3.2
 Hash=c360ab7eabd6e38a83f2475eb97c6344
 
+[R/Package/quantreg]
+Package=quantreg
+Version=5.51
+Source=CRAN
+Hash=512fea94c9613e1bd127d56bc08f6162
+
 [R/Package/readr]
 Package=readr
 Version=1.3.1
@@ -679,6 +811,12 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=1.4.3
 Hash=ac685130d1a25e3f6470960fd29c5693
+
+[R/Package/rio]
+Package=rio
+Version=0.5.16
+Source=CRAN
+Hash=da7bb885000eb8cb231ee4141466ecdb
 
 [R/Package/rlang]
 Package=rlang
@@ -736,6 +874,12 @@ Package=selectr
 Version=0.4-1
 Source=CRAN
 Hash=40ccee5dc2b97e197648525aefcfd0ba
+
+[R/Package/sp]
+Package=sp
+Version=1.3-1
+Source=CRAN
+Hash=a8e1d618f252db052d85391d528c256f
 
 [R/Package/storr]
 Package=storr
@@ -869,4 +1013,10 @@ Package=zeallot
 Version=0.1.0
 Source=CRAN
 Hash=45d65588b02d47970fc84adecb2ee664
+
+[R/Package/zip]
+Package=zip
+Version=2.0.4
+Source=CRAN
+Hash=46b867331ae12e0a3f5b7942cfac16ba
 
