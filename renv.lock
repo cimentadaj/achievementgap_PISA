@@ -267,6 +267,12 @@ Version=0.7.0
 Source=CRAN
 Hash=9a99b54d2baf9393d0a68b6ea9513ee6
 
+[R/Package/clustermq]
+Package=clustermq
+Version=0.8.8
+Source=CRAN
+Hash=249922d0874be9d0e26f768053c3cbf3
+
 [R/Package/colorspace]
 Package=colorspace
 Version=1.4-1
@@ -397,6 +403,12 @@ Package=ggplot2
 Version=3.2.1
 Source=CRAN
 Hash=635db021d29f3523c4f88e82d0c01c5e
+
+[R/Package/ggthemes]
+Package=ggthemes
+Version=4.2.0
+Source=CRAN
+Hash=bc3e11207ac8dc4df1532663c4cf6a7a
 
 [R/Package/glue]
 Package=glue
@@ -618,6 +630,12 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=0.5.0
 Hash=9111af6c6dec65538ebd3de6c0bae864
+
+[R/Package/narray]
+Package=narray
+Version=0.4.1
+Source=CRAN
+Hash=8963505968838ca571ff13823d7bb7b6
 
 [R/Package/nlme]
 Package=nlme
@@ -857,6 +875,12 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=0.3.4
 Hash=76bb112bc3833454dc701230aa9cb3ed
+
+[R/Package/rzmq]
+Package=rzmq
+Version=0.9.6
+Source=CRAN
+Hash=0d62e0c74e40f06f3005f5f718d30383
 
 [R/Package/scales]
 Package=scales

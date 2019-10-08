@@ -216,40 +216,283 @@ enframer <- function(df, col_name = "name") {
     unnest()
 }
 
-escs_dummy_creator <- function(df, probs) {
-
-  map(df, function(.x) {
-
-    conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
-    weights_var <- conf$variables$weightFinal
-
-    country_split <- split(.x, .x$country)
-
-    country_list <- map(country_split, function(country) {
-      print(unique(country$country))
-
-      quan <- quantile_missing(country, weights_var, probs)
-
-      # it is very important to create a variable that returns the number of observations of this dummy
-      # For each country. Possibly to weight by the number of observations.
-      country$escs_dummy <-
-        with(country, case_when(escs_trend >= quan[2] ~ 1,
-                                escs_trend <= quan[1] ~ 0))
-      country
-    })
-    rm(country_split)
-
-    .x <-
-      enframe(country_list) %>%
-      unnest(value)
-    
-    rm(country_list)
-
-    message(paste(unique(.x$wave), "data ready"))
-
-    .x
-  })
+print_table <- function(x, ...) {
+  print.xtable(
+    x = x,
+    table.placement = "H",
+    size = "small",
+    hline.after = c(-1, -1, 0, nrow(x), nrow(x)),
+    ...
+  )
 }
+
+
+formula_sequence <- function(dv, ivs, random_effect) {
+  formula_seq <-
+    lapply(1:length(ivs), function(x) {
+      paste0(dv ," ~ ", paste0(ivs[1:x], collapse = " + ") %>% paste0(" + ", random_effect))
+    }) %>%
+    lapply(as.formula)
+
+  formula_seq
+}
+
+# Accepts a list of formulas, the data for the formulas
+# and a set of priors following the prior structure of the brms
+# package. It will return a list with the priors applied
+# sequentially to all formulas, ignoring coefs
+# which are not specified with the default brms prior
+# but changing the prior of the variables that are specified.
+
+# this includes speciftying only 'b'
+list_priors <- function(all_formulas, data_formula, selected_priors) {
+  all_priors <- map(all_formulas, get_prior, data_formula)
+
+  selected_priors <- data.frame(selected_priors)
+
+  # If there are priors only for betas, and not coefficients
+  # then replace only those because this means that they are the default
+  # prior for all coefficients without priors
+  prior_betas <- which(selected_priors$class == "b" & selected_priors$coef == "")
+
+  all_priors <-
+    map(all_priors, ~ {
+      # If there are priors only for 'b' in the supplied prior
+      if (!is_empty(prior_betas)) {
+        # Then locate that 'b' in the prior from the formula from 'all_priors'
+        sub_prior_betas <- which(.x$class == "b" & .x$coef == "")
+        if (!is_empty(sub_prior_betas)) {
+          # And replace the 'b' from all_priors with the b from the supplied prior
+          .x[sub_prior_betas, ] <- selected_priors[prior_betas, ]
+        }
+      }
+      .x
+    })
+
+  prior_coefs <- which(selected_priors$class == "b" & selected_priors$coef != "")
+
+  # For all priors of the coefficients, replace the ones with the default
+  # prior with the supplied prior, if there is at least one
+  final_priors <-
+    map(all_priors, ~ {
+      if (!is_empty(prior_coefs)) {
+
+        # Where is the coefficient match in the priors from the formula?
+        pos_replace_one <- which(.x$coef %in% selected_priors$coef[prior_coefs])
+
+        # Where is the coefficient match in the supplied prior?
+        pos_replace_two <- which(selected_priors$coef[prior_coefs] %in% .x$coef)
+
+        # Replace the default prior with the supplied prior
+        .x[pos_replace_one, ] <- selected_priors[prior_coefs, ][pos_replace_two, ]
+      }
+      .x
+    })
+
+  final_priors
+}
+
+stan_model_builder <- function(dv, iv, random, data, prior = NULL, max_treed = 10) {
+  all_formulas <- formula_sequence(dv, iv, random)
+
+  if (!is.null(prior)) {
+    final_prior <- list_priors(all_formulas, data, prior)
+
+    print("Memory used:")
+    print(pryr::mem_used())
+
+    mod_tracking <-
+      map2(all_formulas, final_prior, ~ {
+        brms::brm(
+          .x,
+          family = gaussian(),
+          data = data,
+          warmup = 1000, iter = 2000, chains = 5,
+          prior = .y,
+          control = list(max_treedepth = max_treed)
+        )
+      })
+  } else {
+    mod_tracking <-
+      map(all_formulas, ~ {
+        brms::brm(
+          .x,
+          family = gaussian(),
+          data = data,
+          warmup = 1000, iter = 2000, chains = 5,
+          control = list(max_treedepth = max_treed)
+        )
+      })
+  }
+}
+
+stan_extractor <- function(models) {
+  coef_list <-
+    map(models, ~ {
+      broom::tidy(.x) %>%
+        .[grepl("^b_", .$term), ] %>%
+        map_if(is_double, round, 2) %>%
+        as_tibble %>%
+        transmute(term,
+                  estimate = paste0(estimate, " (", lower, ", ", upper, ")"))
+    })
+
+  coef_list
+}
+
+stan_table_builder <- function(models_extracted) {
+  intermediate_table <-
+    reduce(models_extracted, full_join, by = "term") %>%
+    setNames(c(" ", paste("Model", seq_len(models_extracted %>% length))))
+
+  row_order <-
+    setdiff(seq_len(nrow(intermediate_table)),
+            grep("Intercept", intermediate_table$` `)) %>%
+    `c`(grep("Intercept", intermediate_table$` `))
+
+  intermediate_table[row_order, ]
+}
+
+stan_table <- function(models) {
+
+  table_ready <-
+    models %>%
+    stan_extractor() %>%
+    stan_table_builder()
+
+  table_ready
+}
+
+btw_group_var <- function(brms_model) {
+  unname(attr(unclass(sjstats::icc(brms_model)), "tau.00"))
+}
+
+table_details <- function(models, multilevel = TRUE) {
+
+  random_effect <- nrow(models[[length(models)]]$ranef) > 0
+  where_to_place <- models[[length(models)]] %>% fixef() %>% nrow()
+  
+  n_obs <-
+    paste0(paste0(" Sample size: & ",
+                  paste0(map(models, nobs), collapse = " & ")), " \\\\")
+
+  if (multilevel) {
+    r_square <-
+      paste0("\\hline ",
+             paste0("Between-group variance: & ",
+                    paste0(map(models, ~ btw_group_var(.x)[1] %>% round(2)),
+                           collapse = " & ")), " \\\\")
+    n_groups <-
+      paste0(paste0(" Number of groups: & ",
+                    paste0(map(models, ~ unlist(brms::ngrps(.x))), collapse = " & ")), " \\\\")
+
+    command_to_row <- paste0(r_square, n_obs, n_groups)
+    addtorow_two <- list(pos = list(pos = where_to_place - 1), command = command_to_row)
+
+    addtorow_two
+
+    return(addtorow_two)
+  }
+
+  r_square <-
+    paste0("\\hline ",
+           paste0("R-squared: & ",
+                  paste0(map(models, ~ bayes_R2(.x)[1] %>% round(2) * 100) %>% paste0("\\%"),
+                         collapse = " & ")), " \\\\")
+
+  command_to_row <- paste0(r_square, n_obs)
+  addtorow_two <- list(pos = list(pos = where_to_place), command = command_to_row)
+
+  addtorow_two
+}
+
+# 2000
+# SC03Q01 School public/private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 M/R
+# 9 Mis
+
+# 2003
+# SC03Q01 (8) Public or private
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Miss
+
+# 2006
+# SC02Q01 (8) Public or private
+#  1 Public
+#  2 Private
+#  7 N/A
+#  8 Invalid
+#  9 Missing
+
+# 2009
+# SC02Q01
+# 1 public
+# 2 private
+
+# 2012
+# SC01Q01 Public or private Num
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# 2015
+# SC013Q01TA
+# 1 Public
+# 2 Private
+# 7 N/A
+# 8 Invalid
+# 9 Missing
+
+# central_examination <-
+#   tribble(
+#   ~ country, ~central_examination,
+#   "Australia", 1,
+#   "Austria", 0,
+#   "Belgium", 0,
+#   "Bulgaria", 1,
+#   "Canada", rbinom(1, 1, prob = 0.51),
+#   "Czech Republic", 1,
+#   "Denmark", 1,
+#   "Finland", 1,
+#   "France", 1,
+#   "Germany", 0,
+#   "United Kingdom", 1,
+#   "Greece", 0,
+#   "Hong Kong", 1,
+#   "Hungary", 1,
+#   "Iceland", 1,
+#   "Ireland", 1,
+#   "Israel", 1,
+#   "Italy", 1,
+#   "Japan", 1,
+#   "Korea", 1,
+#   "Latvia", 1,
+#   "Liechtenstein", 1,
+#   "Luxembourg", 1,
+#   "Netherlands", 1,
+#   "New Zealand", 1,
+#   "Norway", 1,
+#   "Poland", 1,
+#   "Portugal", 0,
+#   "Russia", 1,
+#   "Slovakia", 1,
+#   "Slovenia", 1,
+#   "Spain", 0,
+#   "Sweden", 0,
+#   "Switzerland", 0,
+#   "Turkey", 1,
+#   "United States", 1
+#   )
+
+gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 ############################# Drake plan ######################################
 ###############################################################################
@@ -261,9 +504,105 @@ plan <-
       format = "fst"
     ),
     escs_data = read_escs(raw_data_dir, recode_cntrys),
+    tracking_data = read_tracking(raw_data_dir),
     merged_data = merge_data(pisa_data, escs_data),
     res_math = test_diff(merged_data, reliability_pisa, "MATH", c(0.1, 0.9)),
-    res_read = test_diff(merged_data, reliability_pisa, "READ", c(0.1, 0.9))
-    ## results_math = map(res_math, f_ind),
-    ## results_read = map(res_read, f_ind)
+    res_read = test_diff(merged_data, reliability_pisa, "READ", c(0.1, 0.9)),
+    results_math = map(res_math, f_ind),
+    results_read = map(res_read, f_ind),
+    complete_data_topbottom = pisa_preparer(results_math,
+                                            results_read,
+                                            type_txt = "90th/10th SES gap"),
+    escs_data_trans = escs_dummy_creator(merged_data, c(0.1, 0.9)),
+    sample_tables_topbottom = sample_size_calc(
+      merged_data,
+      c(.1, .9),
+      selected = TRUE,
+      countries
+    ),
+    descriptives_samplesize = sample_size_descriptives(
+      results_math,
+      sample_tables_topbottom,
+      complete_data_topbottom
+    ),
+    descriptives_tracking = tracking_descriptives(tracking_data, countries),
+    ordered_cnt = order_cnt(complete_data_topbottom, countries),
+    p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
+                                            ordered_cnt),
+    top_bottom_perc = perc_increase_fun(complete_data_topbottom),
+    p2_perc_change = perc_graph(
+      top_bottom_perc,
+      "math",
+      "90/10 achievement gap",
+      "Percentage change from 2000 to 2015",
+      countries
+    ),
+    p3_evolution_ses = evolution_ses_groups(complete_data_topbottom, countries),
+    avg_sd_increase_high = avg_increase_fun(complete_data_topbottom, 1),
+    avg_sd_increase_low = avg_increase_fun(complete_data_topbottom, 0),
+    p4_rate_change = rate_change_graph(avg_sd_increase_high,
+                                       avg_sd_increase_low),
+    results_math_80 = test_diff(merged_data, reliability_pisa, "MATH",
+                                c(0.8, 0.2)) %>% map(f_ind),
+    results_read_80 = test_diff(merged_data, reliability_pisa, "READ",
+                                c(0.8, 0.2)) %>% map(f_ind),
+    results_math_70 = test_diff(merged_data, reliability_pisa, "MATH",
+                                c(0.7, 0.3)) %>% map(f_ind),
+    results_read_70 = test_diff(merged_data, reliability_pisa, "READ",
+                                c(0.7, 0.3)) %>% map(f_ind),
+    complete_data_topbottom_80 = pisa_preparer(results_math_80,
+                                               results_read_80,
+                                               type_txt = "80th/20th SES gap"),
+    complete_data_topbottom_70 = pisa_preparer(results_math_70,
+                                               results_read_70,
+                                               type_txt = "70th/30th SES gap"),
+    complete_gaps = bind_rows(complete_data_topbottom,
+                              complete_data_topbottom_80,
+                              complete_data_topbottom_70),
+    base_ready_data =
+      dif_data(complete_gaps, tracking_data) %>%
+      mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor()),
+    ready_data_age =
+      base_ready_data %>%
+      filter(!is.na(num_tracks),
+             !is.na(age_selection),
+             !is.na(length),
+             !is.na(zvoc)
+             ),
+    mod1_complete_tracking = complete_tracking_model(ready_data_age),
+    mod1_table = 
+      stan_table(mod1_complete_tracking) %>%
+      mutate(" " = c(
+        "Only 1 track",
+        "Age selection >= 15",
+        "% of curric tracked",
+        "Vocational Index",
+        paste0("Year ", seq(2003, 2015, 3)),
+        "Intercept"
+      )),
+    ready_data =
+      base_ready_data %>% 
+      filter(!is.na(ztrack), !is.na(zvoc)),
+    mod2_tracking = interaction_tracking_model(ready_data),
+    mod2_table =
+      stan_table(mod2_tracking) %>%
+      mutate(" " = c(
+        "Tracking Index",
+        "Vocational Index",
+        "Tracking * Vocational Index",
+        paste0("Year ", seq(2003, 2015, 3)),
+        "Intercept"
+      )),
+    p5_interaction_plot = interaction_plot(mod2_tracking),
+    mod3_cumulative = mod3_cumulative_change(complete_gaps,
+                                             tracking_data,
+                                             gaps),
+    mod3_table = 
+      stan_table(mod3_cumulative) %>%
+      mutate(" " = c(
+        "Track Index",
+        "Vocational Index",
+        "Intercept"
+      )) %>%
+      setNames(c(" ", gsub(" SES gap", "", gaps)))
   )
