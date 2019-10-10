@@ -186,23 +186,23 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
 
 read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
 
-  is_autonomous <- function(x) {
-    x <- as.numeric(x)
-    # If only there is ONE sole responsible, the proportion
-    # should be 0.25, otherwise it's not autonomous
-    res <- if (mean(x %in% 1) >= 0.25) 1 else 0
-    res
-  } 
-
   identify_autonomy <- function(x) {
-    mat_autonomy <- str_split(x, pattern = "", simplify = TRUE)
-    autonomy_test <- apply(mat_autonomy[, 2:5], 1, is_autonomous)
-    autonomy_test["1" == str_sub(x, end = 1) & autonomy_test == 1] <- 0
-    autonomy_test[x %in% c("99999", "99997", "00000")] <- NA
+    autonomy_test <- ifelse("1" == str_sub(x, end = 1), 0, 1)
+    missing_codes <- c("99999",
+                       "99997",
+                       "88888",
+                       "00000",
+                       "77777",
+                       "N    ",
+                       "M    ",
+                       "I    ")
+
+    autonomy_test[x %in% missing_codes] <- NA
 
     autonomy_test
   }
 
+  # PISA 20000
   school2000 <-
     school2000 %>%
     as_tibble() %>%
