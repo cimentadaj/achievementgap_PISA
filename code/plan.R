@@ -109,8 +109,6 @@ test_diff <- function(df, reliability, test, probs) {
 
       quan <- quantile_missing(country, weights_var, probs)
 
-      # it is very important to create a variable that returns the number of observations of this dummy
-      # For each country. Possibly to weight by the number of observations.
       country$escs_dummy <-
         with(country, case_when(escs_trend >= quan[2] ~ 1,
                                 escs_trend <= quan[1] ~ 0))
@@ -503,106 +501,107 @@ plan <-
       read_harmonize_pisa(raw_data_dir, recode_cntrys),
       format = "fst"
     ),
+    ## pisa_school_data = read_harmonize_pisa_school(raw_data_dir, recode_cntrys),
     escs_data = read_escs(raw_data_dir, recode_cntrys),
     tracking_data = read_tracking(raw_data_dir),
     merged_data = merge_data(pisa_data, escs_data),
-    res_math = test_diff(merged_data, reliability_pisa, "MATH", c(0.1, 0.9)),
-    res_read = test_diff(merged_data, reliability_pisa, "READ", c(0.1, 0.9)),
-    results_math = map(res_math, f_ind),
-    results_read = map(res_read, f_ind),
-    complete_data_topbottom = pisa_preparer(results_math,
-                                            results_read,
-                                            type_txt = "90th/10th SES gap"),
+    ## res_math = test_diff(merged_data, reliability_pisa, "MATH", c(0.1, 0.9)),
+    ## res_read = test_diff(merged_data, reliability_pisa, "READ", c(0.1, 0.9)),
+    ## results_math = map(res_math, f_ind),
+    ## results_read = map(res_read, f_ind),
+    ## complete_data_topbottom = pisa_preparer(results_math,
+    ##                                         results_read,
+    ##                                         type_txt = "90th/10th SES gap"),
     escs_data_trans = escs_dummy_creator(merged_data, c(0.1, 0.9)),
-    sample_tables_topbottom = sample_size_calc(
-      merged_data,
-      c(.1, .9),
-      selected = TRUE,
-      countries
-    ),
-    descriptives_samplesize = sample_size_descriptives(
-      results_math,
-      sample_tables_topbottom,
-      complete_data_topbottom
-    ),
-    descriptives_tracking = tracking_descriptives(tracking_data, countries),
-    ordered_cnt = order_cnt(complete_data_topbottom, countries),
-    p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
-                                            ordered_cnt),
-    top_bottom_perc = perc_increase_fun(complete_data_topbottom),
-    p2_perc_change = perc_graph(
-      top_bottom_perc,
-      "math",
-      "90/10 achievement gap",
-      "Percentage change from 2000 to 2015",
-      countries
-    ),
-    p3_evolution_ses = evolution_ses_groups(complete_data_topbottom, countries),
-    avg_sd_increase_high = avg_increase_fun(complete_data_topbottom, 1),
-    avg_sd_increase_low = avg_increase_fun(complete_data_topbottom, 0),
-    p4_rate_change = rate_change_graph(avg_sd_increase_high,
-                                       avg_sd_increase_low),
-    results_math_80 = test_diff(merged_data, reliability_pisa, "MATH",
-                                c(0.8, 0.2)) %>% map(f_ind),
-    results_read_80 = test_diff(merged_data, reliability_pisa, "READ",
-                                c(0.8, 0.2)) %>% map(f_ind),
-    results_math_70 = test_diff(merged_data, reliability_pisa, "MATH",
-                                c(0.7, 0.3)) %>% map(f_ind),
-    results_read_70 = test_diff(merged_data, reliability_pisa, "READ",
-                                c(0.7, 0.3)) %>% map(f_ind),
-    complete_data_topbottom_80 = pisa_preparer(results_math_80,
-                                               results_read_80,
-                                               type_txt = "80th/20th SES gap"),
-    complete_data_topbottom_70 = pisa_preparer(results_math_70,
-                                               results_read_70,
-                                               type_txt = "70th/30th SES gap"),
-    complete_gaps = bind_rows(complete_data_topbottom,
-                              complete_data_topbottom_80,
-                              complete_data_topbottom_70),
-    base_ready_data =
-      dif_data(complete_gaps, tracking_data) %>%
-      mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor()),
-    ready_data_age =
-      base_ready_data %>%
-      filter(!is.na(num_tracks),
-             !is.na(age_selection),
-             !is.na(length),
-             !is.na(zvoc)
-             ),
-    mod1_complete_tracking = complete_tracking_model(ready_data_age),
-    mod1_table = 
-      stan_table(mod1_complete_tracking) %>%
-      mutate(" " = c(
-        "Only 1 track",
-        "Age selection >= 15",
-        "% of curric tracked",
-        "Vocational Index",
-        paste0("Year ", seq(2003, 2015, 3)),
-        "Intercept"
-      )),
-    ready_data =
-      base_ready_data %>% 
-      filter(!is.na(ztrack), !is.na(zvoc)),
-    mod2_tracking = interaction_tracking_model(ready_data),
-    mod2_table =
-      stan_table(mod2_tracking) %>%
-      mutate(" " = c(
-        "Tracking Index",
-        "Vocational Index",
-        "Tracking * Vocational Index",
-        paste0("Year ", seq(2003, 2015, 3)),
-        "Intercept"
-      )),
-    p5_interaction_plot = interaction_plot(mod2_tracking),
-    mod3_cumulative = mod3_cumulative_change(complete_gaps,
-                                             tracking_data,
-                                             gaps),
-    mod3_table = 
-      stan_table(mod3_cumulative) %>%
-      mutate(" " = c(
-        "Track Index",
-        "Vocational Index",
-        "Intercept"
-      )) %>%
-      setNames(c(" ", gsub(" SES gap", "", gaps)))
-  )
+    ##   sample_tables_topbottom = sample_size_calc(
+    ##     merged_data,
+    ##     c(.1, .9),
+    ##     selected = TRUE,
+    ##     countries
+    ##   ),
+    ##   descriptives_samplesize = sample_size_descriptives(
+    ##     results_math,
+    ##     sample_tables_topbottom,
+    ##     complete_data_topbottom
+    ##   ),
+    ##   descriptives_tracking = tracking_descriptives(tracking_data, countries),
+    ##   ordered_cnt = order_cnt(complete_data_topbottom, countries),
+    ##   p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
+    ##                                           ordered_cnt),
+    ##   top_bottom_perc = perc_increase_fun(complete_data_topbottom),
+    ##   p2_perc_change = perc_graph(
+    ##     top_bottom_perc,
+    ##     "math",
+    ##     "90/10 achievement gap",
+    ##     "Percentage change from 2000 to 2015",
+    ##     countries
+    ##   ),
+    ##   p3_evolution_ses = evolution_ses_groups(complete_data_topbottom, countries),
+    ##   avg_sd_increase_high = avg_increase_fun(complete_data_topbottom, 1),
+    ##   avg_sd_increase_low = avg_increase_fun(complete_data_topbottom, 0),
+    ##   p4_rate_change = rate_change_graph(avg_sd_increase_high,
+    ##                                      avg_sd_increase_low),
+    ##   results_math_80 = test_diff(merged_data, reliability_pisa, "MATH",
+    ##                               c(0.8, 0.2)) %>% map(f_ind),
+    ##   results_read_80 = test_diff(merged_data, reliability_pisa, "READ",
+    ##                               c(0.8, 0.2)) %>% map(f_ind),
+    ##   results_math_70 = test_diff(merged_data, reliability_pisa, "MATH",
+    ##                               c(0.7, 0.3)) %>% map(f_ind),
+    ##   results_read_70 = test_diff(merged_data, reliability_pisa, "READ",
+    ##                               c(0.7, 0.3)) %>% map(f_ind),
+    ##   complete_data_topbottom_80 = pisa_preparer(results_math_80,
+    ##                                              results_read_80,
+    ##                                              type_txt = "80th/20th SES gap"),
+    ##   complete_data_topbottom_70 = pisa_preparer(results_math_70,
+    ##                                              results_read_70,
+    ##                                              type_txt = "70th/30th SES gap"),
+    ##   complete_gaps = bind_rows(complete_data_topbottom,
+    ##                             complete_data_topbottom_80,
+    ##                             complete_data_topbottom_70),
+    ##   base_ready_data =
+    ##     dif_data(complete_gaps, tracking_data) %>%
+    ##     mutate(age_selection = ifelse(selage >= 15, 1, 0) %>% as.factor()),
+    ##   ready_data_age =
+    ##     base_ready_data %>%
+    ##     filter(!is.na(num_tracks),
+    ##            !is.na(age_selection),
+    ##            !is.na(length),
+    ##            !is.na(zvoc)
+    ##            ),
+    ##   mod1_complete_tracking = complete_tracking_model(ready_data_age),
+    ##   mod1_table = 
+    ##     stan_table(mod1_complete_tracking) %>%
+    ##     mutate(" " = c(
+    ##       "Only 1 track",
+    ##       "Age selection >= 15",
+    ##       "% of curric tracked",
+    ##       "Vocational Index",
+    ##       paste0("Year ", seq(2003, 2015, 3)),
+    ##       "Intercept"
+    ##     )),
+    ##   ready_data =
+    ##     base_ready_data %>% 
+    ##     filter(!is.na(ztrack), !is.na(zvoc)),
+    ##   mod2_tracking = interaction_tracking_model(ready_data),
+    ##   mod2_table =
+    ##     stan_table(mod2_tracking) %>%
+    ##     mutate(" " = c(
+    ##       "Tracking Index",
+    ##       "Vocational Index",
+    ##       "Tracking * Vocational Index",
+    ##       paste0("Year ", seq(2003, 2015, 3)),
+    ##       "Intercept"
+    ##     )),
+    ##   p5_interaction_plot = interaction_plot(mod2_tracking),
+    ##   mod3_cumulative = mod3_cumulative_change(complete_gaps,
+    ##                                            tracking_data,
+    ##                                            gaps),
+    ##   mod3_table = 
+    ##     stan_table(mod3_cumulative) %>%
+    ##     mutate(" " = c(
+    ##       "Track Index",
+    ##       "Vocational Index",
+    ##       "Intercept"
+    ##     )) %>%
+    ##     setNames(c(" ", gsub(" SES gap", "", gaps)))
+    )

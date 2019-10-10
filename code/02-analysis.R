@@ -58,6 +58,7 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
   unloadNamespace("PISA2003lite")
   unloadNamespace("PISA2006lite")
   unloadNamespace("PISA2009lite")
+  print("PISA packages unloaded")
 
   # Go through each PISA and grab the highest education from Male
   # and Female partner. Finally, recode it to three categories
@@ -128,8 +129,9 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
         .x$high_edu_broad <- .x$high_edu_broad + 1
       }
 
-      # PISA 2015 doesn't have the schoolid column at the moment.
       if (unique(.x$wave) == "pisa2015") {
+
+        # PISA 2015 doesn't have the schoolid column at the moment.
         select(.x,
                wave,
                country,
@@ -139,8 +141,12 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
                ESCS,
                high_edu_broad,
                gender,
+               PROGN,
+               ISCEDO,
                matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
-      } else {
+
+      } else if (unique(.x$wave) == "pisa2000") {
+
         select(.x,
                wave,
                country,
@@ -151,13 +157,69 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
                W_FSTUWT,
                high_edu_broad,
                gender,
+               # Excludes PROGN because it wasn't asked in PISA 2000
                matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
+      } else {
+        
+        select(.x,
+               wave,
+               country,
+               SCHOOLID,
+               STIDSTD,
+               AGE,
+               matches("PV[0-9]{1,2}[MATH|READ]"),
+               W_FSTUWT,
+               high_edu_broad,
+               gender,
+               PROGN,
+               ISCEDO,
+               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
+
       }
 
     })
 
 
   pisa_all
+
+}
+
+read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
+
+  is_autonomous <- function(x) {
+    x <- as.numeric(x)
+    # If only there is ONE sole responsible, the proportion
+    # should be 0.25, otherwise it's not autonomous
+    res <- if (mean(x %in% 1) >= 0.25) 1 else 0
+    res
+  } 
+
+  identify_autonomy <- function(x) {
+    mat_autonomy <- str_split(x, pattern = "", simplify = TRUE)
+    autonomy_test <- apply(mat_autonomy[, 2:5], 1, is_autonomous)
+    autonomy_test["1" == str_sub(x, end = 1) & autonomy_test == 1] <- 0
+    autonomy_test[x %in% c("99999", "99997", "00000")] <- NA
+
+    autonomy_test
+  }
+
+  school2000 <-
+    school2000 %>%
+    as_tibble() %>%
+    rename(course_aut = SC22Q12,
+           content_aut = SC22Q11,
+           textbook_aut = SC22Q10,
+           hiring_aut = SC22Q01,
+           salary_aut = SC22Q03,
+           budget_aut = SC22Q06,
+           admittance_aut = SC22Q09) %>%
+    mutate_at(vars(ends_with("aut")), identify_autonomy)  
+
+  school2000 %>%
+    group_by(COUNTRY) %>%
+    summarize(course_aut = mean(course_aut, na.rm = TRUE),
+              hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
+    filter(COUNTRY == "BELGIUM")
 
 }
 
@@ -1023,6 +1085,108 @@ mod3_cumulative_change <- function(complete_gaps,
   all_gaps_models_cum
 }
 
-run_model <- function() {
-  brm(mpg ~ cyl + am + (1|gear), data = mtcars, family = gaussian())
-}
+escs_data_trans[[1]]$ISCEDO <- NA_character_
+
+
+# Japan
+# Germany
+# Spain
+# Netherlands
+# Denmark and Sweden no diff
+# United States and Cnada (the same distribution)
+# Netherlands
+# Belgium
+# France
+
+# 2000 - 
+# 2003 - PROGN/ISCEDO
+# 2006 - PROGN/ISCEDO
+# 2009 - PROGN/ISCEDO
+# 2012 - PROGN/ISCEDO
+# 2015 - PROGN/ISCEDO
+
+merged_df <-
+  escs_data_trans %>%
+  map(~ filter(.x, country == "France", !is.na(escs_dummy))) %>%
+  map(~ mutate(.x, ISCEDO = as.character(ISCEDO))) %>% 
+  map(~ select(.x, country, wave, high_edu_broad, escs_dummy, contains("PROGN"),
+               contains("ISCEDO"))) %>%
+  bind_rows()
+
+merged_df %>%
+  count(wave, escs_dummy, PROGN) %>%
+  group_by(wave, escs_dummy) %>% 
+  mutate(perc = n / sum(n)) %>%
+  filter(wave == "pisa2009") %>%
+  arrange(escs_dummy, perc) %>%
+  top_n(3) %>%
+  ggplot(aes(PROGN, perc, fill = as.character(escs_dummy))) +
+  geom_col(position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90))
+
+thirtytwo_cnt <-
+  c("Australia", "Austria", "Belgium", "Bulgaria", "Canada", "Chile", 
+    "Czech Republic", "Denmark", "Finland", "France", "Germany", 
+    "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", 
+    "Latvia", "Luxembourg", "Netherlands", "Norway", "Poland", "Portugal", 
+    "Spain", "Sweden", "Switzerland", "United Kingdom", "United States", 
+    "Japan", "Slovakia", "Turkey", "Slovenia")
+
+model_df <-
+  escs_data_trans %>%
+  map(~ filter(.x, !is.na(escs_dummy), country %in% thirtytwo_cnt)) %>%
+  map(~ mutate(.x,
+               ISCEDO = as.character(ISCEDO),
+               avg_math = rowMeans(dplyr::select(.x, ends_with("MATH")), na.rm = TRUE))) %>% 
+  map(~ dplyr::select(.x, country,
+               wave,
+               high_edu_broad,
+               escs_dummy,
+               contains("PROGN"),
+               avg_math)) %>%
+  bind_rows()
+
+tst <-
+  model_df %>%
+  nest(data = c(escs_dummy, high_edu_broad, avg_math, PROGN)) %>%
+  mutate(model = map(data, ~ lm(avg_math ~ escs_dummy, data = .x)),
+         within_group = map_dbl(model, ~ anova(.x)["Residuals", "Mean Sq"]),
+         between_group = map_dbl(model, ~ anova(.x)["escs_dummy", "Mean Sq"]),
+         perc_within = within_group / (within_group + between_group),
+         sd_within_low = map_dbl(data, ~ .x %>% filter(escs_dummy == 0) %>% pull(avg_math) %>% sd()),
+         sd_within_high = map_dbl(data, ~ .x %>% filter(escs_dummy == 1) %>% pull(avg_math) %>% sd()),
+         ratio_sd = sd_within_high / sd_within_low,
+         avg_bottom = map_dbl(data, ~ filter(.x, escs_dummy == 0) %>% pull(avg_math) %>% mean()),
+         avg_high = map_dbl(data, ~ filter(.x, escs_dummy == 1) %>% pull(avg_math) %>% mean()),
+         gap = (avg_high - avg_bottom))
+
+tst %>%
+  ggplot(aes(x = wave, y = gap, group = 1)) +
+  geom_line() +
+  facet_wrap(~ country)
+
+
+null_model <- brm(gap ~ (1 | country/wave), data = tst,
+                  control = list(adapt_delta = 0.99,
+                                 max_treedepth = 15))
+
+full_model <- brm(gap ~ ratio_sd + (1 | country/wave), data = tst,
+                  control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+null_var <- as.data.frame(VarCorr(null_model))["sdcor"]
+full_var <- as.data.frame(VarCorr(full_model))["sdcor"]
+
+(null_var - full_var) / null_var
+
+mod_dt <- tst %>% slice(10) %>% pull(data) %>% .[[1]]
+
+anova(lm(avg_math ~ escs_dummy, mod_dt))
+
+mod_dt %>%
+  group_by(escs_dummy) %>%
+  summarize(avg = mean(avg_math),
+            sd = sd(avg_math))
+
+hist(mod_dt$avg_math)
+
+tst <- lmer(avg_math ~ (1 | country:wave:escs_dummy), data = model_df)

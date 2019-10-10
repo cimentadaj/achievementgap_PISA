@@ -14,8 +14,7 @@ dconf <- drake_config(
   plan,
   verbose = 2,
   env = new.env(parent = globalenv()), # See https://github.com/ropensci/drake/issues/960
-  memory_strategy = "memory",
-  ##   garbage_collection = TRUE
+  memory_strategy = "memory"
   )
 
 # These pkgs take up a lot of memory. Only
@@ -23,9 +22,9 @@ dconf <- drake_config(
 # make sure to load them. Right after I use
 # them I unload them again from memory
 # in the same function, so it's safe
-# to load them ONLY when pisa_data
+# to load them ONLY when pisa_data || pisa_school_data
 # has to be run again.
-if ("pisa_data" %in% outdated(dconf)) {
+if ("pisa_data" %in% outdated(dconf) | "pisa_school_data" %in% outdated(dconf)) {
   print("PISA packages loaded")
   library(PISA2000lite)
   library(PISA2003lite)
