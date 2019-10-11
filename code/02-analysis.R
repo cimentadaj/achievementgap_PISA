@@ -129,56 +129,27 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
         .x$high_edu_broad <- .x$high_edu_broad + 1
       }
 
-      if (unique(.x$wave) == "pisa2015") {
-
-        # PISA 2015 doesn't have the schoolid column at the moment.
         select(.x,
                wave,
                country,
-               AGE,
-               matches("PV[0-9]{1,2}[MATH|READ]"),
-               W_FSTUWT,
-               ESCS,
-               high_edu_broad,
-               gender,
-               PROGN,
-               ISCEDO,
-               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
-
-      } else if (unique(.x$wave) == "pisa2000") {
-
-        select(.x,
-               wave,
-               country,
-               SCHOOLID,
-               STIDSTD,
+               matches("SCHOOLID"),
+               # This is the PISA 2015 school ID
+               matches("CNTSCHID"),
+               # This is the PISA 2015 student ID
+               matches("CNTSTUID"),
+               matches("STIDSTD"),
                AGE,
                matches("PV[0-9]{1,2}[MATH|READ]"),
                W_FSTUWT,
                high_edu_broad,
                gender,
-               # Excludes PROGN because it wasn't asked in PISA 2000
+               # Wasn't asked in pisa 2000
+               matches("PROGN"),
+               matches("ISCEDO"),
+               matches("ESCS"),
                matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
-      } else {
-        
-        select(.x,
-               wave,
-               country,
-               SCHOOLID,
-               STIDSTD,
-               AGE,
-               matches("PV[0-9]{1,2}[MATH|READ]"),
-               W_FSTUWT,
-               high_edu_broad,
-               gender,
-               PROGN,
-               ISCEDO,
-               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
-
-      }
 
     })
-
 
   pisa_all
 
@@ -574,8 +545,7 @@ calc_adj_pv <- function(df, reliability) {
         test_name <- paste0("adj_pvnum_", test_score)
         .x[[test_name]] <- resid(mod1) / modelr::rmse(mod1, .x) * 1 / sqrt(.y)
 
-        .x
-
+        .x[, test_name]
     })
 
     .x <- bind_cols(.x, test_df)
@@ -1325,6 +1295,16 @@ mod3_cumulative_change <- function(complete_gaps,
 
   all_gaps_models_cum
 }
+
+merged_data <- map(readd(merged_data), as_tibble)
+
+merged_data %>%
+  map(~ {
+    select(.x, country, wave, schoolid, escs_dummy, starts_with("adj_pvnum")) %>%
+      as_tibble()
+  })
+
+
 
 ## escs_data_trans[[1]]$ISCEDO <- NA_character_
 

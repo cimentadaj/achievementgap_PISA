@@ -469,10 +469,12 @@ plan <-
     merged_data = calc_adj_pv(escs_dummy_data, reliability_pisa),
     res_math = target(
       test_diff(merged_data, "MATH"),
+      # Because it's a list
       format = "rds"
     ),
     res_read = target(
       test_diff(merged_data, "READ"),
+      # Because it's a list
       format = "rds"
     ),
     results_math = map(res_math, f_ind),
