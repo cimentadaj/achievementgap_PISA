@@ -514,8 +514,6 @@ escs_dummy_creator <- function(df, probs) {
 
       quan <- quantile_missing(country, weights_var, probs)
 
-      # it is very important to create a variable that returns the number of observations of this dummy
-      # For each country. Possibly to weight by the number of observations.
       country$escs_dummy <-
         with(country, case_when(escs_trend >= quan[2] ~ 1,
                                 escs_trend <= quan[1] ~ 0))
@@ -536,6 +534,56 @@ escs_dummy_creator <- function(df, probs) {
   })
 }
 
+calc_adj_pv <- function(df, reliability) {
+  test <- c("MATH", "READ")
+
+  # Look over each wave
+  map2(df, reliability, function(.x, .y) {
+
+    conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
+    weights_var <- conf$variables$weightFinal
+
+    # Look over each test and create an adjusted version of it and
+    # then cbind them together to the original dataset
+    test_df <-
+      map_dfc(test, function(test_score) {
+
+        .x <-
+          .x %>%
+          dplyr::select(wave,
+                        matches(paste0("^PV.*", test_score, "$")),
+                        escs_dummy,
+                        country,
+                        one_of(weights_var),
+                        AGE)
+
+        test_vars <- paste0("PV", seq_len(conf$parameters$PVreps), test_score)
+        .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
+
+        # Calculate median math score of all PV's
+        .x$dv <- rowMedians(as.matrix(.x[test_vars]), na.rm = T)
+
+        # Should I estimate the model separately by country?
+        mod1 <- lm(dv ~ AGE,
+                   weights = .x[[weights_var]],
+                   data = .x,
+                   na.action = "na.exclude")
+
+        # Take residuals of model and divide by rmse. Multiply that by
+        # 1 / sqrt(reliability of each survey), which is .y in the loop.
+        test_name <- paste0("adj_pvnum_", test_score)
+        .x[[test_name]] <- resid(mod1) / modelr::rmse(mod1, .x) * 1 / sqrt(.y)
+
+        .x
+
+    })
+
+    .x <- bind_cols(.x, test_df)
+
+    .x
+  })
+}
+
 
 sample_size_calc <- function(df, probs, selected = FALSE, cnts = NULL) {
 
@@ -546,9 +594,10 @@ sample_size_calc <- function(df, probs, selected = FALSE, cnts = NULL) {
   cnt_to_bind <-
     map(df, function(df) {
 
-      print(unique(df$wave))
       conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
       weights_var <- conf$variables$weightFinal
+
+      print(unique(df$wave))
 
       split_df <- split(df, df$country)
 

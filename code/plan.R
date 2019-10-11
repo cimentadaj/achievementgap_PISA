@@ -95,64 +95,21 @@ quantile_missing <- function(df, weights, probs) {
 
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
-test_diff <- function(df, reliability, test, probs) {
+test_diff <- function(df, test) {
 
-  map2(df, reliability, function(.x, .y) {
-
+  map(df, function(.x) {
     conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
     weights_var <- conf$variables$weightFinal
 
-    country_split <- split(.x, .x$country)
-    
-    country_list <- map(country_split, function(country) {
-      print(unique(country$country))
-
-      quan <- quantile_missing(country, weights_var, probs)
-
-      country$escs_dummy <-
-        with(country, case_when(escs_trend >= quan[2] ~ 1,
-                                escs_trend <= quan[1] ~ 0))
-      country
-    })
-    
-    rm(country_split)
-
-    .x <-
-      enframe(country_list) %>%
-      unnest(value)
-    
-    rm(country_list)
-
-    .x <-
-      .x %>%
-      dplyr::select(wave,
-                    matches(paste0("^PV.*", test, "$")),
-                    escs_dummy,
-                    country,
-                    one_of(weights_var),
-                    AGE)
-
-    message(paste(unique(.x$wave), "data ready"))
-
-
-    test_vars <- paste0("PV", seq_len(conf$parameters$PVreps), test)
-    .x[test_vars] <- map(.x[test_vars], ~ ifelse(.x == 9997, NA, .x))
-
-    # Calculate median math score of all PV's
-    .x$dv <- rowMedians(as.matrix(.x[test_vars]), na.rm = T)
-
-    # Should I estimate the model separately by country?
-    mod1 <- lm(dv ~ AGE,
-               weights = .x[[weights_var]],
-               data = .x,
-               na.action = "na.exclude")
-
-    # Take residuals of model and divide by rmse. Multiply that by
-    # 1 / sqrt(reliability of each survey), which is .y in the loop.
-    .x$adj_pvnum <- resid(mod1)/modelr::rmse(mod1, .x) * 1 / sqrt(.y)
+    mod_formula <-
+      as.formula(
+        paste0(
+          paste0("adj_pvnum_", test), " ~ escs_dummy + (1 + escs_dummy | country)"
+        )
+      )
 
     mod2 <-
-      lmer(adj_pvnum ~ escs_dummy + (1 + escs_dummy | country),
+      lmer(mod_formula,
            data = .x,
            weights = .x[[weights_var]])
 
@@ -505,15 +462,24 @@ plan <-
     plot_autonomy = plot_autonomy_trends(pisa_school_data, countries),
     escs_data = read_escs(raw_data_dir, recode_cntrys),
     tracking_data = read_tracking(raw_data_dir),
-    merged_data = merge_data(pisa_data, escs_data),
-    ## res_math = test_diff(merged_data, reliability_pisa, "MATH", c(0.1, 0.9)),
-    ## res_read = test_diff(merged_data, reliability_pisa, "READ", c(0.1, 0.9)),
-    ## results_math = map(res_math, f_ind),
-    ## results_read = map(res_read, f_ind),
+    semi_merged = merge_data(pisa_data, escs_data),
+    # escs_dummy_data now contains the dummy column for the 90th/10th
+    escs_dummy_data = escs_dummy_creator(semi_merged, c(0.1, 0.9)),
+    # merged_data now contains the adjusted math/read column for all students
+    merged_data = calc_adj_pv(escs_dummy_data, reliability_pisa),
+    res_math = target(
+      test_diff(merged_data, "MATH"),
+      format = "rds"
+    ),
+    res_read = target(
+      test_diff(merged_data, "READ"),
+      format = "rds"
+    ),
+    results_math = map(res_math, f_ind),
+    results_read = map(res_read, f_ind),
     ## complete_data_topbottom = pisa_preparer(results_math,
     ##                                         results_read,
     ##                                         type_txt = "90th/10th SES gap"),
-    ## escs_data_trans = escs_dummy_creator(merged_data, c(0.1, 0.9)),
     ##   sample_tables_topbottom = sample_size_calc(
     ##     merged_data,
     ##     c(.1, .9),

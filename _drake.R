@@ -13,7 +13,8 @@ source("code/plan.R")      # Create your drake plan.
 dconf <- drake_config(
   plan,
   verbose = 2,
-  env = new.env(parent = globalenv()), # See https://github.com/ropensci/drake/issues/960
+  # See https://github.com/ropensci/drake/issues/960
+  env = new.env(parent = globalenv()), 
   memory_strategy = "memory"
   )
 
