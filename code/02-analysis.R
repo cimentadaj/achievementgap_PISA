@@ -201,6 +201,7 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
 
     for (i in seq_along(list_aut)) {
       tst <- df_pisa[, list_aut[[i]]]
+      tst <- mutate_all(tst, ~ recode(as.numeric(.x), `7` = NA_real_, `8` = NA_real_))
       tst$higher_aut <- do.call(pmax_narm, tst[non_aut_cols])
       original_var <- paste0(names(list_aut)[i], "_original")
       new_var <- names(list_aut)[i]
@@ -231,6 +232,12 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     autonomy_test
   }
 
+  # Commong variables to pick for all waves
+  var_picker <- function(df_pisa) {
+    df_pisa %>%
+      select(COUNTRY, SCHOOLID, ends_with("_aut"), "SCHLTYPE")
+  }
+  
   # PISA 20000
   school2000 <-
     school2000 %>%
@@ -242,17 +249,9 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
            salary_aut = SC22Q03,
            budget_aut = SC22Q06,
            admittance_aut = SC22Q09) %>%
-    mutate_at(vars(ends_with("aut")), identify_autonomy)
-
-  sum_sc2000 <-
-    school2000 %>%
-    mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY))) %>% 
-    group_by(COUNTRY) %>%
-    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>%
-    mutate(wave = "pisa2000") %>%
-    pivot_longer(ends_with("aut"),
-                 names_to = "aut",
-                 values_to = "vals")    
+    mutate_at(vars(ends_with("aut")), identify_autonomy) %>%
+    mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY))) %>%
+    var_picker()
 
   # PISA 2003
   school2003 <-
@@ -266,17 +265,9 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
            budget_aut = SC26Q06,
            admittance_aut = SC26Q09) %>%
     mutate_at(vars(ends_with("aut")), str_replace_all, "2", "0") %>%
-    mutate_at(vars(ends_with("aut")), identify_autonomy)
-
-  sum_sc2003 <-
-    school2003 %>%
-    mutate(COUNTRY = trimws(COUNTRY)) %>% 
-    group_by(COUNTRY) %>%
-    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
-    mutate(wave = "pisa2003") %>% 
-    pivot_longer(ends_with("aut"),
-                 names_to = "aut",
-                 values_to = "vals")
+    mutate_at(vars(ends_with("aut")), identify_autonomy) %>%
+    mutate(COUNTRY = trimws(COUNTRY)) %>%
+    var_picker()
 
   # PISA 2006
   list_aut <- list("course_aut" = paste0("SC11QL", 1:4),
@@ -292,17 +283,10 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(.x, `2` = 0))
 
   school2006 <- collapse_aut_cols(school2006, list_aut)
-  school2006 <- mutate_at(school2006, vars(ends_with("aut")), identify_autonomy)
-
-  sum_sc2006 <-
-    school2006 %>%
-    mutate(COUNTRY = as.character(COUNTRY)) %>% 
-    group_by(COUNTRY) %>%
-    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
-    mutate(wave = "pisa2006") %>% 
-    pivot_longer(ends_with("aut"),
-                 names_to = "aut",
-                 values_to = "vals")
+  school2006 <-
+    mutate_at(school2006, vars(ends_with("aut")), identify_autonomy) %>%
+    mutate(COUNTRY = as.character(COUNTRY)) %>%
+    var_picker()
 
   # PISA 2009
   list_aut <- list("course_aut" = paste0("SC24QL", 1:5),
@@ -318,19 +302,13 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
 
   school2009 <- collapse_aut_cols(school2009, list_aut, max_cols = 5)
-  school2009 <- mutate_at(school2009, vars(ends_with("aut")), identify_autonomy)
-
-  sum_sc2009 <-
-    school2009 %>%
+  school2009 <-
+    mutate_at(school2009, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = as.character(CNT)) %>%
     select(-COUNTRY) %>% 
-    rename(COUNTRY = CNT) %>% 
-    group_by(COUNTRY) %>%
-    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
-    mutate(wave = "pisa2009") %>% 
-    pivot_longer(ends_with("aut"),
-                 names_to = "aut",
-                 values_to = "vals")
+    rename(COUNTRY = CNT,
+           SCHLTYPE = SCHTYPE) %>%
+    var_picker()
 
   # PISA 2012
   pisa2012_path <- file.path(raw_data, "pisa2012", "INT_SCQ12_DEC03.txt")
@@ -357,18 +335,12 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
 
   school2012 <- collapse_aut_cols(school2012, list_aut, max_cols = 5)
-  school2012 <- mutate_at(school2012, vars(ends_with("aut")), identify_autonomy)
 
-  sum_sc2012 <-
-    school2012 %>%
+  school2012 <-
+    mutate_at(school2012, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT]) %>%
-    rename(COUNTRY = CNT) %>% 
-    group_by(COUNTRY) %>%
-    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
-    mutate(wave = "pisa2012") %>% 
-    pivot_longer(ends_with("aut"),
-                 names_to = "aut",
-                 values_to = "vals")
+    rename(COUNTRY = CNT) %>%
+    var_picker()
 
   # PISA 2015
   pisa2015_path <- file.path(raw_data, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
