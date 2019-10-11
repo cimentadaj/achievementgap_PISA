@@ -358,18 +358,42 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
                    "admittance_aut" = paste0("SC010Q09T", up_letters))
 
   school2015 <- collapse_aut_cols(school2015, list_aut, max_cols = 5)
-  school2015 <- mutate_at(school2015, vars(ends_with("aut")), identify_autonomy)
-
-  sum_sc2015 <-
-    school2015 %>%
+  school2015 <-
+    mutate_at(school2015, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT]) %>%
-    rename(COUNTRY = CNT) %>% 
-    group_by(COUNTRY) %>%
-    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
-    mutate(wave = "pisa2015") %>% 
-    pivot_longer(ends_with("aut"),
-                 names_to = "aut",
-                 values_to = "vals")
+    rename(COUNTRY = CNT,
+           SCHOOLID = CNTSCHID) %>%
+    var_picker()
+
+  list(
+    school2000,
+    school2003,
+    school2006,
+    school2009,
+    school2012,
+    school2015
+  )
+}
+
+plot_autonomy_trends <- function(list_school_waves, cntrys) {
+
+  summarize_aut <- function(df_pisa, wave) {
+    df_pisa %>%
+      group_by(COUNTRY) %>%
+      summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>%
+      mutate(wave = wave) %>%
+      pivot_longer(ends_with("aut"),
+                   names_to = "aut",
+                   values_to = "vals")
+  }
+
+
+  sum_sc2000 <- summarize_aut(list_school_waves[[1]], "pisa2000")
+  sum_sc2003 <- summarize_aut(list_school_waves[[2]], "pisa2003")
+  sum_sc2006 <- summarize_aut(list_school_waves[[3]], "pisa2006")
+  sum_sc2009 <- summarize_aut(list_school_waves[[4]], "pisa2009")
+  sum_sc2012 <- summarize_aut(list_school_waves[[5]], "pisa2012")
+  sum_sc2015 <- summarize_aut(list_school_waves[[6]], "pisa2015")
 
   # Merge all and plot
   sum_sc <- bind_rows(sum_sc2000,
@@ -380,13 +404,15 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
                       sum_sc2015)
 
   sum_sc %>%
-    mutate(wave = factor(wave, levels = paste0("pisa", seq(2000, 2015, by = 3)), ordered = TRUE)) %>%
-    filter(COUNTRY %in% recode_cntrys) %>% 
+    mutate(wave = factor(wave, levels = paste0("pisa", seq(2000, 2015, by = 3)),
+                         ordered = TRUE)) %>%
+    filter(COUNTRY %in% cntrys) %>% 
     ggplot(aes(wave, vals, group = aut, linetype = aut, color = aut)) +
     geom_point() +
     geom_line() +
     ## scale_color_manual(values = c("black", "grey60")) +
     facet_wrap(~ COUNTRY)
+
 }
 
 read_escs <- function(raw_data, recode_cntrys) {
@@ -1252,7 +1278,6 @@ mod3_cumulative_change <- function(complete_gaps,
 }
 
 ## escs_data_trans[[1]]$ISCEDO <- NA_character_
-
 
 # Japan
 # Germany

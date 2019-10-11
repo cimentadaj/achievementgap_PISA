@@ -497,14 +497,15 @@ gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 plan <-
   drake_plan(
-    ## pisa_data = target(
-    ##   read_harmonize_pisa(raw_data_dir, recode_cntrys),
-    ##   format = "fst"
-    ## ),
+    pisa_data = target(
+      read_harmonize_pisa(raw_data_dir, recode_cntrys),
+      format = "fst"
+    ),
     pisa_school_data = read_harmonize_pisa_school(raw_data_dir, countries),
-    ## escs_data = read_escs(raw_data_dir, recode_cntrys),
-    ## tracking_data = read_tracking(raw_data_dir),
-    ## merged_data = merge_data(pisa_data, escs_data),
+    plot_autonomy = plot_autonomy_trends(pisa_school_data, countries),
+    escs_data = read_escs(raw_data_dir, recode_cntrys),
+    tracking_data = read_tracking(raw_data_dir),
+    merged_data = merge_data(pisa_data, escs_data),
     ## res_math = test_diff(merged_data, reliability_pisa, "MATH", c(0.1, 0.9)),
     ## res_read = test_diff(merged_data, reliability_pisa, "READ", c(0.1, 0.9)),
     ## results_math = map(res_math, f_ind),
