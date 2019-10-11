@@ -192,6 +192,8 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
                        "99997",
                        "88888",
                        "00000",
+                       "000",
+                       "NANANA",
                        "77777",
                        "N    ",
                        "M    ",
@@ -213,13 +215,100 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
            salary_aut = SC22Q03,
            budget_aut = SC22Q06,
            admittance_aut = SC22Q09) %>%
-    mutate_at(vars(ends_with("aut")), identify_autonomy)  
+    mutate_at(vars(ends_with("aut")), identify_autonomy)
 
-  school2000 %>%
+  sum_sc2000 <-
+    school2000 %>%
+    mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY))) %>% 
     group_by(COUNTRY) %>%
     summarize(course_aut = mean(course_aut, na.rm = TRUE),
               hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
-    filter(COUNTRY == "BELGIUM")
+    mutate(wave = "pisa2000") %>%
+    pivot_longer(ends_with("aut"),
+                 names_to = "aut",
+                 values_to = "vals")    
+
+  # PISA 2003
+  school2003 <-
+    school2003 %>%
+    as_tibble() %>% 
+    rename(course_aut = SC26Q12,
+           content_aut = SC26Q11,
+           textbook_aut = SC26Q10,
+           hiring_aut = SC26Q01,
+           salary_aut = SC26Q03,
+           budget_aut = SC26Q06,
+           admittance_aut = SC26Q09) %>%
+    mutate_at(vars(ends_with("aut")), str_replace_all, "2", "0") %>%
+    mutate_at(vars(ends_with("aut")), identify_autonomy)
+
+  sum_sc2003 <-
+    school2003 %>%
+    mutate(COUNTRY = trimws(COUNTRY)) %>% 
+    group_by(COUNTRY) %>%
+    summarize(course_aut = mean(course_aut, na.rm = TRUE),
+              hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
+    mutate(wave = "pisa2003") %>% 
+    pivot_longer(ends_with("aut"),
+                 names_to = "aut",
+                 values_to = "vals")
+
+  # PISA 2006
+  list_aut <- list("course_aut" = paste0("SC11QL", 1:4),
+                   "content_aut" = paste0("SC11QK", 1:4),
+                   "textbook_aut" = paste0("SC11QJ", 1:4),
+                   "hiring_aut" = paste0("SC11QA", 1:4),
+                   "salary_aut" = paste0("SC11QC", 1:4),
+                   "budget_aut" = paste0("SC11QF", 1:4),
+                   "admittance_aut" = paste0("SC11QI", 1:4))
+
+  school2006 <-
+    as_tibble(school2006) %>%
+    mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(.x, `2` = 0))
+
+  pmax_narm <- function(...) {
+    pmax(... = ..., na.rm = TRUE)
+  }
+
+  for (i in seq_along(list_aut)) {
+    tst <- school2006[, list_aut[[i]]]
+    tst$higher_aut <- do.call(pmax_narm, tst[3:4])
+    school2006[[paste0(names(list_aut)[i], "_original")]] <- apply(tst[, c(5, 1:2)], 1, paste0, collapse = "")
+    school2006[[names(list_aut)[i]]] <- school2006[[paste0(names(list_aut)[i], "_original")]]
+  }
+
+  school2006 <- mutate_at(school2006, vars(ends_with("aut")), identify_autonomy)
+
+  sum_sc2006 <-
+    school2006 %>%
+    mutate(COUNTRY = as.character(COUNTRY)) %>% 
+    group_by(COUNTRY) %>%
+    summarize(course_aut = mean(course_aut, na.rm = TRUE),
+              hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
+    mutate(wave = "pisa2006") %>% 
+    pivot_longer(ends_with("aut"),
+                 names_to = "aut",
+                 values_to = "vals")
+
+
+  # PISA 2009
+
+  sum_sc <- bind_rows(sum_sc2000, sum_sc2003, sum_sc2006)
+
+  sum_sc %>%
+    mutate(wave = factor(wave, levels = paste0("pisa", seq(2000, 2015, by = 3)), ordered = TRUE)) %>%
+    ggplot(aes(wave, vals, group = aut, linetype = aut, color = aut)) +
+    geom_point() +
+    geom_line() +
+    scale_color_manual(values = c("black", "grey60")) +
+    facet_wrap(~ COUNTRY)
+
+  ## school2003 %>%
+  ##   as_tibble() %>%
+  ##   mutate(SC26Q12 = str_replace_all(SC26Q12, "2", "0"),
+  ##          course_aut = identify_autonomy(SC26Q12)) %>%
+  ##   count(SC26Q12, course_aut) %>%
+  ##   print(n = Inf)
 
 }
 
