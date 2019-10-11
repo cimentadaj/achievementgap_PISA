@@ -186,6 +186,33 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
 
 read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
 
+  # To be used when > PISA2006 waves divide autonomy tick
+  # into several columns rather than pasted into one.
+  # This takes the N (4, 5) columns and collapse them into
+  # one string summarizing the non-autonomy columns into one
+  pmax_narm <- function(...) {
+    pmax(... = ..., na.rm = TRUE)
+  }
+
+  collapse_aut_cols <- function(df_pisa, list_aut, max_cols = 4) {
+    aut_cols <- seq(1, max_cols)
+    # Always last two columns
+    non_aut_cols <- aut_cols[(length(aut_cols) - 1):length(aut_cols)]
+
+    for (i in seq_along(list_aut)) {
+      tst <- df_pisa[, list_aut[[i]]]
+      tst$higher_aut <- do.call(pmax_narm, tst[non_aut_cols])
+      original_var <- paste0(names(list_aut)[i], "_original")
+      new_var <- names(list_aut)[i]
+      new_old_cols <- c(max_cols + 1, setdiff(aut_cols, non_aut_cols))
+      df_pisa[[original_var]] <- apply(tst[, new_old_cols], 1, paste0, collapse = "")
+      df_pisa[[new_var]] <- df_pisa[[original_var]]
+    }
+
+    df_pisa
+  }
+
+
   identify_autonomy <- function(x) {
     autonomy_test <- ifelse("1" == str_sub(x, end = 1), 0, 1)
     missing_codes <- c("99999",
@@ -221,8 +248,7 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     school2000 %>%
     mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY))) %>% 
     group_by(COUNTRY) %>%
-    summarize(course_aut = mean(course_aut, na.rm = TRUE),
-              hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
+    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>%
     mutate(wave = "pisa2000") %>%
     pivot_longer(ends_with("aut"),
                  names_to = "aut",
@@ -246,8 +272,7 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     school2003 %>%
     mutate(COUNTRY = trimws(COUNTRY)) %>% 
     group_by(COUNTRY) %>%
-    summarize(course_aut = mean(course_aut, na.rm = TRUE),
-              hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
+    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
     mutate(wave = "pisa2003") %>% 
     pivot_longer(ends_with("aut"),
                  names_to = "aut",
@@ -266,50 +291,130 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
     as_tibble(school2006) %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(.x, `2` = 0))
 
-  pmax_narm <- function(...) {
-    pmax(... = ..., na.rm = TRUE)
-  }
-
-  for (i in seq_along(list_aut)) {
-    tst <- school2006[, list_aut[[i]]]
-    tst$higher_aut <- do.call(pmax_narm, tst[3:4])
-    school2006[[paste0(names(list_aut)[i], "_original")]] <- apply(tst[, c(5, 1:2)], 1, paste0, collapse = "")
-    school2006[[names(list_aut)[i]]] <- school2006[[paste0(names(list_aut)[i], "_original")]]
-  }
-
+  school2006 <- collapse_aut_cols(school2006, list_aut)
   school2006 <- mutate_at(school2006, vars(ends_with("aut")), identify_autonomy)
 
   sum_sc2006 <-
     school2006 %>%
     mutate(COUNTRY = as.character(COUNTRY)) %>% 
     group_by(COUNTRY) %>%
-    summarize(course_aut = mean(course_aut, na.rm = TRUE),
-              hiring_aut = mean(hiring_aut, na.rm = TRUE)) %>%
+    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
     mutate(wave = "pisa2006") %>% 
     pivot_longer(ends_with("aut"),
                  names_to = "aut",
                  values_to = "vals")
 
-
   # PISA 2009
+  list_aut <- list("course_aut" = paste0("SC24QL", 1:5),
+                   "content_aut" = paste0("SC24QK", 1:5),
+                   "textbook_aut" = paste0("SC24QJ", 1:5),
+                   "hiring_aut" = paste0("SC24QA", 1:5),
+                   "salary_aut" = paste0("SC24QC", 1:5),
+                   "budget_aut" = paste0("SC24QF", 1:5),
+                   "admittance_aut" = paste0("SC24QI", 1:5))
 
-  sum_sc <- bind_rows(sum_sc2000, sum_sc2003, sum_sc2006)
+  school2009 <-
+    as_tibble(school2009) %>%
+    mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
+
+  school2009 <- collapse_aut_cols(school2009, list_aut, max_cols = 5)
+  school2009 <- mutate_at(school2009, vars(ends_with("aut")), identify_autonomy)
+
+  sum_sc2009 <-
+    school2009 %>%
+    mutate(CNT = as.character(CNT)) %>%
+    select(-COUNTRY) %>% 
+    rename(COUNTRY = CNT) %>% 
+    group_by(COUNTRY) %>%
+    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
+    mutate(wave = "pisa2009") %>% 
+    pivot_longer(ends_with("aut"),
+                 names_to = "aut",
+                 values_to = "vals")
+
+  # PISA 2012
+  pisa2012_path <- file.path(raw_data, "pisa2012", "INT_SCQ12_DEC03.txt")
+  dic_path <- file.path(raw_data, "pisa2012", "PISA2012_SAS_school.sas")
+  dic_school <- parse.SAScii(sas_ri = dic_path)
+  school2012 <- read_fwf(pisa2012_path,
+                         col_positions = fwf_widths(dic_school$width),
+                         progress = TRUE)
+
+  colnames(school2012) <- dic_school$varname
+
+  up_letters <- toupper(letters[1:5])
+
+  list_aut <- list("course_aut" = paste0("SC33Q12", up_letters),
+                   "content_aut" = paste0("SC33Q11", up_letters),
+                   "textbook_aut" = paste0("SC33Q10", up_letters),
+                   "hiring_aut" = paste0("SC33Q01", up_letters),
+                   "salary_aut" = paste0("SC33Q03", up_letters),
+                   "budget_aut" = paste0("SC33Q06", up_letters),
+                   "admittance_aut" = paste0("SC33Q09", up_letters))
+
+  school2012 <-
+    school2012 %>%
+    mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
+
+  school2012 <- collapse_aut_cols(school2012, list_aut, max_cols = 5)
+  school2012 <- mutate_at(school2012, vars(ends_with("aut")), identify_autonomy)
+
+  sum_sc2012 <-
+    school2012 %>%
+    mutate(CNT = cimentadaj::pisa_countrynames[CNT]) %>%
+    rename(COUNTRY = CNT) %>% 
+    group_by(COUNTRY) %>%
+    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
+    mutate(wave = "pisa2012") %>% 
+    pivot_longer(ends_with("aut"),
+                 names_to = "aut",
+                 values_to = "vals")
+
+  # PISA 2015
+  pisa2015_path <- file.path(raw_data, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
+  pisa_countrynames <- c(cimentadaj::pisa_countrynames, "United States" = "USA")
+  school2015 <- read_spss(pisa2015_path)
+
+  up_letters <- toupper(letters[1:5])
+
+  list_aut <- list("course_aut" = paste0("SC010Q12T", up_letters),
+                   "content_aut" = paste0("SC010Q11T", up_letters),
+                   "textbook_aut" = paste0("SC010Q10T", up_letters),
+                   "hiring_aut" = paste0("SC010Q01T", up_letters),
+                   "salary_aut" = paste0("SC010Q03T", up_letters),
+                   "budget_aut" = paste0("SC010Q06T", up_letters),
+                   "admittance_aut" = paste0("SC010Q09T", up_letters))
+
+  school2015 <- collapse_aut_cols(school2015, list_aut, max_cols = 5)
+  school2015 <- mutate_at(school2015, vars(ends_with("aut")), identify_autonomy)
+
+  sum_sc2015 <-
+    school2015 %>%
+    mutate(CNT = cimentadaj::pisa_countrynames[CNT]) %>%
+    rename(COUNTRY = CNT) %>% 
+    group_by(COUNTRY) %>%
+    summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>% 
+    mutate(wave = "pisa2015") %>% 
+    pivot_longer(ends_with("aut"),
+                 names_to = "aut",
+                 values_to = "vals")
+
+  # Merge all and plot
+  sum_sc <- bind_rows(sum_sc2000,
+                      sum_sc2003,
+                      sum_sc2006,
+                      sum_sc2009,
+                      sum_sc2012,
+                      sum_sc2015)
 
   sum_sc %>%
     mutate(wave = factor(wave, levels = paste0("pisa", seq(2000, 2015, by = 3)), ordered = TRUE)) %>%
+    filter(COUNTRY %in% recode_cntrys) %>% 
     ggplot(aes(wave, vals, group = aut, linetype = aut, color = aut)) +
     geom_point() +
     geom_line() +
-    scale_color_manual(values = c("black", "grey60")) +
+    ## scale_color_manual(values = c("black", "grey60")) +
     facet_wrap(~ COUNTRY)
-
-  ## school2003 %>%
-  ##   as_tibble() %>%
-  ##   mutate(SC26Q12 = str_replace_all(SC26Q12, "2", "0"),
-  ##          course_aut = identify_autonomy(SC26Q12)) %>%
-  ##   count(SC26Q12, course_aut) %>%
-  ##   print(n = Inf)
-
 }
 
 read_escs <- function(raw_data, recode_cntrys) {
@@ -1174,7 +1279,7 @@ mod3_cumulative_change <- function(complete_gaps,
   all_gaps_models_cum
 }
 
-escs_data_trans[[1]]$ISCEDO <- NA_character_
+## escs_data_trans[[1]]$ISCEDO <- NA_character_
 
 
 # Japan
@@ -1194,88 +1299,88 @@ escs_data_trans[[1]]$ISCEDO <- NA_character_
 # 2012 - PROGN/ISCEDO
 # 2015 - PROGN/ISCEDO
 
-merged_df <-
-  escs_data_trans %>%
-  map(~ filter(.x, country == "France", !is.na(escs_dummy))) %>%
-  map(~ mutate(.x, ISCEDO = as.character(ISCEDO))) %>% 
-  map(~ select(.x, country, wave, high_edu_broad, escs_dummy, contains("PROGN"),
-               contains("ISCEDO"))) %>%
-  bind_rows()
+## merged_df <-
+##   escs_data_trans %>%
+##   map(~ filter(.x, country == "France", !is.na(escs_dummy))) %>%
+##   map(~ mutate(.x, ISCEDO = as.character(ISCEDO))) %>% 
+##   map(~ select(.x, country, wave, high_edu_broad, escs_dummy, contains("PROGN"),
+##                contains("ISCEDO"))) %>%
+##   bind_rows()
 
-merged_df %>%
-  count(wave, escs_dummy, PROGN) %>%
-  group_by(wave, escs_dummy) %>% 
-  mutate(perc = n / sum(n)) %>%
-  filter(wave == "pisa2009") %>%
-  arrange(escs_dummy, perc) %>%
-  top_n(3) %>%
-  ggplot(aes(PROGN, perc, fill = as.character(escs_dummy))) +
-  geom_col(position = "dodge") +
-  theme(axis.text.x = element_text(angle = 90))
+## merged_df %>%
+##   count(wave, escs_dummy, PROGN) %>%
+##   group_by(wave, escs_dummy) %>% 
+##   mutate(perc = n / sum(n)) %>%
+##   filter(wave == "pisa2009") %>%
+##   arrange(escs_dummy, perc) %>%
+##   top_n(3) %>%
+##   ggplot(aes(PROGN, perc, fill = as.character(escs_dummy))) +
+##   geom_col(position = "dodge") +
+##   theme(axis.text.x = element_text(angle = 90))
 
-thirtytwo_cnt <-
-  c("Australia", "Austria", "Belgium", "Bulgaria", "Canada", "Chile", 
-    "Czech Republic", "Denmark", "Finland", "France", "Germany", 
-    "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", 
-    "Latvia", "Luxembourg", "Netherlands", "Norway", "Poland", "Portugal", 
-    "Spain", "Sweden", "Switzerland", "United Kingdom", "United States", 
-    "Japan", "Slovakia", "Turkey", "Slovenia")
+## thirtytwo_cnt <-
+##   c("Australia", "Austria", "Belgium", "Bulgaria", "Canada", "Chile", 
+##     "Czech Republic", "Denmark", "Finland", "France", "Germany", 
+##     "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", 
+##     "Latvia", "Luxembourg", "Netherlands", "Norway", "Poland", "Portugal", 
+##     "Spain", "Sweden", "Switzerland", "United Kingdom", "United States", 
+##     "Japan", "Slovakia", "Turkey", "Slovenia")
 
-model_df <-
-  escs_data_trans %>%
-  map(~ filter(.x, !is.na(escs_dummy), country %in% thirtytwo_cnt)) %>%
-  map(~ mutate(.x,
-               ISCEDO = as.character(ISCEDO),
-               avg_math = rowMeans(dplyr::select(.x, ends_with("MATH")), na.rm = TRUE))) %>% 
-  map(~ dplyr::select(.x, country,
-               wave,
-               high_edu_broad,
-               escs_dummy,
-               contains("PROGN"),
-               avg_math)) %>%
-  bind_rows()
+## model_df <-
+##   escs_data_trans %>%
+##   map(~ filter(.x, !is.na(escs_dummy), country %in% thirtytwo_cnt)) %>%
+##   map(~ mutate(.x,
+##                ISCEDO = as.character(ISCEDO),
+##                avg_math = rowMeans(dplyr::select(.x, ends_with("MATH")), na.rm = TRUE))) %>% 
+##   map(~ dplyr::select(.x, country,
+##                wave,
+##                high_edu_broad,
+##                escs_dummy,
+##                contains("PROGN"),
+##                avg_math)) %>%
+##   bind_rows()
 
-tst <-
-  model_df %>%
-  nest(data = c(escs_dummy, high_edu_broad, avg_math, PROGN)) %>%
-  mutate(model = map(data, ~ lm(avg_math ~ escs_dummy, data = .x)),
-         within_group = map_dbl(model, ~ anova(.x)["Residuals", "Mean Sq"]),
-         between_group = map_dbl(model, ~ anova(.x)["escs_dummy", "Mean Sq"]),
-         perc_within = within_group / (within_group + between_group),
-         sd_within_low = map_dbl(data, ~ .x %>% filter(escs_dummy == 0) %>% pull(avg_math) %>% sd()),
-         sd_within_high = map_dbl(data, ~ .x %>% filter(escs_dummy == 1) %>% pull(avg_math) %>% sd()),
-         ratio_sd = sd_within_high / sd_within_low,
-         avg_bottom = map_dbl(data, ~ filter(.x, escs_dummy == 0) %>% pull(avg_math) %>% mean()),
-         avg_high = map_dbl(data, ~ filter(.x, escs_dummy == 1) %>% pull(avg_math) %>% mean()),
-         gap = (avg_high - avg_bottom))
+## tst <-
+##   model_df %>%
+##   nest(data = c(escs_dummy, high_edu_broad, avg_math, PROGN)) %>%
+##   mutate(model = map(data, ~ lm(avg_math ~ escs_dummy, data = .x)),
+##          within_group = map_dbl(model, ~ anova(.x)["Residuals", "Mean Sq"]),
+##          between_group = map_dbl(model, ~ anova(.x)["escs_dummy", "Mean Sq"]),
+##          perc_within = within_group / (within_group + between_group),
+##          sd_within_low = map_dbl(data, ~ .x %>% filter(escs_dummy == 0) %>% pull(avg_math) %>% sd()),
+##          sd_within_high = map_dbl(data, ~ .x %>% filter(escs_dummy == 1) %>% pull(avg_math) %>% sd()),
+##          ratio_sd = sd_within_high / sd_within_low,
+##          avg_bottom = map_dbl(data, ~ filter(.x, escs_dummy == 0) %>% pull(avg_math) %>% mean()),
+##          avg_high = map_dbl(data, ~ filter(.x, escs_dummy == 1) %>% pull(avg_math) %>% mean()),
+##          gap = (avg_high - avg_bottom))
 
-tst %>%
-  ggplot(aes(x = wave, y = gap, group = 1)) +
-  geom_line() +
-  facet_wrap(~ country)
+## tst %>%
+##   ggplot(aes(x = wave, y = gap, group = 1)) +
+##   geom_line() +
+##   facet_wrap(~ country)
 
 
-null_model <- brm(gap ~ (1 | country/wave), data = tst,
-                  control = list(adapt_delta = 0.99,
-                                 max_treedepth = 15))
+## null_model <- brm(gap ~ (1 | country/wave), data = tst,
+##                   control = list(adapt_delta = 0.99,
+##                                  max_treedepth = 15))
 
-full_model <- brm(gap ~ ratio_sd + (1 | country/wave), data = tst,
-                  control = list(adapt_delta = 0.99, max_treedepth = 15))
+## full_model <- brm(gap ~ ratio_sd + (1 | country/wave), data = tst,
+##                   control = list(adapt_delta = 0.99, max_treedepth = 15))
 
-null_var <- as.data.frame(VarCorr(null_model))["sdcor"]
-full_var <- as.data.frame(VarCorr(full_model))["sdcor"]
+## null_var <- as.data.frame(VarCorr(null_model))["sdcor"]
+## full_var <- as.data.frame(VarCorr(full_model))["sdcor"]
 
-(null_var - full_var) / null_var
+## (null_var - full_var) / null_var
 
-mod_dt <- tst %>% slice(10) %>% pull(data) %>% .[[1]]
+## mod_dt <- tst %>% slice(10) %>% pull(data) %>% .[[1]]
 
-anova(lm(avg_math ~ escs_dummy, mod_dt))
+## anova(lm(avg_math ~ escs_dummy, mod_dt))
 
-mod_dt %>%
-  group_by(escs_dummy) %>%
-  summarize(avg = mean(avg_math),
-            sd = sd(avg_math))
+## mod_dt %>%
+##   group_by(escs_dummy) %>%
+##   summarize(avg = mean(avg_math),
+##             sd = sd(avg_math))
 
-hist(mod_dt$avg_math)
+## hist(mod_dt$avg_math)
 
-tst <- lmer(avg_math ~ (1 | country:wave:escs_dummy), data = model_df)
+## tst <- lmer(avg_math ~ (1 | country:wave:escs_dummy), data = model_df)
