@@ -1328,7 +1328,7 @@ school_data %>%
   fashion()
 
 
-school_data <-
+corr_school_data <-
   school_data %>%
   enframe() %>%
   unnest(value) %>% 
@@ -1372,7 +1372,7 @@ map_dfr(harmonize_student, ~ {
 }) %>%
   filter(country %in% countries) %>%
   pivot_wider(names_from = escs_dummy, values_from = starts_with("adj")) %>%
-  ggplot(aes(wave, adj_pvnum_READ_1 - adj_pvnum_READ_0, group = 1)) +
+  ggplot(aes(wave, adj_pvnum_MATH_1 - adj_pvnum_MATH_0, group = 1)) +
   geom_point() +
   geom_line() +
   facet_wrap(~ country)
@@ -1405,29 +1405,96 @@ tst2 %>%
   geom_line() +
   facet_wrap(~ country)
 
+library(plm)
+
 ## school_data
 mod_df <-
   tst2 %>%
+  mutate(SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "private",
+                              SCHLTYPE %in% "3" ~ "public",
+                              SCHLTYPE %in% c("Government", "Public") ~ "public",
+                              str_detect(SCHLTYPE, "^Private") ~ "private",
+                              TRUE ~ NA_character_)) %>%
+  filter(!is.na(SCHLTYPE)) %>% 
   select(country, wave, escs_dummy, adj_pvnum_MATH,
-         academic_content_aut, personnel_aut) %>%
+         academic_content_aut, personnel_aut, budget_aut,
+         SCHLTYPE
+         ) %>%
   filter(!is.na(escs_dummy)) %>% 
   group_by(wave, country, escs_dummy) %>%
   summarize(math_avg = mean(adj_pvnum_MATH, na.rm = TRUE),
             academic_content_aut = mean(academic_content_aut, na.rm = TRUE),
-            personnel_aut = mean(personnel_aut, na.rm = TRUE)) %>%
-  pivot_wider(names_from = escs_dummy, values_from = c("math_avg", "academic_content_aut", "personnel_aut")) %>%
+            personnel_aut = mean(personnel_aut, na.rm = TRUE),
+            budget_aut = mean(budget_aut, na.rm = TRUE),
+            public = mean(SCHLTYPE == "private", na.rm = TRUE)) %>%
+  pivot_wider(names_from = escs_dummy, values_from = c("math_avg", "academic_content_aut", "personnel_aut", "budget_aut", "public")) %>%
   ungroup() %>% 
-  transmute(wave,
-            country,
+  transmute(wave = as.factor(wave),
+            country = as.factor(country),
             math_gap = math_avg_1 - math_avg_0,
             academic_content_gap = academic_content_aut_1 - academic_content_aut_0,
-            personnel_aut_gap = personnel_aut_1 - personnel_aut_0)
+            personnel_aut_gap = personnel_aut_1 - personnel_aut_0,
+            budget_aut_gap = budget_aut_1 - budget_aut_0,
+            public_gap = public_1 - public_0)
 
-mod_df %>%
-  filter(wave == "pisa2015") %>% 
-  select(-wave, -country) %>% 
-  correlate()
+summary(lm(math_gap ~ academic_content_gap + country + wave - 1, data = mod_df))
 
+personnel_mod <- plm(math_gap ~ personnel_aut_gap,
+               data = mod_df,
+               index = c("country", "wave"), 
+               model = "within",
+               effect = "twoways")
+
+personnel_mod1 <- plm(math_gap ~ personnel_aut_gap + public_gap,
+               data = mod_df,
+               index = c("country", "wave"), 
+               model = "within",
+               effect = "twoways")
+
+content_mod <- plm(math_gap ~ academic_content_gap,
+               data = mod_df,
+               index = c("country", "wave"), 
+               model = "within",
+               effect = "twoways")
+
+content_mod1 <- plm(math_gap ~ academic_content_gap + public_gap,
+               data = mod_df,
+               index = c("country", "wave"), 
+               model = "within",
+               effect = "twoways")
+
+budget_mod <- plm(math_gap ~ budget_aut_gap,
+               data = mod_df,
+               index = c("country", "wave"), 
+               model = "within",
+               effect = "twoways")
+
+budget_mod1 <- plm(math_gap ~ budget_aut_gap + public_gap,
+               data = mod_df,
+               index = c("country", "wave"), 
+               model = "within",
+               effect = "twoways")
+
+library(stargazer)
+
+# gather clustered standard errors in a list
+rob_se <- list(sqrt(diag(vcovHC(personnel_mod, type = "HC1"))),
+               sqrt(diag(vcovHC(personnel_mod1, type = "HC1"))),
+               sqrt(diag(vcovHC(content_mod, type = "HC1"))),
+               sqrt(diag(vcovHC(content_mod1, type = "HC1"))),
+               sqrt(diag(vcovHC(budget_mod, type = "HC1"))),
+               sqrt(diag(vcovHC(budget_mod1, type = "HC1"))))
+
+# generate the table
+stargazer(personnel_mod, personnel_mod1, content_mod, content_mod1,
+          budget_mod, budget_mod1,
+          digits = 3,
+          header = FALSE,
+          type = "text", 
+          se = rob_se,
+          title = "Linear Panel Regression Models of autonomy and achievement gap",
+          model.numbers = FALSE,
+          column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"))
 
 ## tst %>% 
 

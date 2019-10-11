@@ -36,6 +36,12 @@ RemotePkgType=source
 RemoteSha=1.0.0
 Hash=2b2b6ea2111e1e57e192765d5013a3c5
 
+[R/Package/Formula]
+Package=Formula
+Version=1.2-3
+Source=CRAN
+Hash=f9553de47f7d1a96f855f8bc6dff1dfe
+
 [R/Package/MASS]
 Package=MASS
 Version=7.3-51.4
@@ -146,6 +152,12 @@ RemotePkgType=source
 RemoteSha=0.3.3.5.0
 Hash=b86bf100354fb8fe4a20b5689e40c7b3
 
+[R/Package/Rdpack]
+Package=Rdpack
+Version=0.11-0
+Source=CRAN
+Hash=d63662e7462f78e267b42edb9f4c4ccd
+
 [R/Package/SAScii]
 Package=SAScii
 Version=1.0
@@ -208,6 +220,18 @@ RemoteRepos=https://cran.rstudio.com/
 RemotePkgType=source
 RemoteSha=1.4
 Hash=205ca9cc59dc1fff1a7ba55fee9dad57
+
+[R/Package/bdsmatrix]
+Package=bdsmatrix
+Version=1.3-3
+Source=CRAN
+Hash=869af2997d484677ffa2ae3a3747e5c2
+
+[R/Package/bibtex]
+Package=bibtex
+Version=0.4.2
+Source=CRAN
+Hash=be63e68dae6e75f240cf5e674d20deaf
 
 [R/Package/boot]
 Package=boot
@@ -387,6 +411,12 @@ RemotePkgType=source
 RemoteSha=1.3.1
 Hash=dba7e43c4103d978cb7c95b97987cc68
 
+[R/Package/gbRd]
+Package=gbRd
+Version=0.4-11
+Source=CRAN
+Hash=f563333b51c6ae1b0763c386cf4c6693
+
 [R/Package/generics]
 Package=generics
 Version=0.0.2
@@ -552,6 +582,17 @@ RemotePkgType=source
 RemoteSha=1.1-21
 Hash=0a3458480f4caf92fc26f7afc54340a4
 
+[R/Package/lmtest]
+Package=lmtest
+Version=0.9-37
+Source=CRAN
+RemoteType=standard
+RemoteRef=lmtest
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=0.9-37
+Hash=6b16ba7499ae5dffd8e751864d59b4e9
+
 [R/Package/lubridate]
 Package=lubridate
 Version=1.7.4
@@ -581,6 +622,12 @@ Version=1.1
 Source=CRAN
 Hash=80e1f73841614fa35f82a85d66fb41da
 
+[R/Package/maxLik]
+Package=maxLik
+Version=1.3-6
+Source=CRAN
+Hash=a3e538c854f6639a7cb91d9bc445a9fd
+
 [R/Package/mgcv]
 Package=mgcv
 Version=1.8-28
@@ -608,6 +655,12 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=1.2.4
 Hash=280c889bf39c330ab77b0d92c1c38931
+
+[R/Package/miscTools]
+Package=miscTools
+Version=0.6-24
+Source=CRAN
+Hash=fc60cae6a3419e584e23c0aa628c1b52
 
 [R/Package/modelr]
 Package=modelr
@@ -711,6 +764,12 @@ Package=pkgconfig
 Version=2.0.3
 Source=CRAN
 Hash=587295d4cdb937d4e3cf19bd46829326
+
+[R/Package/plm]
+Package=plm
+Version=2.2-0
+Source=CRAN
+Hash=5534515928b1b44bbc1416a962267418
 
 [R/Package/plogr]
 Package=plogr
@@ -882,6 +941,17 @@ Version=0.9.6
 Source=CRAN
 Hash=0d62e0c74e40f06f3005f5f718d30383
 
+[R/Package/sandwich]
+Package=sandwich
+Version=2.5-1
+Source=CRAN
+RemoteType=standard
+RemoteRef=sandwich
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=2.5-1
+Hash=79e2ac9c226234d19dad0834484400f1
+
 [R/Package/scales]
 Package=scales
 Version=1.0.0
@@ -942,9 +1012,15 @@ Hash=a8d41bd284e21ab7e776d228dc5bac91
 
 [R/Package/tidyr]
 Package=tidyr
-Version=1.0.0
-Source=CRAN
-Hash=8b597bb9db2885612b6bafbc2f83bd08
+Version=1.0.0.9000
+Source=GitHub
+RemoteType=github
+RemoteHost=api.github.com
+RemoteRepo=tidyr
+RemoteUsername=tidyverse
+RemoteRef=master
+RemoteSha=e8c3f23c46025941774c269eb547cffea0ed56c2
+Hash=fd7356bf0094480e0473ffa3a8fd740b
 
 [R/Package/tidyselect]
 Package=tidyselect
@@ -1043,4 +1119,10 @@ Package=zip
 Version=2.0.4
 Source=CRAN
 Hash=46b867331ae12e0a3f5b7942cfac16ba
+
+[R/Package/zoo]
+Package=zoo
+Version=1.8-6
+Source=CRAN
+Hash=6a408ac88994695f76d7b4f7f19c4006
 
