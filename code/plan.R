@@ -479,9 +479,9 @@ plan <-
     ),
     results_math = map(res_math, f_ind),
     results_read = map(res_read, f_ind),
-    ## complete_data_topbottom = pisa_preparer(results_math,
-    ##                                         results_read,
-    ##                                         type_txt = "90th/10th SES gap"),
+    complete_data_topbottom = pisa_preparer(results_math,
+                                            results_read,
+                                            type_txt = "90th/10th SES gap"),
     ##   sample_tables_topbottom = sample_size_calc(
     ##     merged_data,
     ##     c(.1, .9),
@@ -494,9 +494,9 @@ plan <-
     ##     complete_data_topbottom
     ##   ),
     ##   descriptives_tracking = tracking_descriptives(tracking_data, countries),
-    ##   ordered_cnt = order_cnt(complete_data_topbottom, countries),
-    ##   p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
-    ##                                           ordered_cnt),
+      ordered_cnt = order_cnt(complete_data_topbottom, countries),
+      p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
+                                              ordered_cnt),
     ##   top_bottom_perc = perc_increase_fun(complete_data_topbottom),
     ##   p2_perc_change = perc_graph(
     ##     top_bottom_perc,

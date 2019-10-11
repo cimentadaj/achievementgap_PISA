@@ -129,25 +129,25 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
         .x$high_edu_broad <- .x$high_edu_broad + 1
       }
 
-        select(.x,
-               wave,
-               country,
-               matches("SCHOOLID"),
-               # This is the PISA 2015 school ID
-               matches("CNTSCHID"),
-               # This is the PISA 2015 student ID
-               matches("CNTSTUID"),
-               matches("STIDSTD"),
-               AGE,
-               matches("PV[0-9]{1,2}[MATH|READ]"),
-               W_FSTUWT,
-               high_edu_broad,
-               gender,
-               # Wasn't asked in pisa 2000
-               matches("PROGN"),
-               matches("ISCEDO"),
-               matches("ESCS"),
-               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
+      select(.x,
+             wave,
+             country,
+             matches("SCHOOLID"),
+             # This is the PISA 2015 school ID
+             matches("CNTSCHID"),
+             # This is the PISA 2015 student ID
+             matches("CNTSTUID"),
+             matches("STIDSTD"),
+             AGE,
+             matches("PV[0-9]{1,2}[MATH|READ]"),
+             W_FSTUWT,
+             high_edu_broad,
+             gender,
+             # Wasn't asked in pisa 2000
+             matches("PROGN"),
+             matches("ISCEDO"),
+             matches("ESCS"),
+             matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
 
     })
 
@@ -393,9 +393,9 @@ read_escs <- function(raw_data, recode_cntrys) {
 
   escs_trend <-
     map(escs_trend, ~ {
-    .x$country <- car::recode(.x$cnt, recode_cntrys)
-    .x
-  })
+      .x$country <- car::recode(.x$cnt, recode_cntrys)
+      .x
+    })
 
   escs_trend
 }
@@ -546,7 +546,7 @@ calc_adj_pv <- function(df, reliability) {
         .x[[test_name]] <- resid(mod1) / modelr::rmse(mod1, .x) * 1 / sqrt(.y)
 
         .x[, test_name]
-    })
+      })
 
     .x <- bind_cols(.x, test_df)
 
@@ -1048,7 +1048,7 @@ evolution_ses_groups <- function(complete_data_topbottom, ordered_cnt) {
 
 avg_increase_fun <- function(df, class) {
 
-# Average standard deviation increase
+  # Average standard deviation increase
   data_ready <-
     df %>%
     dplyr::select(wave, country, type_test, contains("mean_math")) %>%
@@ -1066,28 +1066,28 @@ avg_increase_fun <- function(df, class) {
     unnest(value) %>%
     split(.$country)
 
-    map2(data_ready, names(data_ready), ~ {
+  map2(data_ready, names(data_ready), ~ {
 
-      print(.y)
+    print(.y)
 
-      mean_df <-
-        bootstrapper(.x, mean(diff, na.rm = T), B = 500) %>%
-        filter(type == "bootstrap") %>%
-        rename(mean = value)
+    mean_df <-
+      bootstrapper(.x, mean(diff, na.rm = T), B = 500) %>%
+      filter(type == "bootstrap") %>%
+      rename(mean = value)
 
-      sd_df <-
-        bootstrapper(.x, sd(diff, na.rm = T), B = 500) %>%
-        filter(type == "bootstrap") %>%
-        rename(sd = value)
+    sd_df <-
+      bootstrapper(.x, sd(diff, na.rm = T), B = 500) %>%
+      filter(type == "bootstrap") %>%
+      rename(sd = value)
 
-      suppressMessages(
-        left_join(mean_df, sd_df) %>%
+    suppressMessages(
+      left_join(mean_df, sd_df) %>%
         mutate(lower_bound = mean - 1 * sd,
                upper_bound = mean + 1 * sd)
-      )
-    }) %>%
-    enframe() %>%
-    unnest(value)
+    )
+  }) %>%
+  enframe() %>%
+  unnest(value)
 }
 
 rate_change_graph <- function(avg_sd_increase_high,
@@ -1296,15 +1296,140 @@ mod3_cumulative_change <- function(complete_gaps,
   all_gaps_models_cum
 }
 
-merged_data <- map(readd(merged_data), as_tibble)
+student_data <- map(readd(merged_data), as_tibble)
+school_data <- map(readd(pisa_school_data), mutate, SCHOOLID = as.character(SCHOOLID))
+school_data <- map(school_data, ~ {
+  .x %>%
+    mutate(SCHOOLID = as.character(SCHOOLID),
+           SCHLTYPE = as.character(SCHLTYPE),
+           academic_content_aut = rowMeans(select(., course_aut, content_aut,
+                                                  textbook_aut)),
+           personnel_aut = rowMeans(select(., hiring_aut, salary_aut)))
+})
 
-merged_data %>%
+school_data %>%
+  enframe() %>%
+  unnest(value) %>% 
+  bind_rows() %>% 
+  group_by(name, COUNTRY) %>%
+  summarize_at(vars(ends_with("aut")), mean, na.rm = TRUE) %>%
+  filter(name == 6) %>%
+  ungroup() %>% 
+  select(-name, -COUNTRY) %>%
+  select(course_aut,
+         content_aut,
+         textbook_aut,
+         hiring_aut,
+         salary_aut,
+         budget_aut,
+         academic_content_aut,
+         personnel_aut) %>%
+  correlate() %>%
+  fashion()
+
+
+school_data <-
+  school_data %>%
+  enframe() %>%
+  unnest(value) %>% 
+  bind_rows() %>% 
+  group_by(name, COUNTRY) %>%
+  summarize_at(vars(ends_with("aut")), mean, na.rm = TRUE) %>%
+  filter(name %in% c(1, 6)) %>%
+  pivot_wider(names_from = "name", values_from = ends_with("aut")) %>% 
+  select(-COUNTRY) %>%
+  transmute(course_aut = course_aut_6 - course_aut_1,
+         content_aut = content_aut_6 - content_aut_1,
+         textbook_aut = textbook_aut_6 - textbook_aut_1,
+         hiring_aut = hiring_aut_6 - hiring_aut_1,
+         salary_aut = salary_aut_6 - salary_aut_1,
+         budget_aut = budget_aut_6 - budget_aut_1) %>%
+  mutate(academic_content_aut = rowMeans(select(., course_aut,
+                                                content_aut,
+                                                textbook_aut)),
+         personnel_autonomy = rowMeans(select(.,
+                                              hiring_aut,
+                                              salary_aut))) %>% 
+  correlate() %>%
+  fashion()
+
+
+student_data[[6]] <- rename(student_data[[6]], SCHOOLID = CNTSCHID)
+student_data <- map(student_data, mutate, SCHOOLID = as.character(SCHOOLID))
+
+harmonize_student <-
+  student_data %>%
   map(~ {
-    select(.x, country, wave, schoolid, escs_dummy, starts_with("adj_pvnum")) %>%
-      as_tibble()
+    .x %>%
+      select(country, wave, SCHOOLID, escs_dummy, starts_with("adj_pvnum"))
   })
 
+map_dfr(harmonize_student, ~ {
+  .x %>%
+    filter(!is.na(escs_dummy)) %>% 
+    group_by(wave, country, escs_dummy) %>%
+    summarize_at(vars(starts_with("adj")), median, na.rm = TRUE)
+}) %>%
+  filter(country %in% countries) %>%
+  pivot_wider(names_from = escs_dummy, values_from = starts_with("adj")) %>%
+  ggplot(aes(wave, adj_pvnum_READ_1 - adj_pvnum_READ_0, group = 1)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ country)
 
+map_dbl(harmonize_student, nrow)
+
+tst2 <- map2_dfr(harmonize_student,
+                 school_data,
+                 inner_join,
+                 by = c("country" = "COUNTRY", "SCHOOLID"))
+
+map_dbl(tst2, nrow)
+
+tst2 %>%
+  filter(!is.na(escs_dummy)) %>%
+  mutate(SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "private",
+                              SCHLTYPE %in% "3" ~ "public",
+                              SCHLTYPE %in% c("Government", "Public") ~ "public",
+                              str_detect(SCHLTYPE, "^Private") ~ "private",
+                              TRUE ~ NA_character_)) %>%
+  filter(!is.na(SCHLTYPE)) %>% 
+  group_by(wave, country, escs_dummy) %>%
+  summarize_at(c(vars(ends_with("aut"))), mean, na.rm = TRUE) %>%
+  ## mutate(low_ci = content_aut_fn1 - (content_aut_fn2 * 2),
+  ##        high_ci = content_aut_fn1 + (content_aut_fn2 * 2)) %>% 
+  ## ## pivot_wider(names_from = escs_dummy, values_from = ends_with("aut")) %>%  
+  ggplot(aes(wave, personnel_aut, group = escs_dummy, color = as.character(escs_dummy))) +
+  geom_point() +
+  ## geom_errorbar(aes(ymin = low_ci, ymax = high_ci)) +
+  geom_line() +
+  facet_wrap(~ country)
+
+## school_data
+mod_df <-
+  tst2 %>%
+  select(country, wave, escs_dummy, adj_pvnum_MATH,
+         academic_content_aut, personnel_aut) %>%
+  filter(!is.na(escs_dummy)) %>% 
+  group_by(wave, country, escs_dummy) %>%
+  summarize(math_avg = mean(adj_pvnum_MATH, na.rm = TRUE),
+            academic_content_aut = mean(academic_content_aut, na.rm = TRUE),
+            personnel_aut = mean(personnel_aut, na.rm = TRUE)) %>%
+  pivot_wider(names_from = escs_dummy, values_from = c("math_avg", "academic_content_aut", "personnel_aut")) %>%
+  ungroup() %>% 
+  transmute(wave,
+            country,
+            math_gap = math_avg_1 - math_avg_0,
+            academic_content_gap = academic_content_aut_1 - academic_content_aut_0,
+            personnel_aut_gap = personnel_aut_1 - personnel_aut_0)
+
+mod_df %>%
+  filter(wave == "pisa2015") %>% 
+  select(-wave, -country) %>% 
+  correlate()
+
+
+## tst %>% 
 
 ## escs_data_trans[[1]]$ISCEDO <- NA_character_
 
