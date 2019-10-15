@@ -460,6 +460,12 @@ RemotePkgType=source
 RemoteSha=1.3.1
 Hash=dba7e43c4103d978cb7c95b97987cc68
 
+[R/Package/fst]
+Package=fst
+Version=0.9.0
+Source=CRAN
+Hash=903ec1881f12fffaa268eb9b405747f6
+
 [R/Package/gbRd]
 Package=gbRd
 Version=0.4-11
@@ -1207,6 +1213,12 @@ Package=tibble
 Version=2.1.3
 Source=CRAN
 Hash=a8d41bd284e21ab7e776d228dc5bac91
+
+[R/Package/tictoc]
+Package=tictoc
+Version=1.0
+Source=CRAN
+Hash=faf3ea2e56d4b03a814a3882200337c8
 
 [R/Package/tidyr]
 Package=tidyr

@@ -481,6 +481,88 @@ table_details <- function(models, multilevel = TRUE) {
 #   "United States", 1
 #   )
 
+
+############################# Read raw data ###################################
+###############################################################################
+## PISA data is too big to fit within drake (due to drake saving it as cache).
+## For that reason, I run the function below only once to save the data as a fst
+## data frame and then read it and select only the relevant columns. This makes
+## it much faster to easily pick new variables instead of rereading all rounds
+## and pick new variables.
+
+read_pisa <- function(raw_data) {
+
+  # Read PISA 2012 files
+  pisa2012_path <- file.path(raw_data, "pisa2012", "INT_STU12_DEC03.txt")
+  dic_path <- file.path(raw_data, "pisa2012", "PISA2012_SAS_student.sas")
+  dic_student <- parse.SAScii(sas_ri = dic_path)
+  student2012 <- read_fwf(pisa2012_path,
+                          col_positions = fwf_widths(dic_student$width),
+                          progress = TRUE)
+
+  colnames(student2012) <- dic_student$varname
+
+  print("pisa2012 read")
+
+  # Read PISA 2015 data
+  pisa2015_path <- file.path(raw_data, "pisa2015", "CY6_MS_CMB_STU_QQQ.sav")
+  pisa_countrynames <- c(pisa_countrynames, "United States" = "USA")
+  student2015 <- read_spss(pisa2015_path)
+
+  print("pisa2015 read")
+
+  # Provisional code for separate PISA2012
+  # Vector with database names except student2015
+  databases <- c("math2000", paste0("student", seq(2003, 2009, 3)))
+
+  # Create a list with all data sets
+  pisa_list <-
+    list(
+      student2000 = math2000,
+      student2003 = student2003,
+      student2006 = student2006,
+      student2009 = student2009,
+      student2012 = student2012,
+      student2015 = student2015
+    )
+
+  # Give each dataset their own name
+  names(pisa_list) <- c("student2000",
+                        databases[-1],
+                        "student2012",
+                        "student2015")
+
+  # Fix the country variable name which is different for PISA 2000
+  pisa_list$math2000$CNT <- pisa_list$math2000$COUNTRY
+
+  print("pisa_list ready")
+
+  # Remove everything that uses memory
+  rm(dic_student,
+     student2012,
+     student2015)
+
+  unloadNamespace("PISA2000lite")
+  unloadNamespace("PISA2003lite")
+  unloadNamespace("PISA2006lite")
+  unloadNamespace("PISA2009lite")
+  print("PISA packages unloaded")
+
+  print("Memory used:")
+  print(mem_used())
+  
+  pisa_list
+}
+
+delete_raw_data <- function() {
+  rm(raw_data, envir = globalenv())
+  TRUE
+}
+
+print_memory <- function() {
+  print(paste0("Currently consumed memory: ", capture.output(pryr::mem_used())))
+}
+
 gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 ############################# Drake plan ######################################
@@ -488,24 +570,23 @@ gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 plan <-
   drake_plan(
-    pisa_data = target(
-      read_harmonize_pisa(raw_data_dir, recode_cntrys),
-      format = "fst"
-    ),
+    pisa_data = harmonize_pisa(raw_data, recode_cntrys),
+    rm_raw = delete_raw_data(),
+    test = target(print_memory(), trigger = trigger(change = sample(1000))),
     pisa_school_data = read_harmonize_pisa_school(raw_data_dir, countries),
     plot_autonomy = plot_autonomy_trends(pisa_school_data, countries),
     escs_data = read_escs(raw_data_dir, recode_cntrys),
     tracking_data = read_tracking(raw_data_dir),
     semi_merged = merge_data(pisa_data, escs_data),
-    # escs_dummy_data now contains the dummy column for the 90th/10th
+    ## # escs_dummy_data now contains the dummy column for the 90th/10th
     escs_dummy_data = escs_dummy_creator(semi_merged, c(0.1, 0.9)),
-    # merged_data now contains the adjusted math/read column for all students
+    ## # merged_data now contains the adjusted math/read column for all students
     merged_data = calc_adj_pv(escs_dummy_data, reliability_pisa),
     autonomy_corr = autonomy_corr(pisa_school_data),
     autonomy_corr_overtime = autonomy_overtime_corr(pisa_school_data),
-    harmonize_student = select_cols_student(merged_data),
+    harmonize_student = map(merged_data, select_cols_student),
     schl_student = merge_harmonize_student_school(harmonize_student, pisa_school_data)
-    ## res_math = target(
+    ## ## res_math = target(
     ##   test_diff(merged_data, "MATH"),
     ##   # Because it's a list
     ##   format = "rds"

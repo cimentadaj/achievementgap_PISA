@@ -1,65 +1,4 @@
-read_harmonize_pisa <- function(raw_data, recode_cntrys) {
-
-  # Read PISA 2012 files
-  pisa2012_path <- file.path(raw_data, "pisa2012", "INT_STU12_DEC03.txt")
-  dic_path <- file.path(raw_data, "pisa2012", "PISA2012_SAS_student.sas")
-  dic_student <- parse.SAScii(sas_ri = dic_path)
-  student2012 <- read_fwf(pisa2012_path,
-                          col_positions = fwf_widths(dic_student$width),
-                          progress = TRUE)
-
-  colnames(student2012) <- dic_student$varname
-
-  print("pisa2012 read")
-
-  # Read PISA 2015 data
-  pisa2015_path <- file.path(raw_data, "pisa2015", "CY6_MS_CMB_STU_QQQ.sav")
-  pisa_countrynames <- c(pisa_countrynames, "United States" = "USA")
-  student2015 <- read_spss(pisa2015_path)
-
-  print("pisa2015 read")
-
-  # Provisional code for separate PISA2012
-  # Vector with database names except student2015
-  databases <- c("math2000", paste0("student", seq(2003, 2009, 3)))
-
-  # Create a list with all data sets
-  pisa_list <-
-    list(
-      student2000 = math2000,
-      student2003 = student2003,
-      student2006 = student2006,
-      student2009 = student2009,
-      student2012 = student2012,
-      student2015 = student2015
-    )
-
-  # Give each dataset their own name
-  names(pisa_list) <- c("student2000",
-                        databases[-1],
-                        "student2012",
-                        "student2015")
-
-  # Fix the country variable name which is different for PISA 2000
-  pisa_list$math2000$CNT <- pisa_list$math2000$COUNTRY
-
-  # Create a data frame with a list column containing all lists.
-  pisa_all <- enframe(pisa_list)
-
-  print("pisa_all ready")
-
-  # Remove everything that uses memory
-  rm(pisa_list,
-     dic_student,
-     student2012,
-     student2015)
-
-  unloadNamespace("PISA2000lite")
-  unloadNamespace("PISA2003lite")
-  unloadNamespace("PISA2006lite")
-  unloadNamespace("PISA2009lite")
-  print("PISA packages unloaded")
-
+harmonize_pisa <- function(pisa_all, recode_cntrys) {
   # Go through each PISA and grab the highest education from Male
   # and Female partner. Finally, recode it to three categories
   pisa_all$value <- map(pisa_all$value, function(each_pisa) {
@@ -131,26 +70,26 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
 
       .x <-
         select(.x,
-             wave,
-             country,
-             matches("SCHOOLID"),
-             # This is the PISA 2015 school ID
-             matches("CNTSCHID"),
-             # This is the PISA 2015 student ID
-             matches("CNTSTUID"),
-             matches("STIDSTD"),
-             AGE,
-             matches("PV[0-9]{1,2}[MATH|READ]"),
-             W_FSTUWT,
-             high_edu_broad,
-             gender,
-             # Wasn't asked in pisa 2000
-             # Which program the student is at
-             matches("PROGN"),
-             matches("ISCEDO"),
-             # The ESCS index from pisa 2015
-             matches("ESCS"),
-             matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
+               wave,
+               country,
+               matches("SCHOOLID"),
+               # This is the PISA 2015 school ID
+               matches("CNTSCHID"),
+               # This is the PISA 2015 student ID
+               matches("CNTSTUID"),
+               matches("STIDSTD"),
+               AGE,
+               matches("PV[0-9]{1,2}[MATH|READ]"),
+               W_FSTUWT,
+               high_edu_broad,
+               gender,
+               # Wasn't asked in pisa 2000
+               # Which program the student is at
+               matches("PROGN"),
+               matches("ISCEDO"),
+               # The ESCS index from pisa 2015
+               matches("ESCS"),
+               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
 
       # Harmonize SCHOOLID variable for all waves
       if (unique(.x$wave) == "pisa2015") {
@@ -161,13 +100,13 @@ read_harmonize_pisa <- function(raw_data, recode_cntrys) {
         .x %>%
         mutate(SCHOOLID = as.character(SCHOOLID))
 
-      .x
+        .x
     })
-  
 
   pisa_all
 
 }
+
 
 read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
 
@@ -1418,25 +1357,10 @@ select_cols_student <- function(student_data) {
            high_edu_broad)
 }
 
-harmonize_student <- map(readd(harmonize_student), as_tibble)
-school_data <- readd(pisa_school_data)
-
-map_dfr(harmonize_student, ~ {
-  .x %>%
-    filter(!is.na(escs_dummy)) %>% 
-    group_by(wave, country, escs_dummy) %>%
-    summarize_at(vars(starts_with("adj")), median, na.rm = TRUE)
-}) %>%
-  filter(country %in% countries) %>%
-  pivot_wider(names_from = escs_dummy, values_from = starts_with("adj")) %>%
-  ggplot(aes(wave, adj_pvnum_MATH_1 - adj_pvnum_MATH_0, group = 1)) +
-  geom_point() +
-  geom_line() +
-  facet_wrap(~ country)
 
 merge_harmonize_student_school <- function(student_data, school_data) {
   combined_data <-
-    map2_dfr(student_student,
+    map2_dfr(student_data,
              school_data,
              inner_join,
              by = c("country" = "COUNTRY", "SCHOOLID")) %>%
@@ -1452,202 +1376,217 @@ merge_harmonize_student_school <- function(student_data, school_data) {
 
 }
 
-tst2 %>%
-  filter(!is.na(escs_dummy)) %>%
-  filter(!is.na(SCHLTYPE)) %>% 
-  group_by(wave, country, escs_dummy) %>%
-  summarize_at(c(vars(ends_with("aut"))), mean, na.rm = TRUE) %>%
-  ## mutate(low_ci = content_aut_fn1 - (content_aut_fn2 * 2),
-  ##        high_ci = content_aut_fn1 + (content_aut_fn2 * 2)) %>% 
-  ## ## pivot_wider(names_from = escs_dummy, values_from = ends_with("aut")) %>%  
-  ggplot(aes(wave, personnel_aut, group = escs_dummy, color = as.character(escs_dummy))) +
-  geom_point() +
-  ## geom_errorbar(aes(ymin = low_ci, ymax = high_ci)) +
-  geom_line() +
-  facet_wrap(~ country)
+harmonize_student <- readd(harmonize_student)
+school_data <- readd(pisa_school_data)
 
-library(plm)
+## map_dfr(harmonize_student, ~ {
+##   .x %>%
+##     filter(!is.na(escs_dummy)) %>% 
+##     group_by(wave, country, escs_dummy) %>%
+##     summarize_at(vars(starts_with("adj")), median, na.rm = TRUE)
+## }) %>%
+##   filter(country %in% countries) %>%
+##   pivot_wider(names_from = escs_dummy, values_from = starts_with("adj")) %>%
+##   ggplot(aes(wave, adj_pvnum_MATH_1 - adj_pvnum_MATH_0, group = 1)) +
+##   geom_point() +
+##   geom_line() +
+##   facet_wrap(~ country)
 
-all_data <-
- schl_student %>%
-  filter(!is.na(SCHLTYPE)) %>% 
-  select(country, wave, SCHOOLID, escs_dummy, adj_pvnum_MATH,
-         academic_content_aut, personnel_aut, budget_aut,
-         SCHLTYPE,
-         PROPCERT,
-         location,
-         high_edu_broad,
-         gender
-         )
+## tst2 %>%
+##   filter(!is.na(escs_dummy)) %>%
+##   filter(!is.na(SCHLTYPE)) %>% 
+##   group_by(wave, country, escs_dummy) %>%
+##   summarize_at(c(vars(ends_with("aut"))), mean, na.rm = TRUE) %>%
+##   ## mutate(low_ci = content_aut_fn1 - (content_aut_fn2 * 2),
+##   ##        high_ci = content_aut_fn1 + (content_aut_fn2 * 2)) %>% 
+##   ## ## pivot_wider(names_from = escs_dummy, values_from = ends_with("aut")) %>%  
+##   ggplot(aes(wave, personnel_aut, group = escs_dummy, color = as.character(escs_dummy))) +
+##   geom_point() +
+##   ## geom_errorbar(aes(ymin = low_ci, ymax = high_ci)) +
+##   geom_line() +
+##   facet_wrap(~ country)
+
+## library(plm)
+
+## all_data <-
+##  schl_student %>%
+##   filter(!is.na(SCHLTYPE)) %>% 
+##   select(country, wave, SCHOOLID, escs_dummy, adj_pvnum_MATH,
+##          academic_content_aut, personnel_aut, budget_aut,
+##          SCHLTYPE,
+##          PROPCERT,
+##          location,
+##          high_edu_broad,
+##          gender
+##          )
+
+## all_data %>%
+##   filter(!is.na(escs_dummy)) %>% 
+##   count(country, wave, escs_dummy,
+##         location) %>%
+##   mutate(location = recode(location,
+##                            `1` = "village",
+##                            `2` = "town",
+##                            `3` = "large town",
+##                            `4` = "city",
+##                            `5` = "large city"))
+
+## ## school_data
+## mod_df <-
+##  all_data %>%
+##   filter(!is.na(escs_dummy)) %>% 
+##   group_by(wave, country, escs_dummy) %>%
+##   summarize(math_avg = mean(adj_pvnum_MATH, na.rm = TRUE),
+##             math_sd = sd(adj_pvnum_MATH, na.rm = TRUE),
+##             academic_content_aut = mean(academic_content_aut, na.rm = TRUE),
+##             personnel_aut = mean(personnel_aut, na.rm = TRUE),
+##             budget_aut = mean(budget_aut, na.rm = TRUE),
+##             private = mean(SCHLTYPE == "private", na.rm = TRUE),
+##             propcert_mean = mean(PROPCERT, na.rm = TRUE)
+##             ) %>%
+##   pivot_wider(names_from = escs_dummy, values_from = c("math_avg", "academic_content_aut", "personnel_aut", "budget_aut", "private", "propcert_mean", "math_sd")) %>%
+##   ungroup() %>% 
+##   transmute(wave = as.factor(wave),
+##             country = as.factor(country),
+##             math_gap = math_avg_1 - math_avg_0,
+##             academic_content_gap = academic_content_aut_0,
+##             personnel_aut_gap = personnel_aut_0,
+##             budget_aut_gap = budget_aut_0,
+##             private_gap = private_0,
+##             propcert_mean_gap = propcert_mean_1 - propcert_mean_0,
+##             math_sd_gap = math_sd_0)
+
+## all_data %>%
+##   filter(!is.na(escs_dummy)) %>% 
+##   group_by(wave, country, escs_dummy) %>%
+##   summarize(public = mean(SCHLTYPE == "private", na.rm = TRUE)) %>% 
+##   filter(country %in% countries) %>% 
+##   ggplot(aes(wave, public, group = escs_dummy, color = as.character(escs_dummy))) +
+##   geom_point() +
+##   geom_line() +
+##   facet_wrap(~ country)
+
+## summary(lm(math_gap ~ academic_content_gap + country + wave - 1, data = mod_df))
+
+## fe <- c("country")
+
+## personnel_mod <- plm(math_gap ~ personnel_aut_gap,
+##                data = mod_df,
+##                index = fe, 
+##                model = "within")
+
+## personnel_mod1 <- plm(math_gap ~ personnel_aut_gap + private_gap,
+##                data = mod_df,
+##                index = fe, 
+##                model = "within")
+
+## content_mod <- plm(math_gap ~ academic_content_gap,
+##                data = mod_df,
+##                index = fe, 
+##                model = "within")
+
+## content_mod1 <- plm(math_gap ~ academic_content_gap + private_gap,
+##                data = mod_df,
+##                index = fe, 
+##                model = "within")
+
+## budget_mod <- plm(math_gap ~ budget_aut_gap,
+##                data = mod_df,
+##                index = fe, 
+##                model = "within")
+
+## budget_mod1 <- plm(math_gap ~ budget_aut_gap + private_gap,
+##                data = mod_df,
+##                index = fe, 
+##                model = "within")
+
+## library(stargazer)
+
+## # gather clustered standard errors in a list
+## rob_se <- list(sqrt(diag(vcovHC(personnel_mod, type = "HC1"))),
+##                sqrt(diag(vcovHC(personnel_mod1, type = "HC1"))),
+##                sqrt(diag(vcovHC(content_mod, type = "HC1"))),
+##                sqrt(diag(vcovHC(content_mod1, type = "HC1"))),
+##                sqrt(diag(vcovHC(budget_mod, type = "HC1"))),
+##                sqrt(diag(vcovHC(budget_mod1, type = "HC1"))))
+
+## # generate the table
+## stargazer(personnel_mod, personnel_mod1, content_mod, content_mod1,
+##           budget_mod, budget_mod1,
+##           digits = 3,
+##           header = FALSE,
+##           type = "text", 
+##           se = rob_se,
+##           title = "Linear Panel Regression Models of autonomy and achievement gap",
+##           model.numbers = FALSE,
+##           column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"))
+
+## center <- function(x) x - mean(x, na.rm = TRUE)
+
+## mod_df <-
+##  all_data %>%
+##  filter(escs_dummy == 1)
+
+## mod_df <-
+##   mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
+##   rename(prop_cert = PROPCERT,
+##          private = SCHLTYPE,
+##          math = adj_pvnum_MATH) %>%
+##   select(math, private, prop_cert, location, academic_content_aut, high_edu_broad, gender, country, wave) %>%
+##   mutate(location = as.character(location)) %>% 
+##   filter(country %in% final_countries) %>%
+##   filter(complete.cases(.))
+##   ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
+##          ## high_edu_broad = as.character(high_edu_broad))
+
+## mod1 <-
+##   lmer(
+##     math ~ 1 + (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
+
+## mod2 <-
+##   lmer(
+##     math ~ academic_content_aut + (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
+
+## mod3 <-
+##   lmer(
+##     math ~ academic_content_aut + prop_cert +  (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
+
+## mod4 <-
+##   lmer(
+##     math ~ academic_content_aut + prop_cert + private + (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
+
+## mod5 <-
+##   lmer(
+##     math ~ academic_content_aut + prop_cert + private + high_edu_broad + (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
+
+## mod6 <-
+##   lmer(
+##     math ~ academic_content_aut + prop_cert + private + high_edu_broad + gender + (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
+
+## mod7 <-
+##   lmer(
+##     math ~ academic_content_aut + prop_cert + private + high_edu_broad + gender + location + (1 | country) + (1 | wave),
+##     data = mod_df
+##   )
 
 
-all_data %>%
-  filter(!is.na(escs_dummy)) %>% 
-  count(country, wave, escs_dummy,
-        location) %>%
-  mutate(location = recode(location,
-                           `1` = "village",
-                           `2` = "town",
-                           `3` = "large town",
-                           `4` = "city",
-                           `5` = "large city"))
+## library(stargazer)
 
-## school_data
-mod_df <-
- all_data %>%
-  filter(!is.na(escs_dummy)) %>% 
-  group_by(wave, country, escs_dummy) %>%
-  summarize(math_avg = mean(adj_pvnum_MATH, na.rm = TRUE),
-            math_sd = sd(adj_pvnum_MATH, na.rm = TRUE),
-            academic_content_aut = mean(academic_content_aut, na.rm = TRUE),
-            personnel_aut = mean(personnel_aut, na.rm = TRUE),
-            budget_aut = mean(budget_aut, na.rm = TRUE),
-            private = mean(SCHLTYPE == "private", na.rm = TRUE),
-            propcert_mean = mean(PROPCERT, na.rm = TRUE)
-            ) %>%
-  pivot_wider(names_from = escs_dummy, values_from = c("math_avg", "academic_content_aut", "personnel_aut", "budget_aut", "private", "propcert_mean", "math_sd")) %>%
-  ungroup() %>% 
-  transmute(wave = as.factor(wave),
-            country = as.factor(country),
-            math_gap = math_avg_1 - math_avg_0,
-            academic_content_gap = academic_content_aut_0,
-            personnel_aut_gap = personnel_aut_0,
-            budget_aut_gap = budget_aut_0,
-            private_gap = private_0,
-            propcert_mean_gap = propcert_mean_1 - propcert_mean_0,
-            math_sd_gap = math_sd_0)
-
-all_data %>%
-  filter(!is.na(escs_dummy)) %>% 
-  group_by(wave, country, escs_dummy) %>%
-  summarize(public = mean(SCHLTYPE == "private", na.rm = TRUE)) %>% 
-  filter(country %in% countries) %>% 
-  ggplot(aes(wave, public, group = escs_dummy, color = as.character(escs_dummy))) +
-  geom_point() +
-  geom_line() +
-  facet_wrap(~ country)
-
-summary(lm(math_gap ~ academic_content_gap + country + wave - 1, data = mod_df))
-
-fe <- c("country")
-
-personnel_mod <- plm(math_gap ~ personnel_aut_gap,
-               data = mod_df,
-               index = fe, 
-               model = "within")
-
-personnel_mod1 <- plm(math_gap ~ personnel_aut_gap + private_gap,
-               data = mod_df,
-               index = fe, 
-               model = "within")
-
-content_mod <- plm(math_gap ~ academic_content_gap,
-               data = mod_df,
-               index = fe, 
-               model = "within")
-
-content_mod1 <- plm(math_gap ~ academic_content_gap + private_gap,
-               data = mod_df,
-               index = fe, 
-               model = "within")
-
-budget_mod <- plm(math_gap ~ budget_aut_gap,
-               data = mod_df,
-               index = fe, 
-               model = "within")
-
-budget_mod1 <- plm(math_gap ~ budget_aut_gap + private_gap,
-               data = mod_df,
-               index = fe, 
-               model = "within")
-
-library(stargazer)
-
-# gather clustered standard errors in a list
-rob_se <- list(sqrt(diag(vcovHC(personnel_mod, type = "HC1"))),
-               sqrt(diag(vcovHC(personnel_mod1, type = "HC1"))),
-               sqrt(diag(vcovHC(content_mod, type = "HC1"))),
-               sqrt(diag(vcovHC(content_mod1, type = "HC1"))),
-               sqrt(diag(vcovHC(budget_mod, type = "HC1"))),
-               sqrt(diag(vcovHC(budget_mod1, type = "HC1"))))
-
-# generate the table
-stargazer(personnel_mod, personnel_mod1, content_mod, content_mod1,
-          budget_mod, budget_mod1,
-          digits = 3,
-          header = FALSE,
-          type = "text", 
-          se = rob_se,
-          title = "Linear Panel Regression Models of autonomy and achievement gap",
-          model.numbers = FALSE,
-          column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"))
-
-center <- function(x) x - mean(x, na.rm = TRUE)
-
-mod_df <-
- all_data %>%
- filter(escs_dummy == 1)
-
-mod_df <-
-  mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
-  rename(prop_cert = PROPCERT,
-         private = SCHLTYPE,
-         math = adj_pvnum_MATH) %>%
-  select(math, private, prop_cert, location, academic_content_aut, high_edu_broad, gender, country, wave) %>%
-  mutate(location = as.character(location)) %>% 
-  filter(country %in% final_countries) %>%
-  filter(complete.cases(.))
-  ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
-         ## high_edu_broad = as.character(high_edu_broad))
-
-mod1 <-
-  lmer(
-    math ~ 1 + (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-mod2 <-
-  lmer(
-    math ~ academic_content_aut + (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-mod3 <-
-  lmer(
-    math ~ academic_content_aut + prop_cert +  (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-mod4 <-
-  lmer(
-    math ~ academic_content_aut + prop_cert + private + (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-mod5 <-
-  lmer(
-    math ~ academic_content_aut + prop_cert + private + high_edu_broad + (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-mod6 <-
-  lmer(
-    math ~ academic_content_aut + prop_cert + private + high_edu_broad + gender + (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-mod7 <-
-  lmer(
-    math ~ academic_content_aut + prop_cert + private + high_edu_broad + gender + location + (1 | country) + (1 | wave),
-    data = mod_df
-  )
-
-
-library(stargazer)
-
-## performance::icc(mod6)
-stargazer(mod1, mod2, mod3, mod4, mod5, mod6, mod7, type = "text")
-## visreg::visreg(mod6, "academic_content_aut", by = "high_edu_broad", gg = TRUE,
+## ## performance::icc(mod6)
+## stargazer(mod1, mod2, mod3, mod4, mod5, mod6, mod7, type = "text")
+## ## visreg::visreg(mod6, "academic_content_aut", by = "high_edu_broad", gg = TRUE,
 ##                breaks = 7)
 
 ## mydf <-
