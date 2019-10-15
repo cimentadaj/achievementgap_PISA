@@ -1,4 +1,4 @@
-harmonize_pisa <- function(pisa_all, recode_cntrys) {
+harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
   # Go through each PISA and grab the highest education from Male
   # and Female partner. Finally, recode it to three categories
   pisa_all$value <- map(pisa_all$value, function(each_pisa) {
@@ -98,13 +98,13 @@ harmonize_pisa <- function(pisa_all, recode_cntrys) {
 
       .x <-
         .x %>%
-        mutate(SCHOOLID = as.character(SCHOOLID))
-
-        .x
+        mutate(SCHOOLID = as.character(SCHOOLID)) %>% 
+        filter(country %in% final_countries)
+        
+      .x
     })
 
   pisa_all
-
 }
 
 
@@ -410,7 +410,7 @@ read_tracking <- function(raw_data) {
 }
 
 
-merge_data <- function(pisa_all, escs_trend) {
+merge_data <- function(pisa_all, escs_trend, final_countries) {
   pisa_all <- as_tibble(pisa_all)
   # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
   # 2015) does not need to be merged so I exclude it with this vector
@@ -1365,338 +1365,53 @@ merge_harmonize_student_school <- function(student_data, school_data) {
              inner_join,
              by = c("country" = "COUNTRY", "SCHOOLID")) %>%
     mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
-           schl_type = case_when(SCHLTYPE %in% c("1", "2") ~ "private",
-                                 SCHLTYPE %in% "3" ~ "public",
-                                 SCHLTYPE %in% c("Government", "Public") ~ "public",
-                                 str_detect(SCHLTYPE, "^Private") ~ "private",
-                                 TRUE ~ NA_character_),
+           SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "private",
+                                SCHLTYPE %in% "3" ~ "public",
+                                SCHLTYPE %in% c("Government", "Public") ~ "public",
+                                str_detect(SCHLTYPE, "^Private") ~ "private",
+                                TRUE ~ NA_character_),
            gender = case_when(gender %in% c("1", "Female") ~ "Female",
                               gender %in% c("2", "Male") ~ "Male",
-                              TRUE ~ NA_character_))    
+                              TRUE ~ NA_character_)
+           )
 
+  combined_data
 }
 
-harmonize_student <- readd(harmonize_student)
-school_data <- readd(pisa_school_data)
+generate_models <- function(all_data, group, aut_var) {
 
-## map_dfr(harmonize_student, ~ {
-##   .x %>%
-##     filter(!is.na(escs_dummy)) %>% 
-##     group_by(wave, country, escs_dummy) %>%
-##     summarize_at(vars(starts_with("adj")), median, na.rm = TRUE)
-## }) %>%
-##   filter(country %in% countries) %>%
-##   pivot_wider(names_from = escs_dummy, values_from = starts_with("adj")) %>%
-##   ggplot(aes(wave, adj_pvnum_MATH_1 - adj_pvnum_MATH_0, group = 1)) +
-##   geom_point() +
-##   geom_line() +
-##   facet_wrap(~ country)
+  model_formula <-
+    as.formula(
+    paste0(
+      "math ~",
+      aut_var,
+      "+",
+      "private +
+     prop_cert +
+     location +
+     high_edu_broad +
+     gender +
+     (1 | country) +
+     (1 | wave)"
+    )
+  )
 
-## tst2 %>%
-##   filter(!is.na(escs_dummy)) %>%
-##   filter(!is.na(SCHLTYPE)) %>% 
-##   group_by(wave, country, escs_dummy) %>%
-##   summarize_at(c(vars(ends_with("aut"))), mean, na.rm = TRUE) %>%
-##   ## mutate(low_ci = content_aut_fn1 - (content_aut_fn2 * 2),
-##   ##        high_ci = content_aut_fn1 + (content_aut_fn2 * 2)) %>% 
-##   ## ## pivot_wider(names_from = escs_dummy, values_from = ends_with("aut")) %>%  
-##   ggplot(aes(wave, personnel_aut, group = escs_dummy, color = as.character(escs_dummy))) +
-##   geom_point() +
-##   ## geom_errorbar(aes(ymin = low_ci, ymax = high_ci)) +
-##   geom_line() +
-##   facet_wrap(~ country)
+  mod_df <-
+    all_data %>%
+    filter(escs_dummy == group)
 
-## library(plm)
+  mod_df <-
+    mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE,
+           math = adj_pvnum_MATH) %>%
+    select(all.vars(model_formula)) %>%
+    mutate(location = as.character(location)) %>% 
+    filter(complete.cases(.))
+  ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
+  ## high_edu_broad = as.character(high_edu_broad))
 
-## all_data <-
-##  schl_student %>%
-##   filter(!is.na(SCHLTYPE)) %>% 
-##   select(country, wave, SCHOOLID, escs_dummy, adj_pvnum_MATH,
-##          academic_content_aut, personnel_aut, budget_aut,
-##          SCHLTYPE,
-##          PROPCERT,
-##          location,
-##          high_edu_broad,
-##          gender
-##          )
-
-## all_data %>%
-##   filter(!is.na(escs_dummy)) %>% 
-##   count(country, wave, escs_dummy,
-##         location) %>%
-##   mutate(location = recode(location,
-##                            `1` = "village",
-##                            `2` = "town",
-##                            `3` = "large town",
-##                            `4` = "city",
-##                            `5` = "large city"))
-
-## ## school_data
-## mod_df <-
-##  all_data %>%
-##   filter(!is.na(escs_dummy)) %>% 
-##   group_by(wave, country, escs_dummy) %>%
-##   summarize(math_avg = mean(adj_pvnum_MATH, na.rm = TRUE),
-##             math_sd = sd(adj_pvnum_MATH, na.rm = TRUE),
-##             academic_content_aut = mean(academic_content_aut, na.rm = TRUE),
-##             personnel_aut = mean(personnel_aut, na.rm = TRUE),
-##             budget_aut = mean(budget_aut, na.rm = TRUE),
-##             private = mean(SCHLTYPE == "private", na.rm = TRUE),
-##             propcert_mean = mean(PROPCERT, na.rm = TRUE)
-##             ) %>%
-##   pivot_wider(names_from = escs_dummy, values_from = c("math_avg", "academic_content_aut", "personnel_aut", "budget_aut", "private", "propcert_mean", "math_sd")) %>%
-##   ungroup() %>% 
-##   transmute(wave = as.factor(wave),
-##             country = as.factor(country),
-##             math_gap = math_avg_1 - math_avg_0,
-##             academic_content_gap = academic_content_aut_0,
-##             personnel_aut_gap = personnel_aut_0,
-##             budget_aut_gap = budget_aut_0,
-##             private_gap = private_0,
-##             propcert_mean_gap = propcert_mean_1 - propcert_mean_0,
-##             math_sd_gap = math_sd_0)
-
-## all_data %>%
-##   filter(!is.na(escs_dummy)) %>% 
-##   group_by(wave, country, escs_dummy) %>%
-##   summarize(public = mean(SCHLTYPE == "private", na.rm = TRUE)) %>% 
-##   filter(country %in% countries) %>% 
-##   ggplot(aes(wave, public, group = escs_dummy, color = as.character(escs_dummy))) +
-##   geom_point() +
-##   geom_line() +
-##   facet_wrap(~ country)
-
-## summary(lm(math_gap ~ academic_content_gap + country + wave - 1, data = mod_df))
-
-## fe <- c("country")
-
-## personnel_mod <- plm(math_gap ~ personnel_aut_gap,
-##                data = mod_df,
-##                index = fe, 
-##                model = "within")
-
-## personnel_mod1 <- plm(math_gap ~ personnel_aut_gap + private_gap,
-##                data = mod_df,
-##                index = fe, 
-##                model = "within")
-
-## content_mod <- plm(math_gap ~ academic_content_gap,
-##                data = mod_df,
-##                index = fe, 
-##                model = "within")
-
-## content_mod1 <- plm(math_gap ~ academic_content_gap + private_gap,
-##                data = mod_df,
-##                index = fe, 
-##                model = "within")
-
-## budget_mod <- plm(math_gap ~ budget_aut_gap,
-##                data = mod_df,
-##                index = fe, 
-##                model = "within")
-
-## budget_mod1 <- plm(math_gap ~ budget_aut_gap + private_gap,
-##                data = mod_df,
-##                index = fe, 
-##                model = "within")
-
-## library(stargazer)
-
-## # gather clustered standard errors in a list
-## rob_se <- list(sqrt(diag(vcovHC(personnel_mod, type = "HC1"))),
-##                sqrt(diag(vcovHC(personnel_mod1, type = "HC1"))),
-##                sqrt(diag(vcovHC(content_mod, type = "HC1"))),
-##                sqrt(diag(vcovHC(content_mod1, type = "HC1"))),
-##                sqrt(diag(vcovHC(budget_mod, type = "HC1"))),
-##                sqrt(diag(vcovHC(budget_mod1, type = "HC1"))))
-
-## # generate the table
-## stargazer(personnel_mod, personnel_mod1, content_mod, content_mod1,
-##           budget_mod, budget_mod1,
-##           digits = 3,
-##           header = FALSE,
-##           type = "text", 
-##           se = rob_se,
-##           title = "Linear Panel Regression Models of autonomy and achievement gap",
-##           model.numbers = FALSE,
-##           column.labels = c("(1)", "(2)", "(3)", "(4)", "(5)", "(6)"))
-
-## center <- function(x) x - mean(x, na.rm = TRUE)
-
-## mod_df <-
-##  all_data %>%
-##  filter(escs_dummy == 1)
-
-## mod_df <-
-##   mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
-##   rename(prop_cert = PROPCERT,
-##          private = SCHLTYPE,
-##          math = adj_pvnum_MATH) %>%
-##   select(math, private, prop_cert, location, academic_content_aut, high_edu_broad, gender, country, wave) %>%
-##   mutate(location = as.character(location)) %>% 
-##   filter(country %in% final_countries) %>%
-##   filter(complete.cases(.))
-##   ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
-##          ## high_edu_broad = as.character(high_edu_broad))
-
-## mod1 <-
-##   lmer(
-##     math ~ 1 + (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-## mod2 <-
-##   lmer(
-##     math ~ academic_content_aut + (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-## mod3 <-
-##   lmer(
-##     math ~ academic_content_aut + prop_cert +  (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-## mod4 <-
-##   lmer(
-##     math ~ academic_content_aut + prop_cert + private + (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-## mod5 <-
-##   lmer(
-##     math ~ academic_content_aut + prop_cert + private + high_edu_broad + (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-## mod6 <-
-##   lmer(
-##     math ~ academic_content_aut + prop_cert + private + high_edu_broad + gender + (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-## mod7 <-
-##   lmer(
-##     math ~ academic_content_aut + prop_cert + private + high_edu_broad + gender + location + (1 | country) + (1 | wave),
-##     data = mod_df
-##   )
-
-
-## library(stargazer)
-
-## ## performance::icc(mod6)
-## stargazer(mod1, mod2, mod3, mod4, mod5, mod6, mod7, type = "text")
-## ## visreg::visreg(mod6, "academic_content_aut", by = "high_edu_broad", gg = TRUE,
-##                breaks = 7)
-
-## mydf <-
-##   ggpredict(mod5, terms = c("private_gap [0, 0.2, 0.5]", "math_sd_gap"))
-
-## plot(mydf, facet = TRUE)
-
-## tst %>% 
-
-## escs_data_trans[[1]]$ISCEDO <- NA_character_
-
-# Japan
-# Germany
-# Spain
-# Netherlands
-# Denmark and Sweden no diff
-# United States and Cnada (the same distribution)
-# Netherlands
-# Belgium
-# France
-
-# 2000 - 
-# 2003 - PROGN/ISCEDO
-# 2006 - PROGN/ISCEDO
-# 2009 - PROGN/ISCEDO
-# 2012 - PROGN/ISCEDO
-# 2015 - PROGN/ISCEDO
-
-## merged_df <-
-##   escs_data_trans %>%
-##   map(~ filter(.x, country == "France", !is.na(escs_dummy))) %>%
-##   map(~ mutate(.x, ISCEDO = as.character(ISCEDO))) %>% 
-##   map(~ select(.x, country, wave, high_edu_broad, escs_dummy, contains("PROGN"),
-##                contains("ISCEDO"))) %>%
-##   bind_rows()
-
-## merged_df %>%
-##   count(wave, escs_dummy, PROGN) %>%
-##   group_by(wave, escs_dummy) %>% 
-##   mutate(perc = n / sum(n)) %>%
-##   filter(wave == "pisa2009") %>%
-##   arrange(escs_dummy, perc) %>%
-##   top_n(3) %>%
-##   ggplot(aes(PROGN, perc, fill = as.character(escs_dummy))) +
-##   geom_col(position = "dodge") +
-##   theme(axis.text.x = element_text(angle = 90))
-
-## thirtytwo_cnt <-
-##   c("Australia", "Austria", "Belgium", "Bulgaria", "Canada", "Chile", 
-##     "Czech Republic", "Denmark", "Finland", "France", "Germany", 
-##     "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", 
-##     "Latvia", "Luxembourg", "Netherlands", "Norway", "Poland", "Portugal", 
-##     "Spain", "Sweden", "Switzerland", "United Kingdom", "United States", 
-##     "Japan", "Slovakia", "Turkey", "Slovenia")
-
-## model_df <-
-##   escs_data_trans %>%
-##   map(~ filter(.x, !is.na(escs_dummy), country %in% thirtytwo_cnt)) %>%
-##   map(~ mutate(.x,
-##                ISCEDO = as.character(ISCEDO),
-##                avg_math = rowMeans(dplyr::select(.x, ends_with("MATH")), na.rm = TRUE))) %>% 
-##   map(~ dplyr::select(.x, country,
-##                wave,
-##                high_edu_broad,
-##                escs_dummy,
-##                contains("PROGN"),
-##                avg_math)) %>%
-##   bind_rows()
-
-## tst <-
-##   model_df %>%
-##   nest(data = c(escs_dummy, high_edu_broad, avg_math, PROGN)) %>%
-##   mutate(model = map(data, ~ lm(avg_math ~ escs_dummy, data = .x)),
-##          within_group = map_dbl(model, ~ anova(.x)["Residuals", "Mean Sq"]),
-##          between_group = map_dbl(model, ~ anova(.x)["escs_dummy", "Mean Sq"]),
-##          perc_within = within_group / (within_group + between_group),
-##          sd_within_low = map_dbl(data, ~ .x %>% filter(escs_dummy == 0) %>% pull(avg_math) %>% sd()),
-##          sd_within_high = map_dbl(data, ~ .x %>% filter(escs_dummy == 1) %>% pull(avg_math) %>% sd()),
-##          ratio_sd = sd_within_high / sd_within_low,
-##          avg_bottom = map_dbl(data, ~ filter(.x, escs_dummy == 0) %>% pull(avg_math) %>% mean()),
-##          avg_high = map_dbl(data, ~ filter(.x, escs_dummy == 1) %>% pull(avg_math) %>% mean()),
-##          gap = (avg_high - avg_bottom))
-
-## tst %>%
-##   ggplot(aes(x = wave, y = gap, group = 1)) +
-##   geom_line() +
-##   facet_wrap(~ country)
-
-
-## null_model <- brm(gap ~ (1 | country/wave), data = tst,
-##                   control = list(adapt_delta = 0.99,
-##                                  max_treedepth = 15))
-
-## full_model <- brm(gap ~ ratio_sd + (1 | country/wave), data = tst,
-##                   control = list(adapt_delta = 0.99, max_treedepth = 15))
-
-## null_var <- as.data.frame(VarCorr(null_model))["sdcor"]
-## full_var <- as.data.frame(VarCorr(full_model))["sdcor"]
-
-## (null_var - full_var) / null_var
-
-## mod_dt <- tst %>% slice(10) %>% pull(data) %>% .[[1]]
-
-## anova(lm(avg_math ~ escs_dummy, mod_dt))
-
-## mod_dt %>%
-##   group_by(escs_dummy) %>%
-##   summarize(avg = mean(avg_math),
-##             sd = sd(avg_math))
-
-## hist(mod_dt$avg_math)
-
-## tst <- lmer(avg_math ~ (1 | country:wave:escs_dummy), data = model_df)
+  all_formulas <- formula_gen(model_formula)
+  all_mods <- map(all_formulas, ~ lmer(.x, data = mod_df))
+  all_mods
+}

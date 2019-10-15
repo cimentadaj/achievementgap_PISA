@@ -563,14 +563,39 @@ print_memory <- function() {
   print(paste0("Currently consumed memory: ", capture.output(pryr::mem_used())))
 }
 
+center <- function(x) x - mean(x, na.rm = TRUE)
+
+formula_gen <- function(model_formula) {
+  dv <- find_response(model_formula)
+  covariates <- str_subset(find_terms(model_formula)$conditional,
+                           "\\(", negate = TRUE)
+  random_effects <- str_subset(find_terms(model_formula)$conditional,
+                               "\\(")
+
+  dv <- paste(dv, "~ 1")
+  combinations <- lapply(1:length(covariates), function(i) seq(1:i))
+  formulas <- map(combinations, ~ {
+    x <-
+      as.formula(
+        paste(c(dv, covariates[.x], random_effects), collapse = " + "),
+        )
+    x
+  })
+
+  first_formula <- paste0(dv, " + ", paste0(random_effects, collapse = "+"))
+  formulas <- c(as.formula(first_formula), formulas)
+  formulas
+}
+
 gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 ############################# Drake plan ######################################
 ###############################################################################
+autonomy_measures <- c("academic_content_aut", "personnel_aut", "budget_aut")
 
 plan <-
   drake_plan(
-    pisa_data = harmonize_pisa(raw_data, recode_cntrys),
+    pisa_data = harmonize_pisa(raw_data, recode_cntrys, final_countries),
     rm_raw = delete_raw_data(),
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
     pisa_school_data = read_harmonize_pisa_school(raw_data_dir, countries),
@@ -585,7 +610,11 @@ plan <-
     autonomy_corr = autonomy_corr(pisa_school_data),
     autonomy_corr_overtime = autonomy_overtime_corr(pisa_school_data),
     harmonize_student = map(merged_data, select_cols_student),
-    schl_student = merge_harmonize_student_school(harmonize_student, pisa_school_data)
+    schl_student = merge_harmonize_student_school(harmonize_student, pisa_school_data),
+    aut = target(
+      generate_models(schl_student, group = group_vals, aut_var = aut_val),
+      transform = cross(group_vals = c(0, 1), aut_val = !!autonomy_measures)
+    ),
     ## ## res_math = target(
     ##   test_diff(merged_data, "MATH"),
     ##   # Because it's a list
