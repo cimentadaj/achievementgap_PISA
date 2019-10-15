@@ -17,6 +17,40 @@ pisa2015_conf <- list(
                     replication_scheme = 'pisa')
 )
 
+final_countries <- c("Finland",
+                     "France",
+                     "Austria",
+                     "Australia",
+                     "Sweden",
+                     "Slovakia",
+                     "Czech Republic",
+                     "Canada",
+                     "Hungary",
+                     "Iceland",
+                     "Netherlands",
+                     "Ireland",
+                     "Spain",
+                     "Belgium",
+                     "Italy",
+                     "Chile",
+                     "Norway",
+                     "United Kingdom",
+                     "Latvia",
+                     "Luxembourg",
+                     "Switzerland",
+                     "Greece",
+                     "Denmark",
+                     "Portugal",
+                     "Bulgaria",
+                     "Slovenia",
+                     "Japan",
+                     "Israel",
+                     "Poland",
+                     "United States",
+                     "Germany",
+                     "Turkey"
+                     )
+
 
 countries <- c("Finland",
                "France",
@@ -467,21 +501,25 @@ plan <-
     escs_dummy_data = escs_dummy_creator(semi_merged, c(0.1, 0.9)),
     # merged_data now contains the adjusted math/read column for all students
     merged_data = calc_adj_pv(escs_dummy_data, reliability_pisa),
-    res_math = target(
-      test_diff(merged_data, "MATH"),
-      # Because it's a list
-      format = "rds"
-    ),
-    res_read = target(
-      test_diff(merged_data, "READ"),
-      # Because it's a list
-      format = "rds"
-    ),
-    results_math = map(res_math, f_ind),
-    results_read = map(res_read, f_ind),
-    complete_data_topbottom = pisa_preparer(results_math,
-                                            results_read,
-                                            type_txt = "90th/10th SES gap"),
+    autonomy_corr = autonomy_corr(pisa_school_data),
+    autonomy_corr_overtime = autonomy_overtime_corr(pisa_school_data),
+    harmonize_student = select_cols_student(merged_data),
+    schl_student = merge_harmonize_student_school(harmonize_student, pisa_school_data)
+    ## res_math = target(
+    ##   test_diff(merged_data, "MATH"),
+    ##   # Because it's a list
+    ##   format = "rds"
+    ## ),
+    ## res_read = target(
+    ##   test_diff(merged_data, "READ"),
+    ##   # Because it's a list
+    ##   format = "rds"
+    ## ),
+    ## results_math = map(res_math, f_ind),
+    ## results_read = map(res_read, f_ind),
+    ## complete_data_topbottom = pisa_preparer(results_math,
+    ##                                         results_read,
+    ##                                         type_txt = "90th/10th SES gap"),
     ##   sample_tables_topbottom = sample_size_calc(
     ##     merged_data,
     ##     c(.1, .9),
@@ -494,9 +532,9 @@ plan <-
     ##     complete_data_topbottom
     ##   ),
     ##   descriptives_tracking = tracking_descriptives(tracking_data, countries),
-      ordered_cnt = order_cnt(complete_data_topbottom, countries),
-      p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
-                                              ordered_cnt),
+    ## ordered_cnt = order_cnt(complete_data_topbottom, countries),
+    ## p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
+    ##                                         ordered_cnt),
     ##   top_bottom_perc = perc_increase_fun(complete_data_topbottom),
     ##   p2_perc_change = perc_graph(
     ##     top_bottom_perc,
