@@ -612,8 +612,16 @@ plan <-
     harmonize_student = map(merged_data, select_cols_student),
     schl_student = merge_harmonize_student_school(harmonize_student, pisa_school_data),
     aut = target(
-      generate_models(schl_student, group = group_vals, aut_var = aut_val),
-      transform = cross(group_vals = c(0, 1), aut_val = !!autonomy_measures)
+      generate_models(schl_student,
+                      dv = math_read,
+                      group = group_vals,
+                      aut_var = aut_val,
+                      random = aut_slope
+                      ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures,
+                        aut_slope = c("random_slope", "fixed_slope"))
     ),
     ## ## res_math = target(
     ##   test_diff(merged_data, "MATH"),

@@ -1555,23 +1555,26 @@ merge_harmonize_student_school <- function(student_data, school_data) {
   combined_data
 }
 
-generate_models <- function(all_data, group, aut_var) {
+generate_models <- function(all_data, dv, group, aut_var, random = "random_slope") {
+  aut_random <- if (random == "random_slope") TRUE else FALSE
 
   model_formula <-
     as.formula(
-    paste0(
-      "math ~",
-      aut_var,
-      "+",
-      "private +
+      paste0(
+        dv,
+        " ~ ",
+        aut_var,
+        "+",
+        "private +
        prop_cert +
        location +
        high_edu_broad +
        gender +
        (1 | country) +
-       (1 | wave)"
+       (1 | wave)",
+       if (aut_random) paste0("+ (", aut_var, " | country)") else ""
+      )
     )
-  )
 
   fixed_variables <- c("num_stu",
                        "government_fund",
@@ -1587,7 +1590,8 @@ generate_models <- function(all_data, group, aut_var) {
     mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE,
-           math = adj_pvnum_MATH) %>%
+           math = adj_pvnum_MATH,
+           read = adj_pvnum_READ) %>%
     select(all.vars(model_formula), fixed_variables) %>%
     filter(complete.cases(.))
   ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
