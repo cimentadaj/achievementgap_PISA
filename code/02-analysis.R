@@ -177,7 +177,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
              contains("SC03Q01"), # 2012
              contains("SC001Q01TA"), # 2015
              # Number of students at the school level
-             num_stu
+             num_stu,
+             government_fund,
+             teacher_short
              ) %>%
       mutate(SCHOOLID = as.character(SCHOOLID))
   }
@@ -196,7 +198,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     mutate_at(vars(ends_with("aut")), identify_autonomy) %>%
     mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY)),
            num_stu = SCHLSIZE,
-           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>% 
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
+           government_fund = SC04Q01,
+           teacher_short = TCSHORT) %>% 
     var_picker() %>% 
     rename(location = SC01Q01) %>%
     select(-starts_with("SC0")) %>% 
@@ -217,7 +221,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     mutate_at(vars(ends_with("aut")), identify_autonomy) %>%
     mutate(COUNTRY = trimws(COUNTRY),
            num_stu = SCHLSIZE,
-           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
+           government_fund = SC04Q01,
+           teacher_short = TCSHORT) %>%
     var_picker() %>% 
     rename(location = SC01Q01) %>% 
     select(-starts_with("SC0")) %>%
@@ -241,7 +247,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     mutate_at(school2006, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(COUNTRY = as.character(COUNTRY),
            num_stu = SCHSIZE,
-           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
+           government_fund = SC03Q01,
+           teacher_short = TCSHORT) %>%
     var_picker() %>% 
     rename(location = SC07Q01) %>% 
     select(-starts_with("SC0")) %>% 
@@ -265,7 +273,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     mutate_at(school2009, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = as.character(CNT),
            num_stu = SCHSIZE,
-           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
+           government_fund = SC03Q01,
+           teacher_short = TCSHORT) %>%
     select(-COUNTRY) %>% 
     rename(COUNTRY = CNT, SCHLTYPE = SCHTYPE) %>%
     var_picker() %>%
@@ -303,13 +313,17 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     mutate_at(school2012, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT],
            num_stu = SCHSIZE,
-           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
+           government_fund = SC02Q01,
+           teacher_short = TCSHORT) %>%
     rename(COUNTRY = CNT) %>%     
     var_picker() %>%
     rename(location = SC03Q01) %>% 
     select(-starts_with("SC0")) %>% 
-    filter(num_stu != 0)  
-
+    filter(num_stu != 0,
+           government_fund < 9000,
+           teacher_short < 9000)
+  
   # PISA 2015
   pisa2015_path <- file.path(raw_data_dir, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
   pisa_countrynames <- c(cimentadaj::pisa_countrynames, "United States" = "USA")
@@ -330,7 +344,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     mutate_at(school2015, vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT],
            num_stu = SCHSIZE,
-           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
+           government_fund = SC016Q01TA,
+           teacher_short = STAFFSHORT) %>%
     rename(COUNTRY = CNT,
            SCHOOLID = CNTSCHID,
            PROPCERT = PROATCE) %>%
@@ -1415,7 +1431,7 @@ generate_models <- function(all_data, group, aut_var) {
     )
   )
 
-  fixed_variables <- c("num_stu")
+  fixed_variables <- c("num_stu", "government_fund")
 
   mod_df <-
     all_data %>%
