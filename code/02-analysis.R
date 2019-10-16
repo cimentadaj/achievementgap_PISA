@@ -108,7 +108,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
 }
 
 
-read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
+read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
 
   # To be used when > PISA2006 waves divide autonomy tick
   # into several columns rather than pasted into one.
@@ -176,6 +176,8 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
              contains("SC04Q01"), # 2009
              contains("SC03Q01"), # 2012
              contains("SC001Q01TA"), # 2015
+             # Number of students at the school level
+             num_stu
              ) %>%
       mutate(SCHOOLID = as.character(SCHOOLID))
   }
@@ -192,11 +194,14 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
            budget_aut = SC22Q06,
            admittance_aut = SC22Q09) %>%
     mutate_at(vars(ends_with("aut")), identify_autonomy) %>%
-    mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY))) %>%
+    mutate(COUNTRY = tools::toTitleCase(tolower(COUNTRY)),
+           num_stu = SCHLSIZE,
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>% 
     var_picker() %>% 
     rename(location = SC01Q01) %>%
-    select(-starts_with("SC0"))
-    
+    select(-starts_with("SC0")) %>% 
+    filter(num_stu != 0)
+
   # PISA 2003
   school2003 <-
     school2003 %>%
@@ -210,10 +215,13 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
            admittance_aut = SC26Q09) %>%
     mutate_at(vars(ends_with("aut")), str_replace_all, "2", "0") %>%
     mutate_at(vars(ends_with("aut")), identify_autonomy) %>%
-    mutate(COUNTRY = trimws(COUNTRY)) %>%
+    mutate(COUNTRY = trimws(COUNTRY),
+           num_stu = SCHLSIZE,
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
     var_picker() %>% 
     rename(location = SC01Q01) %>% 
-    select(-starts_with("SC0"))
+    select(-starts_with("SC0")) %>%
+    filter(num_stu != 0)
 
   # PISA 2006
   list_aut <- list("course_aut" = paste0("SC11QL", 1:4),
@@ -231,11 +239,14 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
   school2006 <- collapse_aut_cols(school2006, list_aut)
   school2006 <-
     mutate_at(school2006, vars(ends_with("aut")), identify_autonomy) %>%
-    mutate(COUNTRY = as.character(COUNTRY)) %>%
+    mutate(COUNTRY = as.character(COUNTRY),
+           num_stu = SCHSIZE,
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
     var_picker() %>% 
     rename(location = SC07Q01) %>% 
-    select(-starts_with("SC0"))
-
+    select(-starts_with("SC0")) %>% 
+    filter(num_stu != 0)
+  
   # PISA 2009
   list_aut <- list("course_aut" = paste0("SC24QL", 1:5),
                    "content_aut" = paste0("SC24QK", 1:5),
@@ -252,17 +263,19 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
   school2009 <- collapse_aut_cols(school2009, list_aut, max_cols = 5)
   school2009 <-
     mutate_at(school2009, vars(ends_with("aut")), identify_autonomy) %>%
-    mutate(CNT = as.character(CNT)) %>%
+    mutate(CNT = as.character(CNT),
+           num_stu = SCHSIZE,
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
     select(-COUNTRY) %>% 
     rename(COUNTRY = CNT, SCHLTYPE = SCHTYPE) %>%
     var_picker() %>%
     rename(location = SC04Q01) %>% 
-    select(-starts_with("SC0"))
-  
+    select(-starts_with("SC0")) %>% 
+    filter(num_stu != 0)  
 
   # PISA 2012
-  pisa2012_path <- file.path(raw_data, "pisa2012", "INT_SCQ12_DEC03.txt")
-  dic_path <- file.path(raw_data, "pisa2012", "PISA2012_SAS_school.sas")
+  pisa2012_path <- file.path(raw_data_dir, "pisa2012", "INT_SCQ12_DEC03.txt")
+  dic_path <- file.path(raw_data_dir, "pisa2012", "PISA2012_SAS_school.sas")
   dic_school <- parse.SAScii(sas_ri = dic_path)
   school2012 <- read_fwf(pisa2012_path,
                          col_positions = fwf_widths(dic_school$width),
@@ -288,14 +301,17 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
 
   school2012 <-
     mutate_at(school2012, vars(ends_with("aut")), identify_autonomy) %>%
-    mutate(CNT = cimentadaj::pisa_countrynames[CNT]) %>%
+    mutate(CNT = cimentadaj::pisa_countrynames[CNT],
+           num_stu = SCHSIZE,
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
     rename(COUNTRY = CNT) %>%     
     var_picker() %>%
     rename(location = SC03Q01) %>% 
-    select(-starts_with("SC0"))
+    select(-starts_with("SC0")) %>% 
+    filter(num_stu != 0)  
 
   # PISA 2015
-  pisa2015_path <- file.path(raw_data, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
+  pisa2015_path <- file.path(raw_data_dir, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
   pisa_countrynames <- c(cimentadaj::pisa_countrynames, "United States" = "USA")
   school2015 <- read_spss(pisa2015_path)
 
@@ -312,13 +328,16 @@ read_harmonize_pisa_school <- function(raw_data, recode_cntrys) {
   school2015 <- collapse_aut_cols(school2015, list_aut, max_cols = 5)
   school2015 <-
     mutate_at(school2015, vars(ends_with("aut")), identify_autonomy) %>%
-    mutate(CNT = cimentadaj::pisa_countrynames[CNT]) %>%
+    mutate(CNT = cimentadaj::pisa_countrynames[CNT],
+           num_stu = SCHSIZE,
+           num_stu = ifelse(num_stu > 9000, NA_real_, num_stu)) %>%
     rename(COUNTRY = CNT,
            SCHOOLID = CNTSCHID,
-           PROPCERT = PROATCE) %>% 
+           PROPCERT = PROATCE) %>%
     var_picker() %>%
     rename(location = SC001Q01TA) %>%
-    select(-starts_with("SC0"))
+    select(-starts_with("SC0")) %>% 
+    filter(num_stu != 0)  
 
   all_schools <-
     list(
@@ -386,8 +405,8 @@ plot_autonomy_trends <- function(list_school_waves, cntrys) {
 
 }
 
-read_escs <- function(raw_data, recode_cntrys) {
-  escs_path <- file.path(raw_data, "escs_data")
+read_escs <- function(raw_data_dir, recode_cntrys) {
+  escs_path <- file.path(raw_data_dir, "escs_data")
   escs_files <- list.files(escs_path, pattern = ".sav", full.names = TRUE)
   escs_trend <- map(escs_files, haven::read_spss)
 
@@ -400,9 +419,9 @@ read_escs <- function(raw_data, recode_cntrys) {
   escs_trend
 }
 
-read_tracking <- function(raw_data) {
+read_tracking <- function(raw_data_dir) {
   tracking_data <-
-    read_xlsx(file.path(raw_data, "tracking/tracking.xlsx"), sheet = "all_data") %>%
+    read_xlsx(file.path(raw_data_dir, "tracking/tracking.xlsx"), sheet = "all_data") %>%
     map_if(is_double, round, 2) %>%
     as_tibble()
 
@@ -1387,14 +1406,16 @@ generate_models <- function(all_data, group, aut_var) {
       aut_var,
       "+",
       "private +
-     prop_cert +
-     location +
-     high_edu_broad +
-     gender +
-     (1 | country) +
-     (1 | wave)"
+       prop_cert +
+       location +
+       high_edu_broad +
+       gender +
+       (1 | country) +
+       (1 | wave)"
     )
   )
+
+  fixed_variables <- c("num_stu")
 
   mod_df <-
     all_data %>%
@@ -1405,13 +1426,22 @@ generate_models <- function(all_data, group, aut_var) {
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE,
            math = adj_pvnum_MATH) %>%
-    select(all.vars(model_formula)) %>%
+    select(all.vars(model_formula), fixed_variables) %>%
     mutate(location = as.character(location)) %>% 
     filter(complete.cases(.))
   ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
   ## high_edu_broad = as.character(high_edu_broad))
 
   all_formulas <- formula_gen(model_formula)
+
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
+    )
+
+  all_formulas[[8]] <- update(all_formulas[[7]], for_fixed)
+
   all_mods <- map(all_formulas, ~ lmer(.x, data = mod_df))
   all_mods
 }
