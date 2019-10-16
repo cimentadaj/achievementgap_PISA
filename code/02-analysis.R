@@ -1,12 +1,100 @@
 harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
-  # Go through each PISA and grab the highest education from Male
-  # and Female partner. Finally, recode it to three categories
+
+  # PISA 2000
+  pisa_all$value[[1]] <-
+    pisa_all$value[[1]] %>%
+    mutate(books_hh = as.numeric(ST37Q01),
+           books_hh = case_when(books_hh %in% 1:2 ~ "0-10",
+                                books_hh %in% 3:4 ~ "11-100",
+                                books_hh %in% 5:6 ~ "101-500",
+                                books_hh == 7 ~ "> 500",
+                                TRUE ~ NA_character_),
+           books_hh = factor(books_hh,
+                             levels = c("0-10", "11-100", "101-500", "> 500"),
+                             ordered = TRUE)
+           )
+
+
+  # PISA 2003
+  pisa_all$value[[2]] <-
+    pisa_all$value[[2]] %>%
+    mutate(books_hh = as.numeric(ST19Q01),
+           books_hh = case_when(books_hh == 1 ~ "0-10",
+                                books_hh %in% 2:3 ~ "11-100",
+                                books_hh %in% 4:5 ~ "101-500",
+                                books_hh == 6 ~ "> 500",
+                                TRUE ~ NA_character_),
+           books_hh = factor(books_hh,
+                             levels = c("0-10", "11-100", "101-500", "> 500"),
+                             ordered = TRUE)
+           )
+
+  # PISA 2006
+  pisa_all$value[[3]] <-
+    pisa_all$value[[3]] %>%
+    mutate(books_hh = as.numeric(ST15Q01),
+           books_hh = case_when(books_hh == 1 ~ "0-10",
+                                books_hh %in% 2:3 ~ "11-100",
+                                books_hh %in% 4:5 ~ "101-500",
+                                books_hh == 6 ~ "> 500",
+                                TRUE ~ NA_character_),
+           books_hh = factor(books_hh,
+                             levels = c("0-10", "11-100", "101-500", "> 500"),
+                             ordered = TRUE)
+           )
+
+  # PISA 2009
+  pisa_all$value[[4]] <-
+    pisa_all$value[[4]] %>%
+    mutate(books_hh = as.numeric(ST22Q01),
+           books_hh = case_when(books_hh == 1 ~ "0-10",
+                                books_hh %in% 2:3 ~ "11-100",
+                                books_hh %in% 4:5 ~ "101-500",
+                                books_hh == 6 ~ "> 500",
+                                TRUE ~ NA_character_),
+           books_hh = factor(books_hh,
+                             levels = c("0-10", "11-100", "101-500", "> 500"),
+                             ordered = TRUE)
+           )
+
+  # PISA 2012
+  pisa_all$value[[5]] <-
+    pisa_all$value[[5]] %>%
+    mutate(books_hh = as.numeric(ST28Q01),
+           books_hh = case_when(books_hh == 1 ~ "0-10",
+                                books_hh %in% 2:3 ~ "11-100",
+                                books_hh %in% 4:5 ~ "101-500",
+                                books_hh == 6 ~ "> 500",
+                                TRUE ~ NA_character_),
+           books_hh = factor(books_hh,
+                             levels = c("0-10", "11-100", "101-500", "> 500"),
+                             ordered = TRUE)
+           )
+
+  # PISA 2015
+  pisa_all$value[[6]] <-
+    pisa_all$value[[6]] %>%
+    mutate(books_hh = as.numeric(ST013Q01TA),
+           books_hh = case_when(books_hh == 1 ~ "0-10",
+                                books_hh %in% 2:3 ~ "11-100",
+                                books_hh %in% 4:5 ~ "101-500",
+                                books_hh == 6 ~ "> 500",
+                                TRUE ~ NA_character_),
+           books_hh = factor(books_hh,
+                             levels = c("0-10", "11-100", "101-500", "> 500"),
+                             ordered = TRUE)
+           )
+  
   pisa_all$value <- map(pisa_all$value, function(each_pisa) {
+
+    ## EDUCATION##
+    # Go through each PISA and grab the highest education from Male
+    # and Female partner. Finally, recode it to three categories
     each_pisa$high_edu <- pmax(as.numeric(each_pisa$MISCED), # find highest education
                                as.numeric(each_pisa$FISCED)) # in the household
-    
     # Recode new highest education into three categories
     each_pisa$high_edu <- recode(each_pisa$high_edu, "1:3 = 1; 4:5 = 2; 6:7 = 3; else = NA")
+
     each_pisa
   })
 
@@ -31,7 +119,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
   pisa_all$value <- map(seq_along(pisa_all$value), function(pisa_data) {
     
     pisa_all$value[[pisa_data]] %>%
-      rename_("gender" = gender[pisa_data]) %>%
+      rename(gender = gender[pisa_data]) %>%
       mutate(gender = as.character(gender),
              country = pisa_countrynames[as.character(CNT)],
              region = countrycode(country, "country.name", "region")) %>%
@@ -44,7 +132,6 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
   pisa_all$value <- map2(pisa_all$value, db, ~ { .x$wave <- .y; .x})
   pisa_all$value[[1]]$CNT <- pisa_all$value[[1]]$COUNTRY
 
-  print("Before going into valueeee")
   pisa_all$value <-
     map(pisa_all$value, ~ {
       # 2000 to 2015
@@ -83,6 +170,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                W_FSTUWT,
                high_edu_broad,
                gender,
+               books_hh,
                # Wasn't asked in pisa 2000
                # Which program the student is at
                matches("PROGN"),
@@ -1431,7 +1519,7 @@ generate_models <- function(all_data, group, aut_var) {
     )
   )
 
-  fixed_variables <- c("num_stu", "government_fund")
+  fixed_variables <- c("num_stu", "government_fund", "books_hh")
 
   mod_df <-
     all_data %>%
