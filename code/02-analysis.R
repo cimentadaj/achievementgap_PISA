@@ -11,7 +11,10 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
                              levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE)
+                             ordered = TRUE),
+           hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
+           native = as.numeric(ST16Q01),
+           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
            )
 
 
@@ -26,7 +29,10 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
                              levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE)
+                             ordered = TRUE),
+           hisei = ifelse(HISEI %in% 99, NA, HISEI),
+           native = as.numeric(ST15Q01),
+           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
            )
 
   # PISA 2006
@@ -40,7 +46,10 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
                              levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE)
+                             ordered = TRUE),
+           hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
+           native = as.numeric(ST11Q01),
+           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
            )
 
   # PISA 2009
@@ -54,7 +63,10 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
                              levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE)
+                             ordered = TRUE),
+           hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
+           native = as.numeric(ST17Q01),
+           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
            )
 
   # PISA 2012
@@ -68,7 +80,10 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
                              levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE)
+                             ordered = TRUE),
+           hisei = ifelse(HISEI > 9000, NA, HISEI),
+           native = as.numeric(ST20Q01),
+           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
            )
 
   # PISA 2015
@@ -82,7 +97,10 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
                              levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE)
+                             ordered = TRUE),
+           hisei = ifelse(hisei %in% 97:99, NA, hisei),
+           native = as.numeric(ST019AQ01T),
+           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
            )
   
   pisa_all$value <- map(pisa_all$value, function(each_pisa) {
@@ -189,6 +207,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                high_edu_broad,
                gender,
                books_hh,
+               hisei,
+               native,
                # Wasn't asked in pisa 2000
                # Which program the student is at
                matches("PROGN"),
@@ -1496,7 +1516,9 @@ select_cols_student <- function(student_data) {
            starts_with("adj_pvnum"),
            gender,
            high_edu_broad,
-           books_hh)
+           books_hh,
+           hisei,
+           native)
 }
 
 
@@ -1538,7 +1560,11 @@ generate_models <- function(all_data, group, aut_var) {
     )
   )
 
-  fixed_variables <- c("num_stu", "government_fund", "books_hh")
+  fixed_variables <- c("num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native")
 
   mod_df <-
     all_data %>%
