@@ -146,7 +146,6 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
       .x$high_edu_broad <- pmax(.x$father_edu, .x$mother_edu)
       .x$country <- car::recode(.x$CNT, recode_cntrys)
 
-
       if (any(unique(.x$wave) %in% c("pisa2012", "pisa2015"))) {
         # These two surveys were from 0:6 so I had to add + 1
         # so that it equals 1:7 as all other surveys.
@@ -154,6 +153,25 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
         .x$mother_edu <- .x$mother_edu + 1
         .x$high_edu_broad <- .x$high_edu_broad + 1
       }
+
+      .x <-
+        .x %>%
+        mutate(high_edu_broad = case_when(high_edu_broad == 1 ~ "None",
+                                          high_edu_broad == 2 ~ "Primary",
+                                          high_edu_broad == 3 ~ "Lower secondary",
+                                          high_edu_broad == 4 ~ "Upper secondary I",
+                                          high_edu_broad == 5:6 ~ "Upper secondary II",                
+                                          high_edu_broad == 7 ~ "University",
+                                          TRUE ~ NA_character_),
+               high_edu_broad = factor(high_edu_broad,
+                                       levels = c("None",
+                                                  "Primary",
+                                                  "Lower secondary",
+                                                  "Upper secondary I",
+                                                  "Upper secondary II",
+                                                  "University"),
+                                       ordered = TRUE)
+               )
 
       .x <-
         select(.x,
@@ -189,7 +207,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
         mutate(SCHOOLID = as.character(SCHOOLID)) %>% 
         filter(country %in% final_countries)
         
-      .x
+        .x
     })
 
   pisa_all
@@ -596,10 +614,10 @@ escs_dummy_creator <- function(df, probs) {
     conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
     weights_var <- conf$variables$weightFinal
 
-    # Harmonize education variable
-    if (unique(.x$wave) == "pisa2000") {
-      .x$high_edu_broad <- dplyr::recode(.x$high_edu_broad, `6` = 7)
-    }
+    ## # Harmonize education variable
+    ## if (unique(.x$wave) == "pisa2000") {
+    ##   .x$high_edu_broad <- dplyr::recode(.x$high_edu_broad, `6` = 7)
+    ## }
 
     country_split <- split(.x, .x$country)
 
@@ -1477,7 +1495,8 @@ select_cols_student <- function(student_data) {
            escs_dummy,
            starts_with("adj_pvnum"),
            gender,
-           high_edu_broad)
+           high_edu_broad,
+           books_hh)
 }
 
 
