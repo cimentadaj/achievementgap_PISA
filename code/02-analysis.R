@@ -10,13 +10,12 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 books_hh == 7 ~ "> 500",
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
-                             levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE),
+                             levels = c("0-10", "11-100", "101-500", "> 500")),
            hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
            native = as.numeric(ST16Q01),
-           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
+           native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
+           native = factor(native, levels = c("Non-native", "Native"))
            )
-
 
   # PISA 2003
   pisa_all$value[[2]] <-
@@ -28,11 +27,11 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 books_hh == 6 ~ "> 500",
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
-                             levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE),
+                             levels = c("0-10", "11-100", "101-500", "> 500")),
            hisei = ifelse(HISEI %in% 99, NA, HISEI),
            native = as.numeric(ST15Q01),
-           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
+           native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
+           native = factor(native, levels = c("Non-native", "Native"))
            )
 
   # PISA 2006
@@ -45,11 +44,11 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 books_hh == 6 ~ "> 500",
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
-                             levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE),
+                             levels = c("0-10", "11-100", "101-500", "> 500")),
            hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
            native = as.numeric(ST11Q01),
-           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
+           native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
+           native = factor(native, levels = c("Non-native", "Native"))
            )
 
   # PISA 2009
@@ -62,11 +61,11 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 books_hh == 6 ~ "> 500",
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
-                             levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE),
+                             levels = c("0-10", "11-100", "101-500", "> 500")),
            hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
            native = as.numeric(ST17Q01),
-           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
+           native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
+           native = factor(native, levels = c("Non-native", "Native"))
            )
 
   # PISA 2012
@@ -83,7 +82,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                              ordered = TRUE),
            hisei = ifelse(HISEI > 9000, NA, HISEI),
            native = as.numeric(ST20Q01),
-           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
+           native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
+           native = factor(native, levels = c("Non-native", "Native"))
            )
 
   # PISA 2015
@@ -96,11 +96,11 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                 books_hh == 6 ~ "> 500",
                                 TRUE ~ NA_character_),
            books_hh = factor(books_hh,
-                             levels = c("0-10", "11-100", "101-500", "> 500"),
-                             ordered = TRUE),
+                             levels = c("0-10", "11-100", "101-500", "> 500")),
            hisei = ifelse(hisei %in% 97:99, NA, hisei),
            native = as.numeric(ST019AQ01T),
-           native = ifelse(native == 1, "native", ifelse(native == 2, "non-native", NA_character_))
+           native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
+           native = factor(native, levels = c("Non-native", "Native"))
            )
   
   pisa_all$value <- map(pisa_all$value, function(each_pisa) {
@@ -187,8 +187,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
                                                   "Lower secondary",
                                                   "Upper secondary I",
                                                   "Upper secondary II",
-                                                  "University"),
-                                       ordered = TRUE)
+                                                  "University"))
                )
 
       .x <-
@@ -495,13 +494,27 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     .x %>%
       mutate(SCHLTYPE = as.character(SCHLTYPE),
              academic_content_aut = rowMeans(select(., course_aut, content_aut, textbook_aut)),
-             personnel_aut = rowMeans(select(., hiring_aut, salary_aut)),
-             location = as.numeric(location),
-             location = case_when(location == 6 ~ 5,
-                                  location <= 5 ~ location,
-                                  location >= 7 ~ NA_real_,
-                                  )) %>%
-      mutate_all(unclass)
+             personnel_aut = rowMeans(select(., hiring_aut, salary_aut))) %>% 
+      mutate_all(unclass) %>%
+      mutate(
+        location = as.numeric(location),
+        location = case_when(location == 6 ~ 5,
+                             location <= 5 ~ location,
+                             location >= 7 ~ NA_real_,
+                             ),
+        location = case_when(location == 1 ~ "Village or Rural area (< 3,000)",
+                             location == 2 ~ "Town (3,000 - 15,000)",
+                             location == 3 ~ "Large town (15,000 - 100,000)",
+                             location == 4 ~ "City (100,000 - 1,000,000)",
+                             location == 5 ~ "Large city (> 1,000,000)",
+                             TRUE ~ NA_character_),
+        location = factor(location, levels = c("Village or Rural area (< 3,000)",
+                                               "Town (3,000 - 15,000)",
+                                               "Large town (15,000 - 100,000)",
+                                               "City (100,000 - 1,000,000)",
+                                               "Large city (> 1,000,000)"))
+      )
+      
   })
 
   school_data
@@ -1529,10 +1542,10 @@ merge_harmonize_student_school <- function(student_data, school_data) {
              inner_join,
              by = c("country" = "COUNTRY", "SCHOOLID")) %>%
     mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
-           SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "private",
-                                SCHLTYPE %in% "3" ~ "public",
-                                SCHLTYPE %in% c("Government", "Public") ~ "public",
-                                str_detect(SCHLTYPE, "^Private") ~ "private",
+           SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "Private",
+                                SCHLTYPE %in% "3" ~ "Public",
+                                SCHLTYPE %in% c("Government", "Public") ~ "Public",
+                                str_detect(SCHLTYPE, "^Private") ~ "Private",
                                 TRUE ~ NA_character_),
            gender = case_when(gender %in% c("1", "Female") ~ "Female",
                               gender %in% c("2", "Male") ~ "Male",
@@ -1576,7 +1589,6 @@ generate_models <- function(all_data, group, aut_var) {
            private = SCHLTYPE,
            math = adj_pvnum_MATH) %>%
     select(all.vars(model_formula), fixed_variables) %>%
-    mutate(location = as.character(location)) %>% 
     filter(complete.cases(.))
   ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
   ## high_edu_broad = as.character(high_edu_broad))
