@@ -1,3 +1,41 @@
+read_school <- function(raw_data_dir) {
+  # These pkgs load all PISA data for these rounds. Thus take up a lot
+  # of memory.
+  print("PISA packages loaded")
+  library(PISA2000lite)
+  library(PISA2003lite)
+  library(PISA2006lite)
+  library(PISA2009lite)
+  # They are to be unloaded after harmonizing them
+
+  # PISA 2012
+  pisa2012_path <- file.path(raw_data_dir, "pisa2012", "INT_SCQ12_DEC03.txt")
+  dic_path <- file.path(raw_data_dir, "pisa2012", "PISA2012_SAS_school.sas")
+  dic_school <- parse.SAScii(sas_ri = dic_path)
+  school2012 <- read_fwf(pisa2012_path,
+                         col_positions = fwf_widths(dic_school$width),
+                         progress = TRUE)
+
+  colnames(school2012) <- dic_school$varname
+
+
+  # PISA 2015
+  pisa2015_path <- file.path(raw_data_dir, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
+  pisa_countrynames <- c(cimentadaj::pisa_countrynames, "United States" = "USA")
+  school2015 <- read_spss(pisa2015_path)
+
+  all_schools <- list(
+    school2000,
+    school2003,
+    school2006,
+    school2009,
+    school2012,
+    school2015
+  )
+
+  all_schools
+}
+
 harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
 
   # PISA 2000
@@ -233,7 +271,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
 }
 
 
-read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
+harmonize_school <- function(all_schools) {
 
   # To be used when > PISA2006 waves divide autonomy tick
   # into several columns rather than pasted into one.
@@ -310,8 +348,8 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
   }
 
   # PISA 20000
-  school2000 <-
-    school2000 %>%
+  all_schools[[1]] <-
+    all_schools[[1]] %>%
     as_tibble() %>%
     rename(course_aut = SC22Q12,
            content_aut = SC22Q11,
@@ -332,8 +370,8 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     filter(num_stu != 0)
 
   # PISA 2003
-  school2003 <-
-    school2003 %>%
+  all_schools[[2]] <-
+    all_schools[[2]] %>%
     as_tibble() %>% 
     rename(course_aut = SC26Q12,
            content_aut = SC26Q11,
@@ -363,13 +401,14 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
                    "budget_aut" = paste0("SC11QF", 1:4),
                    "admittance_aut" = paste0("SC11QI", 1:4))
 
-  school2006 <-
-    as_tibble(school2006) %>%
+  all_schools[[3]] <-
+    as_tibble(all_schools[[3]]) %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(.x, `2` = 0))
 
-  school2006 <- collapse_aut_cols(school2006, list_aut)
-  school2006 <-
-    mutate_at(school2006, vars(ends_with("aut")), identify_autonomy) %>%
+  all_schools[[3]] <- collapse_aut_cols(all_schools[[3]], list_aut)
+
+  all_schools[[3]] <-
+    mutate_at(all_schools[[3]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(COUNTRY = as.character(COUNTRY),
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -389,13 +428,13 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
                    "budget_aut" = paste0("SC24QF", 1:5),
                    "admittance_aut" = paste0("SC24QI", 1:5))
 
-  school2009 <-
-    as_tibble(school2009) %>%
+  all_schools[[4]] <-
+    as_tibble(all_schools[[4]]) %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
 
-  school2009 <- collapse_aut_cols(school2009, list_aut, max_cols = 5)
-  school2009 <-
-    mutate_at(school2009, vars(ends_with("aut")), identify_autonomy) %>%
+  all_schools[[4]] <- collapse_aut_cols(all_schools[[4]], list_aut, max_cols = 5)
+  all_schools[[4]] <-
+    mutate_at(all_schools[[4]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = as.character(CNT),
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -409,15 +448,6 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     filter(num_stu != 0)  
 
   # PISA 2012
-  pisa2012_path <- file.path(raw_data_dir, "pisa2012", "INT_SCQ12_DEC03.txt")
-  dic_path <- file.path(raw_data_dir, "pisa2012", "PISA2012_SAS_school.sas")
-  dic_school <- parse.SAScii(sas_ri = dic_path)
-  school2012 <- read_fwf(pisa2012_path,
-                         col_positions = fwf_widths(dic_school$width),
-                         progress = TRUE)
-
-  colnames(school2012) <- dic_school$varname
-
   up_letters <- toupper(letters[1:5])
 
   list_aut <- list("course_aut" = paste0("SC33Q12", up_letters),
@@ -428,14 +458,14 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
                    "budget_aut" = paste0("SC33Q06", up_letters),
                    "admittance_aut" = paste0("SC33Q09", up_letters))
 
-  school2012 <-
-    school2012 %>%
+  all_schools[[5]] <-
+    all_schools[[5]] %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
 
-  school2012 <- collapse_aut_cols(school2012, list_aut, max_cols = 5)
+  all_schools[[5]] <- collapse_aut_cols(all_schools[[5]], list_aut, max_cols = 5)
 
-  school2012 <-
-    mutate_at(school2012, vars(ends_with("aut")), identify_autonomy) %>%
+  all_schools[[5]] <-
+    mutate_at(all_schools[[5]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT],
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -450,10 +480,6 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
            teacher_short < 9000)
   
   # PISA 2015
-  pisa2015_path <- file.path(raw_data_dir, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
-  pisa_countrynames <- c(cimentadaj::pisa_countrynames, "United States" = "USA")
-  school2015 <- read_spss(pisa2015_path)
-
   up_letters <- toupper(letters[1:5])
 
   list_aut <- list("course_aut" = paste0("SC010Q12T", up_letters),
@@ -464,9 +490,9 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
                    "budget_aut" = paste0("SC010Q06T", up_letters),
                    "admittance_aut" = paste0("SC010Q09T", up_letters))
 
-  school2015 <- collapse_aut_cols(school2015, list_aut, max_cols = 5)
-  school2015 <-
-    mutate_at(school2015, vars(ends_with("aut")), identify_autonomy) %>%
+  all_schools[[6]] <- collapse_aut_cols(all_schools[[6]], list_aut, max_cols = 5)
+  all_schools[[6]] <-
+    mutate_at(all_schools[[6]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT],
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -479,16 +505,6 @@ read_harmonize_pisa_school <- function(raw_data_dir, recode_cntrys) {
     rename(location = SC001Q01TA) %>%
     select(-starts_with("SC0")) %>% 
     filter(num_stu != 0)  
-
-  all_schools <-
-    list(
-      school2000,
-      school2003,
-      school2006,
-      school2009,
-      school2012,
-      school2015
-    )
 
   school_data <- map(all_schools, ~ {
     .x %>%

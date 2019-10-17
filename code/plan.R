@@ -601,10 +601,21 @@ autonomy_measures <- c("academic_content_aut", "personnel_aut", "budget_aut")
 
 plan <-
   drake_plan(
+    ############################# Reading data #################################
+    ############################################################################
+    # The really big list with all raw pisa dataset is in /code/read_raw_data.R
+    # which is read in _drake.R because it's too heavy to have within the plan.
+    # See the notes in /code/read_raw_data.R. It's called raw_data.
+
+    # All read_* functions return a list with the data for each wave
+    school_data <- read_school(raw_data_dir),
+
+    ############################# Harmonize data ###############################
+    ############################################################################
+    harmonized_school_data = harmonize_school(school_data),
     pisa_data = harmonize_pisa(raw_data, recode_cntrys, final_countries),
     rm_raw = delete_raw_data(),
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
-    pisa_school_data = read_harmonize_pisa_school(raw_data_dir, countries),
     plot_autonomy = plot_autonomy_trends(pisa_school_data, countries),
     escs_data = read_escs(raw_data_dir, recode_cntrys),
     tracking_data = read_tracking(raw_data_dir),

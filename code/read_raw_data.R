@@ -1,4 +1,7 @@
 # Read the raw data which is very heavy to have in drake
+# This is done only once, at the beginning of the project because
+# with this we read the files and save them in fst format, much
+# quicker to read and process
 read_raw_data <- FALSE
 
 if (read_raw_data) {

@@ -27,19 +27,4 @@ if ("pisa_data" %in% outdated(dconf)) {
   print("Raw data read")  
 }
 
-# These pkgs take up a lot of memory. Only
-# of the target that uses the data is outdated
-# make sure to load them. Right after I use
-# them I unload them again from memory
-# in the same function, so it's safe
-# to load them ONLY when pisa_data || pisa_school_data
-# has to be run again.
-if ("pisa_school_data" %in% outdated(dconf)) {
-  print("PISA packages loaded")
-  library(PISA2000lite)
-  library(PISA2003lite)
-  library(PISA2006lite)
-  library(PISA2009lite)
-}
-
 dconf
