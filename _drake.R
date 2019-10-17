@@ -14,7 +14,8 @@ dconf <- drake_config(
   plan,
   verbose = 2,
   # See https://github.com/ropensci/drake/issues/960
-  env = new.env(parent = globalenv()), 
+  ## env = new.env(parent = globalenv()),
+  lock_envir = FALSE,
   memory_strategy = "memory"
 )
 

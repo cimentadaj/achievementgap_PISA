@@ -587,6 +587,12 @@ formula_gen <- function(model_formula) {
   formulas
 }
 
+sig_vs_sig <- function(coef1, se1, coef2, se2) {
+  coef_diff <- coef1 - coef2
+  se_diff <- sqrt(se1 ^ 2 + se2 ^ 2)
+  round(c(coef_diff, se_diff), 2)
+}
+
 gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 ############################# Drake plan ######################################
@@ -615,13 +621,22 @@ plan <-
       generate_models(schl_student,
                       dv = math_read,
                       group = group_vals,
-                      aut_var = aut_val,
-                      random = aut_slope
+                      aut_var = aut_val
                       ),
       transform = cross(math_read = c("math", "read"),
                         group_vals = c(0, 1),
-                        aut_val = !!autonomy_measures,
-                        aut_slope = c("random_slope", "fixed_slope"))
+                        aut_val = !!autonomy_measures)
+    ),
+    imputed_schl_stu = impute_missing(schl_student),
+    impute_aut = target(
+      generate_models(imputed_schl_stu,
+                      dv = math_read,
+                      group = group_vals,
+                      aut_var = aut_val
+                      ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures)
     ),
     ## ## res_math = target(
     ##   test_diff(merged_data, "MATH"),
@@ -730,3 +745,79 @@ plan <-
     ##     )) %>%
     ##     setNames(c(" ", gsub(" SES gap", "", gaps)))
     )
+
+## loadd(starts_with("impute_aut_"))
+## all_mods <- ls(pattern = "^aut_")
+
+## academic_content_mods <- all_mods[grepl("academic_", all_mods)]
+## personnel_aut_mods <- all_mods[grepl("personnel_", all_mods)]
+## budget_aut_mods <- all_mods[grepl("budget_", all_mods)]
+
+## stargazer(
+##   unlist(lapply(academic_content_mods, get)),
+##   type = "text"
+## )
+
+## stargazer(
+##   unlist(lapply(personnel_aut_mods, get)),
+##   type = "text"
+## )
+
+## stargazer(
+##   unlist(lapply(budget_aut_mods, get)),
+##   type = "text"
+## )
+
+
+############################# Academic content ################################
+###############################################################################
+
+## stargazer(readd(aut_math_0_academic_content_aut), type = "text")
+## stargazer(readd(aut_math_1_academic_content_aut), type = "text")
+
+# Difference between 1-0 coefficients in math is significantly
+# different from 0
+## sig_vs_sig(0.02, 0.01, -0.03, 0.01)
+
+
+## stargazer(readd(aut_read_0_academic_content_aut), type = "text")
+## stargazer(readd(aut_read_1_academic_content_aut), type = "text")
+
+# Difference between 1-0 coefficients in read is significantly
+# different from 0
+## sig_vs_sig(0.02, 0.01, -0.03, 0.01)
+
+############################# Personnel Autonomy ##############################
+###############################################################################
+
+## stargazer(readd(aut_math_0_personnel_aut), type = "text")
+## stargazer(readd(aut_math_1_personnel_aut), type = "text")
+
+# Difference between 1-0 coefficients in math is significantly
+# different from 0
+## sig_vs_sig(0.02, 0.01, -0.03, 0.01)
+
+## stargazer(readd(aut_read_0_personnel_aut), type = "text")
+## stargazer(readd(aut_read_1_personnel_aut), type = "text")
+
+# Difference between 1-0 coefficients in read is NOT significantly
+# different from 0
+## sig_vs_sig(0.01, 0.01, 0.01, 0.01)
+
+############################# Budget Autonomy #################################
+###############################################################################
+
+## stargazer(readd(aut_math_0_budget_aut), type = "text")
+## stargazer(readd(aut_math_1_budget_aut), type = "text")
+
+# Difference between 1-0 coefficients in math is NOT significantly
+# different from 0
+## sig_vs_sig(0.03, 0.01, 0.01, 0.01)
+
+## stargazer(readd(aut_read_0_budget_aut), type = "text")
+## stargazer(readd(aut_read_1_budget_aut), type = "text")
+
+# Difference between 1-0 coefficients in math is NOT significantly
+# different from 0
+## sig_vs_sig(0.03, 0.01, 0.01, 0.01)
+

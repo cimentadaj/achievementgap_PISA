@@ -14,6 +14,12 @@ Repositories=
 	BioCworkflows=https://bioconductor.org/packages/3.9/workflows
 	CRAN=https://cran.rstudio.com/
 
+[R/Package/Amelia]
+Package=Amelia
+Version=1.7.5
+Source=CRAN
+Hash=993ceb01df4604484f659df3419210b8
+
 [R/Package/BH]
 Package=BH
 Version=1.69.0-1
@@ -140,6 +146,12 @@ Package=Rcpp
 Version=1.0.2
 Source=CRAN
 Hash=c25fa7d5684fa7001ddfea3755243975
+
+[R/Package/RcppArmadillo]
+Package=RcppArmadillo
+Version=0.9.800.1.0
+Source=CRAN
+Hash=e60ca677f31a2d149c5865f72498f9d8
 
 [R/Package/RcppEigen]
 Package=RcppEigen
@@ -611,6 +623,12 @@ RemoteRef=master
 RemoteSha=438f81e2a21a941bafbe1deb58acbab208e49c13
 Hash=59ab27b62c4132e743489435c85ea1c8
 
+[R/Package/jomo]
+Package=jomo
+Version=2.6-9
+Source=CRAN
+Hash=030fce3ad82cebccbb3171106653897a
+
 [R/Package/jsonlite]
 Package=jsonlite
 Version=1.6
@@ -736,6 +754,12 @@ RemotePkgType=source
 RemoteSha=1.8-28
 Hash=6ac256e4fdcf33c11f9ed987927cc614
 
+[R/Package/mice]
+Package=mice
+Version=3.6.0
+Source=CRAN
+Hash=9c1766bc3ef9720e5488b4ca8d4c5c3b
+
 [R/Package/mime]
 Package=mime
 Version=0.7
@@ -758,6 +782,12 @@ Package=miscTools
 Version=0.6-24
 Source=CRAN
 Hash=fc60cae6a3419e584e23c0aa628c1b52
+
+[R/Package/mitml]
+Package=mitml
+Version=0.3-7
+Source=CRAN
+Hash=5c77744011cf806266df1330da07aae5
 
 [R/Package/mnormt]
 Package=mnormt
@@ -854,6 +884,18 @@ Package=openxlsx
 Version=4.1.0.1
 Source=CRAN
 Hash=70d7bf3b6565c00c63421240dfac651c
+
+[R/Package/ordinal]
+Package=ordinal
+Version=2019.4-25
+Source=CRAN
+Hash=4d75ccf72416a9f95a3d81d5f205425f
+
+[R/Package/pan]
+Package=pan
+Version=1.6
+Source=CRAN
+Hash=9fbac0169848e4fbede5a5a97b941061
 
 [R/Package/parameters]
 Package=parameters
@@ -1069,6 +1111,17 @@ Version=1.16
 Source=CRAN
 Hash=74352997ea70389458e7a8b7059dfb95
 
+[R/Package/rpart]
+Package=rpart
+Version=4.1-15
+Source=CRAN
+RemoteType=standard
+RemoteRef=rpart
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=4.1-15
+Hash=0d0e7f0e3c22944bb9bf67d0d5636e50
+
 [R/Package/rprojroot]
 Package=rprojroot
 Version=1.3-2
@@ -1202,6 +1255,17 @@ Version=1.4.0
 Source=CRAN
 Hash=41d6310ad18bd019a203d7adc496a28b
 
+[R/Package/survival]
+Package=survival
+Version=2.44-1.1
+Source=CRAN
+RemoteType=standard
+RemoteRef=survival
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=2.44-1.1
+Hash=20bdedb74dc2c866f51e4ec9133480b1
+
 [R/Package/sys]
 Package=sys
 Version=3.3
@@ -1259,6 +1323,12 @@ Package=tinytex
 Version=0.16
 Source=CRAN
 Hash=9349f30ae6ddce61d7fa26f7b6228a73
+
+[R/Package/ucminf]
+Package=ucminf
+Version=1.1-4
+Source=CRAN
+Hash=51f0f5ee5e09e693d22f181a32c7347a
 
 [R/Package/utf8]
 Package=utf8
