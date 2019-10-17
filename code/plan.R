@@ -566,7 +566,7 @@ read_pisa <- function(raw_data) {
 }
 
 delete_raw_data <- function() {
-  rm(raw_student)
+  rm(raw_student, envir = globalenv())
   TRUE
 }
 
@@ -624,7 +624,7 @@ plan <-
     # See the notes in /code/read_raw_data.R. It's called raw_data.
 
     # All read_* functions return a list with the data for each wave
-    school_data <- read_school(raw_data_dir),
+    school_data = read_school(raw_data_dir),
     # This is the socio-economic index harmonized to be used across all waves
     escs_data = read_escs(raw_data_dir, recode_cntrys),
 
@@ -641,11 +641,15 @@ plan <-
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
     harmonized_school = harmonize_school(school_data),
 
+    # select_cols_student contains the only variables used in the analysis
+    # if you want to add new variable, put them here.
+    selected_cols_student = select_cols_student(harmonized_student),
+
     ############################# Merge data ###################################
     ############################################################################
 
     # Merge the student data with the harmonized escs_data (NOT the school data)
-    merged_student_escs = merge_student_escs(harmonized_student, escs_data),
+    merged_student_escs = merge_student_escs(selected_cols_student, escs_data),
     merged_student_school = merge_student_school(merged_student_escs,
                                                  harmonized_school),
 
@@ -655,40 +659,64 @@ plan <-
     autonomy_corr = autonomy_corr(harmonized_school),
     autonomy_corr_overtime = autonomy_overtime_corr(harmonized_school),
 
-
     ############################# Wrangling for modelling ######################
     ############################################################################
 
     ## escs_dummy_data now contains the dummy column for the 90th/10th
     escs_dummy_data = escs_dummy_creator(merged_student_school, c(0.1, 0.9)),
-    ## merged_data now contains the adjusted math/read column for all students
-    data_tests = calc_adj_pv(escs_dummy_data, reliability_pisa),
 
     # These two below are the final datasets for the modelling.
-    # select_cols_student contains the only variables used in the analysis
-    # if you want to add new variable, put them here.
-    data_modelling = map(data_tests, select_cols_student),
+
+    ## data_modelling now contains the adjusted math/read column for all students
+    ## tests scores
+    test_scores = calc_adj_pv(escs_dummy_data, reliability_pisa),
+    data_modelling = select(test_scores,
+                            wave,
+                            country,
+                            adj_pvnum_MATH,
+                            adj_pvnum_READ,
+                            SCHOOLID,
+                            escs_dummy,
+                            academic_content_aut,
+                            personnel_aut,
+                            budget_aut,
+                            hiring_aut,
+                            salary_aut,
+                            admittance_aut,
+                            textbook_aut,
+                            content_aut,
+                            course_aut,
+                            high_edu_broad,
+                            books_hh,
+                            native,
+                            location,
+                            gender,
+                            PROPCERT,
+                            num_stu,
+                            government_fund,
+                            hisei,
+                            SCHLTYPE),
 
     # Create another version of the data with imputed missing values
     imputed_data_modelling = impute_missing(data_modelling),
 
-    ############################# Modelling #######################################
-    ###############################################################################
+    ############################# Modelling ####################################
+    ############################################################################
 
     # Run all combinations of tests/90th-10th/autonomy measure models
     # with the unimputed dataset. These will all be named like
     # aut_math_0_academic_content_aut, aut_read_0_academic_content_aut,
     # aut_math_1_academic_content_aut, ...
-    aut = target(
-      generate_models(data_modelling,
-                      dv = math_read,
-                      group = group_vals,
-                      aut_var = aut_val
-                      ),
-      transform = cross(math_read = c("math", "read"),
-                        group_vals = c(0, 1),
-                        aut_val = !!autonomy_measures)
-    ),
+    ## aut = target(
+    ##   generate_models(data_modelling,
+    ##                   dv = math_read,
+    ##                   group = group_vals,
+    ##                   aut_var = aut_val
+    ##                   ),
+    ##   transform = cross(math_read = c("math", "read"),
+    ##                     group_vals = c(0, 1),
+    ##                     aut_val = !!autonomy_measures)
+    ## ),
     # Run all combinations of tests/90th-10th/autonomy measure models
     # with the imputed dataset. These will all be named lik
     # impute_aut_math_0_academic_content_aut, impute_aut_read_0_academic_content_aut,
@@ -811,7 +839,7 @@ plan <-
     ##     setNames(c(" ", gsub(" SES gap", "", gaps)))
     )
 
-## loadd(starts_with("impute_aut_"))
+## loadd(starts_with("aut_"))
 ## all_mods <- ls(pattern = "^aut_")
 
 ## academic_content_mods <- all_mods[grepl("academic_", all_mods)]

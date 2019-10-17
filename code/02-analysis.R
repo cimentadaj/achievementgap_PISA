@@ -6,7 +6,8 @@ read_school <- function(raw_data_dir) {
   library(PISA2003lite)
   library(PISA2006lite)
   library(PISA2009lite)
-  # They are to be unloaded after harmonizing them
+  # No need to unload them else elsewhere because if this is run once,
+  # it's cached and never has to be ran again.
 
   # PISA 2012
   pisa2012_path <- file.path(raw_data_dir, "pisa2012", "INT_SCQ12_DEC03.txt")
@@ -52,7 +53,8 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
            hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
            native = as.numeric(ST16Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
-           native = factor(native, levels = c("Non-native", "Native"))
+           native = factor(native, levels = c("Non-native", "Native")),
+           stu_id = as.character(STIDSTD)
            )
 
   # PISA 2003
@@ -69,7 +71,8 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
            hisei = ifelse(HISEI %in% 99, NA, HISEI),
            native = as.numeric(ST15Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
-           native = factor(native, levels = c("Non-native", "Native"))
+           native = factor(native, levels = c("Non-native", "Native")),
+           stu_id = as.character(STIDSTD)
            )
 
   # PISA 2006
@@ -86,7 +89,8 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
            hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
            native = as.numeric(ST11Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
-           native = factor(native, levels = c("Non-native", "Native"))
+           native = factor(native, levels = c("Non-native", "Native")),
+           stu_id = as.character(STIDSTD)
            )
 
   # PISA 2009
@@ -103,7 +107,8 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
            hisei = ifelse(HISEI %in% 97:99, NA, HISEI),
            native = as.numeric(ST17Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
-           native = factor(native, levels = c("Non-native", "Native"))
+           native = factor(native, levels = c("Non-native", "Native")),
+           stu_id = as.character(STIDSTD)
            )
 
   # PISA 2012
@@ -121,7 +126,8 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
            hisei = ifelse(HISEI > 9000, NA, HISEI),
            native = as.numeric(ST20Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
-           native = factor(native, levels = c("Non-native", "Native"))
+           native = factor(native, levels = c("Non-native", "Native")),
+           stu_id = as.character(STIDSTD)
            )
 
   # PISA 2015
@@ -138,7 +144,8 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
            hisei = ifelse(hisei %in% 97:99, NA, hisei),
            native = as.numeric(ST019AQ01T),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
-           native = factor(native, levels = c("Non-native", "Native"))
+           native = factor(native, levels = c("Non-native", "Native")),
+           stu_id = as.character(CNTSTUID)
            )
   
   raw_student$value <- map(raw_student$value, function(each_pisa) {
@@ -235,9 +242,7 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
                matches("SCHOOLID"),
                # This is the PISA 2015 school ID
                matches("CNTSCHID"),
-               # This is the PISA 2015 student ID
-               matches("CNTSTUID"),
-               matches("STIDSTD"),
+               stu_id,
                AGE,
                matches("PV[0-9]{1,2}[MATH|READ]"),
                W_FSTUWT,
@@ -590,16 +595,20 @@ read_escs <- function(raw_data_dir, recode_cntrys) {
   escs_trend
 }
 
-merge_student_escs <- function(harmonized_student, escs_data) {
-  harmonized_student <- as_tibble(harmonized_student)
-  # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
-  # 2015) does not need to be merged so I exclude it with this vector
+merge_student_escs <- function(selected_cols_student, escs_data) {
+
+  # Next we'll merge the ESCS data with the PISA data. As explained above, the
+  # 6th data (PISA 2015) does not need to be merged so I exclude it with this
+  # vector
+
   exclude <- -6
   years <- seq(2000, 2015, 3)
 
-  # Loop in parallel to the PISA data, the ESCS data and the year vector (which is seq(2012, 2015, 3))
-  harmonized_student$value[exclude] <-
-    pmap(list(harmonized_student$value[exclude], escs_data, years[exclude]), function(.x, .y, .z) {
+  # Loop in parallel to the PISA data, the ESCS data and the year vector
+  # (which is seq(2012, 2015, 3))
+  selected_cols_student$value[exclude] <-
+    pmap(list(selected_cols_student$value[exclude], escs_data, years[exclude]),
+         function(.x, .y, .z) {
 
       # The escs data needs to have the key variables the same class as the
       # same data.
@@ -614,22 +623,24 @@ merge_student_escs <- function(harmonized_student, escs_data) {
         mutate(
           year = .z,
           schoolid = as.numeric(as.character(SCHOOLID)),
-          stidstd = as.numeric(as.character(STIDSTD))
+          stu_id = as.numeric(stu_id)
         ) %>%
         left_join(escs,
-                  by = c("country", "schoolid", "stidstd"))
+                  by = c("country", "schoolid", "stu_id" = "stidstd"))
+
 
       message(paste(unique(.x$wave), "done"))
 
       data_trend
     })
 
-  harmonized_student$value[[6]] <-
-    harmonized_student$value[[6]] %>%
-    rename(escs_trend = ESCS)
+  selected_cols_student$value[[6]] <-
+    selected_cols_student$value[[6]] %>%
+    rename(escs_trend = ESCS) %>%
+    mutate(stu_id = as.numeric(stu_id))
 
   adapted_year_data <-
-    map(harmonized_student$value, ~ {
+    map(selected_cols_student$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
         # pisa2000 has a different coding so here I recode 6 to 7 so that in all
         # waves the top edu is 7 and the bottom is 1
@@ -646,50 +657,75 @@ merge_student_escs <- function(harmonized_student, escs_data) {
   adapted_year_data
 }
 
-escs_dummy_creator <- function(df, probs) {
+merge_student_school <- function(merged_student_escs, harmonized_school) {
+  merged_student_school <-
+    map2_dfr(merged_student_escs,
+             harmonized_school,
+             inner_join,
+             by = c("country" = "COUNTRY", "SCHOOLID")) %>%
+    mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
+           SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "Private",
+                                SCHLTYPE %in% "3" ~ "Public",
+                                SCHLTYPE %in% c("Government", "Public") ~ "Public",
+                                str_detect(SCHLTYPE, "^Private") ~ "Private",
+                                TRUE ~ NA_character_),
+           gender = case_when(gender %in% c("1", "Female") ~ "Female",
+                              gender %in% c("2", "Male") ~ "Male",
+                              TRUE ~ NA_character_)
+           )
 
-  map(df, function(.x) {
+  merged_student_school
+}
 
-    conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
-    weights_var <- conf$variables$weightFinal
+escs_dummy_creator <- function(merged_student_school, probs) {
 
-    ## # Harmonize education variable
-    ## if (unique(.x$wave) == "pisa2000") {
-    ##   .x$high_edu_broad <- dplyr::recode(.x$high_edu_broad, `6` = 7)
-    ## }
+  separate_waves <- split(merged_student_school, merged_student_school$wave)
 
-    country_split <- split(.x, .x$country)
+  merged_student_school <-
+    map(separate_waves, function(.x) {
 
-    country_list <- map(country_split, function(country) {
-      print(unique(country$country))
+      conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
+      weights_var <- conf$variables$weightFinal
 
-      quan <- quantile_missing(country, weights_var, probs)
+      ## # Harmonize education variable
+      ## if (unique(.x$wave) == "pisa2000") {
+      ##   .x$high_edu_broad <- dplyr::recode(.x$high_edu_broad, `6` = 7)
+      ## }
 
-      country$escs_dummy <-
-        with(country, case_when(escs_trend >= quan[2] ~ 1,
-                                escs_trend <= quan[1] ~ 0))
+      country_split <- split(.x, .x$country)
 
-      country
+      country_list <- map(country_split, function(country) {
+        print(unique(country$country))
+
+        quan <- quantile_missing(country, weights_var, probs)
+
+        country$escs_dummy <-
+          with(country, case_when(escs_trend >= quan[2] ~ 1,
+                                  escs_trend <= quan[1] ~ 0))
+
+        country
+      })
+      rm(country_split)
+
+      .x <-
+        enframe(country_list) %>%
+        unnest(value)
+      
+      rm(country_list)
+
+      message(paste(unique(.x$wave), "data ready"))
+
+      .x
     })
-    rm(country_split)
 
-    .x <-
-      enframe(country_list) %>%
-      unnest(value)
-    
-    rm(country_list)
-
-    message(paste(unique(.x$wave), "data ready"))
-
-    .x
-  })
+  merged_student_school
 }
 
 calc_adj_pv <- function(df, reliability) {
   test <- c("MATH", "READ")
 
   # Look over each wave
-  map2(df, reliability, function(.x, .y) {
+  all_waves <- map2(df, reliability, function(.x, .y) {
 
     conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
     weights_var <- conf$variables$weightFinal
@@ -732,6 +768,10 @@ calc_adj_pv <- function(df, reliability) {
 
     .x
   })
+
+  complete_data <- bind_rows(all_waves)
+
+  complete_data
 }
 
 
@@ -1526,39 +1566,62 @@ autonomy_overtime_corr <- function(school_data) {
 
 }
 
-select_cols_student <- function(student_data) {
-  student_data %>%
-    select(country,
-           wave,
-           SCHOOLID,
-           escs_dummy,
-           starts_with("adj_pvnum"),
-           gender,
-           high_edu_broad,
-           books_hh,
-           hisei,
-           native)
+select_cols_student <- function(harmonized_student) {
+
+  harmonized_student$value <-
+    map(harmonized_student$value, ~ {
+
+      escs_col <- if (unique(.x$wave) == "pisa2015") "ESCS" else " "
+
+      .x %>%
+        select(country,
+               wave,
+               SCHOOLID,
+               stu_id,
+               ## escs_dummy,
+               starts_with("PV"),
+               contains(escs_col),
+               contains("W_FSTUWT"),
+               AGE,
+               gender,
+               high_edu_broad,
+               books_hh,
+               hisei,
+               native)
+
+    })
+
+  harmonized_student
+
 }
 
+select_cols_student <- function(harmonized_student) {
 
-merge_student_school <- function(merged_student_escs, harmonized_school) {
-  merged_student_school <-
-    map2_dfr(merged_student_escs,
-             harmonized_school,
-             inner_join,
-             by = c("country" = "COUNTRY", "SCHOOLID")) %>%
-    mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
-           SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "Private",
-                                SCHLTYPE %in% "3" ~ "Public",
-                                SCHLTYPE %in% c("Government", "Public") ~ "Public",
-                                str_detect(SCHLTYPE, "^Private") ~ "Private",
-                                TRUE ~ NA_character_),
-           gender = case_when(gender %in% c("1", "Female") ~ "Female",
-                              gender %in% c("2", "Male") ~ "Male",
-                              TRUE ~ NA_character_)
-           )
+  harmonized_student$value <-
+    map(harmonized_student$value, ~ {
 
-  merged_student_school
+      escs_col <- if (unique(.x$wave) == "pisa2015") "ESCS" else " "
+
+      .x %>%
+        select(country,
+               wave,
+               SCHOOLID,
+               stu_id,
+               ## escs_dummy,
+               starts_with("PV"),
+               contains(escs_col),
+               contains("W_FSTUWT"),
+               AGE,
+               gender,
+               high_edu_broad,
+               books_hh,
+               hisei,
+               native)
+
+    })
+
+  harmonized_student
+
 }
 
 impute_missing <- function(all_data) {

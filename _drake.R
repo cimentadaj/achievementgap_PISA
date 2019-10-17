@@ -13,15 +13,15 @@ source("code/plan.R")      # Create your drake plan.
 dconf <- drake_config(
   plan,
   verbose = 2,
-  # See https://github.com/ropensci/drake/issues/960
-  ## env = new.env(parent = globalenv()),
-  lock_envir = FALSE,
+  ## See https://github.com/ropensci/drake/issues/960
+  env = new.env(parent = globalenv()),
+  ## lock_envir = TRUE,
   memory_strategy = "memory"
 )
 
 source(here("code/read_raw_data.R"))
 
-if ("pisa_data" %in% outdated(dconf)) {
+if ("harmonized_student" %in% outdated(dconf)) {
   print("Reading raw data outside of drake")
   raw_student <- map(pisa_files, ~ as_tibble(read_fst(.x))) %>% enframe()
   print("Raw data read")  

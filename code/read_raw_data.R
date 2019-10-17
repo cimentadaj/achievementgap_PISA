@@ -11,7 +11,7 @@ if (read_raw_data) {
   library(PISA2006lite)
   library(PISA2009lite)
 
-  # read_pisa unloads the packages when it reads the data
+  print("Reading all of PISA data without fst format. This should only be ran once when the project begins.") #nolintr
   big_pisa_dt <- read_pisa(raw_data_dir)
   iwalk(big_pisa_dt, ~ write_fst(.x, here("processed_data", paste0(.y, ".fst"))))
   rm(big_pisa_dt)
