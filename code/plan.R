@@ -624,6 +624,7 @@ plan <-
     # Check how we're doing with memory
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
     harmonized_school = harmonize_school(school_data),
+
     ############################# Merge data ###################################
     ############################################################################
 
@@ -635,16 +636,31 @@ plan <-
     ############################# Descriptives #################################
     ############################################################################
     plot_autonomy = plot_autonomy_trends(harmonized_school, countries),
-
-    ## # escs_dummy_data now contains the dummy column for the 90th/10th
-    escs_dummy_data = escs_dummy_creator(semi_merged, c(0.1, 0.9)),
-    ## # merged_data now contains the adjusted math/read column for all students
-    merged_data = calc_adj_pv(escs_dummy_data, reliability_pisa),
     autonomy_corr = autonomy_corr(harmonized_school),
     autonomy_corr_overtime = autonomy_overtime_corr(harmonized_school),
-    harmonize_student = map(merged_data, select_cols_student),
+
+
+    ############################# Wrangling for modelling ######################
+    ############################################################################
+
+    ## escs_dummy_data now contains the dummy column for the 90th/10th
+    escs_dummy_data = escs_dummy_creator(merged_student_school, c(0.1, 0.9)),
+    ## merged_data now contains the adjusted math/read column for all students
+    data_tests = calc_adj_pv(escs_dummy_data, reliability_pisa),
+
+    # These two below are the final datasets for the modelling.
+    # select_cols_student contains the only variables used in the analysis
+    # if you want to add new variable, put them here.
+    data_modelling = map(data_tests, select_cols_student),
+
+    # Create another version of the data with imputed missing values
+    imputed_data_modelling = impute_missing(data_modelling),
+
+    ############################# Modelling #######################################
+    ###############################################################################
+
     aut = target(
-      generate_models(schl_student,
+      generate_models(data_modelling,
                       dv = math_read,
                       group = group_vals,
                       aut_var = aut_val
@@ -653,9 +669,8 @@ plan <-
                         group_vals = c(0, 1),
                         aut_val = !!autonomy_measures)
     ),
-    imputed_schl_stu = impute_missing(schl_student),
     impute_aut = target(
-      generate_models(imputed_schl_stu,
+      generate_models(imputed_data_modelling,
                       dv = math_read,
                       group = group_vals,
                       aut_var = aut_val
