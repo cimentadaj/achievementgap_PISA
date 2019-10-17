@@ -555,7 +555,7 @@ read_pisa <- function(raw_data) {
 }
 
 delete_raw_data <- function() {
-  rm(raw_data, envir = globalenv())
+  rm(raw_student)
   TRUE
 }
 
@@ -609,25 +609,28 @@ plan <-
 
     # All read_* functions return a list with the data for each wave
     school_data <- read_school(raw_data_dir),
+    # This is the socio-economic index harmonized to be used across all waves
+    escs_data = read_escs(raw_data_dir, recode_cntrys),
 
     ############################# Harmonize data ###############################
     ############################################################################
-    harmonized_school_data = harmonize_school(school_data),
-    pisa_data = harmonize_pisa(raw_data, recode_cntrys, final_countries),
-    rm_raw = delete_raw_data(),
+    harmonized_student = harmonize_student(
+      raw_student,
+      recode_cntrys,
+      final_countries
+    ),
+    rm_raw = delete_raw_data(), # Delete the student raw data after harmonized
+    # Check how we're doing with memory
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
-    plot_autonomy = plot_autonomy_trends(pisa_school_data, countries),
-    escs_data = read_escs(raw_data_dir, recode_cntrys),
-    tracking_data = read_tracking(raw_data_dir),
-    semi_merged = merge_data(pisa_data, escs_data),
+    harmonized_school = harmonize_school(school_data),
     ## # escs_dummy_data now contains the dummy column for the 90th/10th
     escs_dummy_data = escs_dummy_creator(semi_merged, c(0.1, 0.9)),
     ## # merged_data now contains the adjusted math/read column for all students
     merged_data = calc_adj_pv(escs_dummy_data, reliability_pisa),
-    autonomy_corr = autonomy_corr(pisa_school_data),
-    autonomy_corr_overtime = autonomy_overtime_corr(pisa_school_data),
+    autonomy_corr = autonomy_corr(harmonized_school),
+    autonomy_corr_overtime = autonomy_overtime_corr(harmonized_school),
     harmonize_student = map(merged_data, select_cols_student),
-    schl_student = merge_harmonize_student_school(harmonize_student, pisa_school_data),
+    schl_student = merge_harmonize_student_school(harmonize_student, harmonized_school),
     aut = target(
       generate_models(schl_student,
                       dv = math_read,

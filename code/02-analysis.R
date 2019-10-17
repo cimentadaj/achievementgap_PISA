@@ -36,11 +36,11 @@ read_school <- function(raw_data_dir) {
   all_schools
 }
 
-harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
+harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
 
   # PISA 2000
-  pisa_all$value[[1]] <-
-    pisa_all$value[[1]] %>%
+  raw_student$value[[1]] <-
+    raw_student$value[[1]] %>%
     mutate(books_hh = as.numeric(ST37Q01),
            books_hh = case_when(books_hh %in% 1:2 ~ "0-10",
                                 books_hh %in% 3:4 ~ "11-100",
@@ -56,8 +56,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
            )
 
   # PISA 2003
-  pisa_all$value[[2]] <-
-    pisa_all$value[[2]] %>%
+  raw_student$value[[2]] <-
+    raw_student$value[[2]] %>%
     mutate(books_hh = as.numeric(ST19Q01),
            books_hh = case_when(books_hh == 1 ~ "0-10",
                                 books_hh %in% 2:3 ~ "11-100",
@@ -73,8 +73,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
            )
 
   # PISA 2006
-  pisa_all$value[[3]] <-
-    pisa_all$value[[3]] %>%
+  raw_student$value[[3]] <-
+    raw_student$value[[3]] %>%
     mutate(books_hh = as.numeric(ST15Q01),
            books_hh = case_when(books_hh == 1 ~ "0-10",
                                 books_hh %in% 2:3 ~ "11-100",
@@ -90,8 +90,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
            )
 
   # PISA 2009
-  pisa_all$value[[4]] <-
-    pisa_all$value[[4]] %>%
+  raw_student$value[[4]] <-
+    raw_student$value[[4]] %>%
     mutate(books_hh = as.numeric(ST22Q01),
            books_hh = case_when(books_hh == 1 ~ "0-10",
                                 books_hh %in% 2:3 ~ "11-100",
@@ -107,8 +107,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
            )
 
   # PISA 2012
-  pisa_all$value[[5]] <-
-    pisa_all$value[[5]] %>%
+  raw_student$value[[5]] <-
+    raw_student$value[[5]] %>%
     mutate(books_hh = as.numeric(ST28Q01),
            books_hh = case_when(books_hh == 1 ~ "0-10",
                                 books_hh %in% 2:3 ~ "11-100",
@@ -125,8 +125,8 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
            )
 
   # PISA 2015
-  pisa_all$value[[6]] <-
-    pisa_all$value[[6]] %>%
+  raw_student$value[[6]] <-
+    raw_student$value[[6]] %>%
     mutate(books_hh = as.numeric(ST013Q01TA),
            books_hh = case_when(books_hh == 1 ~ "0-10",
                                 books_hh %in% 2:3 ~ "11-100",
@@ -141,7 +141,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
            native = factor(native, levels = c("Non-native", "Native"))
            )
   
-  pisa_all$value <- map(pisa_all$value, function(each_pisa) {
+  raw_student$value <- map(raw_student$value, function(each_pisa) {
 
     ## EDUCATION##
     # Go through each PISA and grab the highest education from Male
@@ -172,9 +172,9 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
 
   # Loop through each data frame and assign the gender variable name
   # and turn it into character
-  pisa_all$value <- map(seq_along(pisa_all$value), function(pisa_data) {
+  raw_student$value <- map(seq_along(raw_student$value), function(pisa_data) {
     
-    pisa_all$value[[pisa_data]] %>%
+    raw_student$value[[pisa_data]] %>%
       rename(gender = gender[pisa_data]) %>%
       mutate(gender = as.character(gender),
              country = pisa_countrynames[as.character(CNT)],
@@ -185,11 +185,11 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
   years <- seq(2000, 2015, 3)
 
   db <- paste0("pisa", years)
-  pisa_all$value <- map2(pisa_all$value, db, ~ { .x$wave <- .y; .x})
-  pisa_all$value[[1]]$CNT <- pisa_all$value[[1]]$COUNTRY
+  raw_student$value <- map2(raw_student$value, db, ~ { .x$wave <- .y; .x})
+  raw_student$value[[1]]$CNT <- raw_student$value[[1]]$COUNTRY
 
-  pisa_all$value <-
-    map(pisa_all$value, ~ {
+  raw_student$value <-
+    map(raw_student$value, ~ {
       # 2000 to 2015
       # The coding is from 0 to 6, where 0 is no schooling and 6 is
       # BA or above.
@@ -267,7 +267,7 @@ harmonize_pisa <- function(pisa_all, recode_cntrys, final_countries) {
         .x
     })
 
-  pisa_all
+  raw_student
 }
 
 
@@ -589,16 +589,6 @@ read_escs <- function(raw_data_dir, recode_cntrys) {
 
   escs_trend
 }
-
-read_tracking <- function(raw_data_dir) {
-  tracking_data <-
-    read_xlsx(file.path(raw_data_dir, "tracking/tracking.xlsx"), sheet = "all_data") %>%
-    map_if(is_double, round, 2) %>%
-    as_tibble()
-
-  tracking_data
-}
-
 
 merge_data <- function(pisa_all, escs_trend, final_countries) {
   pisa_all <- as_tibble(pisa_all)

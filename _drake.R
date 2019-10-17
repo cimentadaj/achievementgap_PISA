@@ -23,7 +23,7 @@ source(here("code/read_raw_data.R"))
 
 if ("pisa_data" %in% outdated(dconf)) {
   print("Reading raw data outside of drake")
-  raw_data <- map(pisa_files, ~ as_tibble(read_fst(.x))) %>% enframe()
+  raw_student <- map(pisa_files, ~ as_tibble(read_fst(.x))) %>% enframe()
   print("Raw data read")  
 }
 
