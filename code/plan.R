@@ -1,9 +1,14 @@
 ############################# Config values ###################################
 ###############################################################################
-Sys.setenv(R_MAX_NUM_DLLS = 512)
 
+# Define the directory where the raw_data is.
 raw_data_dir <- here("raw_data")
 
+# Define the configuration of variables from pisa2015
+# which contains the name of the weights, the name
+# of the replication, weights, the name of the plausible
+# values, etc... I don't define this for other rounds
+# because they come integrated with the `intsvy` package.
 pisa2015_conf <- list(
   variables = list(pvlabelpref = "PV",
                    pvlabelsuff = "READ",
@@ -17,6 +22,8 @@ pisa2015_conf <- list(
                     replication_scheme = 'pisa')
 )
 
+# Final countries used in the analysis (30)
+# which have at least 50% of all years available (6 years)
 final_countries <- c("Finland",
                      "France",
                      "Austria",
@@ -52,6 +59,7 @@ final_countries <- c("Finland",
                      )
 
 
+# Selected countries for plotting
 countries <- c("Finland",
                "France",
                # "New Zealand",
@@ -78,7 +86,7 @@ countries <- c("Finland",
                # "Russia"
                )
 
-
+# Reliability of test scores per year
 reliability_pisa <-
   c("2000" = 0.81,
     "2003" = 0.85,
@@ -89,8 +97,11 @@ reliability_pisa <-
 
 
 # Create recoding vector for car::recode in the below map call.
+# This is used for normalizing the country names in all waves.
+
 recode_cntrys <-
-  enframe(pisa_countrynames) %>% # names come from personal cimentadaj package
+  # pisa_countrynames come from personal cimentadaj package
+  enframe(cimentadaj::pisa_countrynames) %>% 
   mutate(recoder = paste0("'", name, "'", " = ", "'", value, "'")) %>%
   pull(recoder) %>%
   paste0(collapse = ";")
@@ -587,6 +598,9 @@ formula_gen <- function(model_formula) {
   formulas
 }
 
+# Calculate the difference in significance between two coefficients
+# and their associated standard error. Estimated from
+# https://www.tandfonline.com/doi/abs/10.1198/000313006X152649#.VEn854_sM7w
 sig_vs_sig <- function(coef1, se1, coef2, se2) {
   coef_diff <- coef1 - coef2
   se_diff <- sqrt(se1 ^ 2 + se2 ^ 2)
@@ -597,6 +611,8 @@ gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 ############################# Drake plan ######################################
 ###############################################################################
+
+# These are all autonomy measures used in the analysis
 autonomy_measures <- c("academic_content_aut", "personnel_aut", "budget_aut")
 
 plan <-
@@ -659,6 +675,10 @@ plan <-
     ############################# Modelling #######################################
     ###############################################################################
 
+    # Run all combinations of tests/90th-10th/autonomy measure models
+    # with the unimputed dataset. These will all be named like
+    # aut_math_0_academic_content_aut, aut_read_0_academic_content_aut,
+    # aut_math_1_academic_content_aut, ...
     aut = target(
       generate_models(data_modelling,
                       dv = math_read,
@@ -669,6 +689,10 @@ plan <-
                         group_vals = c(0, 1),
                         aut_val = !!autonomy_measures)
     ),
+    # Run all combinations of tests/90th-10th/autonomy measure models
+    # with the imputed dataset. These will all be named lik
+    # impute_aut_math_0_academic_content_aut, impute_aut_read_0_academic_content_aut,
+    # impute_aut_math_1_academic_content_aut, ...
     impute_aut = target(
       generate_models(imputed_data_modelling,
                       dv = math_read,

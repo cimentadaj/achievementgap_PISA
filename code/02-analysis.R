@@ -1565,6 +1565,10 @@ impute_missing <- function(all_data) {
 
   all_data_imput <-
     all_data %>%
+    # Make pisa numeric to be able to include time polynomials
+    # in the multiple imputation. As well, make all character
+    # vectors as factors because amelie doesn't work well
+    # with characters
     mutate(wave = as.numeric(gsub("pisa", "", wave)),
            gender = factor(gender),
            SCHLTYPE = factor(SCHLTYPE, levels = c("Private", "Public"))) %>% 
@@ -1588,71 +1592,12 @@ impute_missing <- function(all_data) {
                     "SCHLTYPE"),
            polytime = 2,
            intercts = TRUE,
-           ## parallel = "multicore",
-           ## ncpus = 6
            )
 
   all_data_imput$imputations[[1]]
 }
 
 generate_models <- function(all_data, dv, group, aut_var) {
-
-  model_formula <-
-    as.formula(
-      paste0(
-        dv,
-        " ~ ",
-        aut_var,
-        " + ",
-        "(1 | country) +
-         (1 | wave)"
-      )
-    )
-
-  fixed_variables <- c("gender",
-                       "high_edu_broad",
-                       "location",
-                       "prop_cert",
-                       "private",
-                       "num_stu",
-                       "government_fund",
-                       "books_hh",
-                       "hisei",
-                       "native")
-
-  mod_df <-
-    all_data %>%
-    filter(escs_dummy == group)
-
-  mod_df <-
-    mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
-    rename(prop_cert = PROPCERT,
-           private = SCHLTYPE,
-           math = adj_pvnum_MATH,
-           read = adj_pvnum_READ) %>%
-    select(all.vars(model_formula), fixed_variables) %>%
-    filter(complete.cases(.))
-  ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
-  ## high_edu_broad = as.character(high_edu_broad))
-
-  all_formulas <- formula_gen(model_formula)
-
-  # Final model which has all control variables
-  for_fixed <-
-    as.formula(
-      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
-    )
-
-  len <- length(all_formulas)
-  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
-
-  all_mods <- map(all_formulas,
-                  ~ lmer(.x, data = mod_df,
-                         control = lmerControl(optimizer ="Nelder_Mead")))
-  all_mods
-}
-
-generate_models_imputed <- function(all_data, dv, group, aut_var) {
 
   model_formula <-
     as.formula(
