@@ -1586,7 +1586,7 @@ impute_missing <- function(all_data) {
            ## ncpus = 6
            )
 
-  all_data_imput
+  all_data_imput$imputations[[1]]
 }
 
 generate_models <- function(all_data, dv, group, aut_var) {
