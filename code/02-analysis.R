@@ -590,16 +590,16 @@ read_escs <- function(raw_data_dir, recode_cntrys) {
   escs_trend
 }
 
-merge_data <- function(pisa_all, escs_trend, final_countries) {
-  pisa_all <- as_tibble(pisa_all)
+merge_student_escs <- function(harmonized_student, escs_data) {
+  harmonized_student <- as_tibble(harmonized_student)
   # Next we'll merge the ESCS data with the PISA data. As explained above, the 6th data (PISA
   # 2015) does not need to be merged so I exclude it with this vector
   exclude <- -6
   years <- seq(2000, 2015, 3)
 
   # Loop in parallel to the PISA data, the ESCS data and the year vector (which is seq(2012, 2015, 3))
-  pisa_all$value[exclude] <-
-    pmap(list(pisa_all$value[exclude], escs_trend, years[exclude]), function(.x, .y, .z) {
+  harmonized_student$value[exclude] <-
+    pmap(list(harmonized_student$value[exclude], escs_data, years[exclude]), function(.x, .y, .z) {
 
       # The escs data needs to have the key variables the same class as the
       # same data.
@@ -624,12 +624,12 @@ merge_data <- function(pisa_all, escs_trend, final_countries) {
       data_trend
     })
 
-  pisa_all$value[[6]] <-
-    pisa_all$value[[6]] %>%
+  harmonized_student$value[[6]] <-
+    harmonized_student$value[[6]] %>%
     rename(escs_trend = ESCS)
 
   adapted_year_data <-
-    map(pisa_all$value, ~ {
+    map(harmonized_student$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
         # pisa2000 has a different coding so here I recode 6 to 7 so that in all
         # waves the top edu is 7 and the bottom is 1
@@ -1541,10 +1541,10 @@ select_cols_student <- function(student_data) {
 }
 
 
-merge_harmonize_student_school <- function(student_data, school_data) {
-  combined_data <-
-    map2_dfr(student_data,
-             school_data,
+merge_student_school <- function(merged_student_escs, harmonized_school) {
+  merged_student_school <-
+    map2_dfr(merged_student_escs,
+             harmonized_school,
              inner_join,
              by = c("country" = "COUNTRY", "SCHOOLID")) %>%
     mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
@@ -1558,7 +1558,7 @@ merge_harmonize_student_school <- function(student_data, school_data) {
                               TRUE ~ NA_character_)
            )
 
-  combined_data
+  merged_student_school
 }
 
 impute_missing <- function(all_data) {

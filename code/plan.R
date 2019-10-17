@@ -614,6 +614,7 @@ plan <-
 
     ############################# Harmonize data ###############################
     ############################################################################
+
     harmonized_student = harmonize_student(
       raw_student,
       recode_cntrys,
@@ -623,6 +624,18 @@ plan <-
     # Check how we're doing with memory
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
     harmonized_school = harmonize_school(school_data),
+    ############################# Merge data ###################################
+    ############################################################################
+
+    # Merge the student data with the harmonized escs_data (NOT the school data)
+    merged_student_escs = merge_student_escs(harmonized_student, escs_data),
+    merged_student_school = merge_student_school(merged_student_escs,
+                                                 harmonized_school),
+
+    ############################# Descriptives #################################
+    ############################################################################
+    plot_autonomy = plot_autonomy_trends(harmonized_school, countries),
+
     ## # escs_dummy_data now contains the dummy column for the 90th/10th
     escs_dummy_data = escs_dummy_creator(semi_merged, c(0.1, 0.9)),
     ## # merged_data now contains the adjusted math/read column for all students
@@ -630,7 +643,6 @@ plan <-
     autonomy_corr = autonomy_corr(harmonized_school),
     autonomy_corr_overtime = autonomy_overtime_corr(harmonized_school),
     harmonize_student = map(merged_data, select_cols_student),
-    schl_student = merge_harmonize_student_school(harmonize_student, harmonized_school),
     aut = target(
       generate_models(schl_student,
                       dv = math_read,
