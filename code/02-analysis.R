@@ -1,4 +1,4 @@
-read_school <- function(raw_data_dir) {
+load_school <- function(raw_data_dir) {
   # These pkgs load all PISA data for these rounds. Thus take up a lot
   # of memory.
   print("PISA packages loaded")
@@ -34,7 +34,29 @@ read_school <- function(raw_data_dir) {
     school2015
   )
 
-  all_schools
+  # Return as data frame with list column
+  all_schools %>%
+    map(as_tibble) %>% 
+    enframe()
+}
+
+load_escs <- function(raw_data_dir, recode_cntrys) {
+  escs_path <- file.path(raw_data_dir, "escs_data")
+  escs_files <- list.files(escs_path, pattern = ".sav", full.names = TRUE)
+  escs_trend <- map(escs_files, haven::read_spss)
+
+  escs_trend <-
+    map(escs_trend, ~ {
+      .x$country <- car::recode(.x$cnt, recode_cntrys)
+      .x
+    })
+
+  # PISA 2015 doesn't have this data in the ESCS file. Only from years 2000 to
+  # 2012 here. PISA 2015 already has this data on the main PISA student file.
+  escs_trend %>%
+    map(as_tibble) %>%
+    enframe() %>%
+    mutate(name = seq(2000, 2012, 3))
 }
 
 harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
@@ -276,7 +298,7 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
 }
 
 
-harmonize_school <- function(all_schools) {
+harmonize_school <- function(loaded_school) {
 
   # To be used when > PISA2006 waves divide autonomy tick
   # into several columns rather than pasted into one.
@@ -353,8 +375,8 @@ harmonize_school <- function(all_schools) {
   }
 
   # PISA 20000
-  all_schools[[1]] <-
-    all_schools[[1]] %>%
+  loaded_school$value[[1]] <-
+    loaded_school$value[[1]] %>%
     as_tibble() %>%
     rename(course_aut = SC22Q12,
            content_aut = SC22Q11,
@@ -375,8 +397,8 @@ harmonize_school <- function(all_schools) {
     filter(num_stu != 0)
 
   # PISA 2003
-  all_schools[[2]] <-
-    all_schools[[2]] %>%
+  loaded_school$value[[2]] <-
+    loaded_school$value[[2]] %>%
     as_tibble() %>% 
     rename(course_aut = SC26Q12,
            content_aut = SC26Q11,
@@ -406,14 +428,14 @@ harmonize_school <- function(all_schools) {
                    "budget_aut" = paste0("SC11QF", 1:4),
                    "admittance_aut" = paste0("SC11QI", 1:4))
 
-  all_schools[[3]] <-
-    as_tibble(all_schools[[3]]) %>%
+  loaded_school$value[[3]] <-
+    as_tibble(loaded_school$value[[3]]) %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(.x, `2` = 0))
 
-  all_schools[[3]] <- collapse_aut_cols(all_schools[[3]], list_aut)
+  loaded_school$value[[3]] <- collapse_aut_cols(loaded_school$value[[3]], list_aut)
 
-  all_schools[[3]] <-
-    mutate_at(all_schools[[3]], vars(ends_with("aut")), identify_autonomy) %>%
+  loaded_school$value[[3]] <-
+    mutate_at(loaded_school$value[[3]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(COUNTRY = as.character(COUNTRY),
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -433,13 +455,13 @@ harmonize_school <- function(all_schools) {
                    "budget_aut" = paste0("SC24QF", 1:5),
                    "admittance_aut" = paste0("SC24QI", 1:5))
 
-  all_schools[[4]] <-
-    as_tibble(all_schools[[4]]) %>%
+  loaded_school$value[[4]] <-
+    as_tibble(loaded_school$value[[4]]) %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
 
-  all_schools[[4]] <- collapse_aut_cols(all_schools[[4]], list_aut, max_cols = 5)
-  all_schools[[4]] <-
-    mutate_at(all_schools[[4]], vars(ends_with("aut")), identify_autonomy) %>%
+  loaded_school$value[[4]] <- collapse_aut_cols(loaded_school$value[[4]], list_aut, max_cols = 5)
+  loaded_school$value[[4]] <-
+    mutate_at(loaded_school$value[[4]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = as.character(CNT),
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -463,14 +485,14 @@ harmonize_school <- function(all_schools) {
                    "budget_aut" = paste0("SC33Q06", up_letters),
                    "admittance_aut" = paste0("SC33Q09", up_letters))
 
-  all_schools[[5]] <-
-    all_schools[[5]] %>%
+  loaded_school$value[[5]] <-
+    loaded_school$value[[5]] %>%
     mutate_at(unlist(list_aut, use.names = FALSE), ~ recode(as.numeric(.x), `2` = 0))
 
-  all_schools[[5]] <- collapse_aut_cols(all_schools[[5]], list_aut, max_cols = 5)
+  loaded_school$value[[5]] <- collapse_aut_cols(loaded_school$value[[5]], list_aut, max_cols = 5)
 
-  all_schools[[5]] <-
-    mutate_at(all_schools[[5]], vars(ends_with("aut")), identify_autonomy) %>%
+  loaded_school$value[[5]] <-
+    mutate_at(loaded_school$value[[5]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT],
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -495,9 +517,9 @@ harmonize_school <- function(all_schools) {
                    "budget_aut" = paste0("SC010Q06T", up_letters),
                    "admittance_aut" = paste0("SC010Q09T", up_letters))
 
-  all_schools[[6]] <- collapse_aut_cols(all_schools[[6]], list_aut, max_cols = 5)
-  all_schools[[6]] <-
-    mutate_at(all_schools[[6]], vars(ends_with("aut")), identify_autonomy) %>%
+  loaded_school$value[[6]] <- collapse_aut_cols(loaded_school$value[[6]], list_aut, max_cols = 5)
+  loaded_school$value[[6]] <-
+    mutate_at(loaded_school$value[[6]], vars(ends_with("aut")), identify_autonomy) %>%
     mutate(CNT = cimentadaj::pisa_countrynames[CNT],
            num_stu = SCHSIZE,
            num_stu = ifelse(num_stu > 9000, NA_real_, num_stu),
@@ -511,7 +533,7 @@ harmonize_school <- function(all_schools) {
     select(-starts_with("SC0")) %>% 
     filter(num_stu != 0)  
 
-  school_data <- map(all_schools, ~ {
+  loaded_school$value <- map(loaded_school$value, ~ {
     .x %>%
       mutate(SCHLTYPE = as.character(SCHLTYPE),
              academic_content_aut = rowMeans(select(., course_aut, content_aut, textbook_aut)),
@@ -538,10 +560,10 @@ harmonize_school <- function(all_schools) {
       
   })
 
-  school_data
+  loaded_school
 }
 
-plot_autonomy_trends <- function(list_school_waves, cntrys) {
+plot_autonomy <- function(harmonized_school, cntrys) {
 
   summarize_aut <- function(df_pisa, wave) {
     df_pisa %>%
@@ -554,12 +576,12 @@ plot_autonomy_trends <- function(list_school_waves, cntrys) {
   }
 
 
-  sum_sc2000 <- summarize_aut(list_school_waves[[1]], "pisa2000")
-  sum_sc2003 <- summarize_aut(list_school_waves[[2]], "pisa2003")
-  sum_sc2006 <- summarize_aut(list_school_waves[[3]], "pisa2006")
-  sum_sc2009 <- summarize_aut(list_school_waves[[4]], "pisa2009")
-  sum_sc2012 <- summarize_aut(list_school_waves[[5]], "pisa2012")
-  sum_sc2015 <- summarize_aut(list_school_waves[[6]], "pisa2015")
+  sum_sc2000 <- summarize_aut(harmonized_school$value[[1]], "pisa2000")
+  sum_sc2003 <- summarize_aut(harmonized_school$value[[2]], "pisa2003")
+  sum_sc2006 <- summarize_aut(harmonized_school$value[[3]], "pisa2006")
+  sum_sc2009 <- summarize_aut(harmonized_school$value[[4]], "pisa2009")
+  sum_sc2012 <- summarize_aut(harmonized_school$value[[5]], "pisa2012")
+  sum_sc2015 <- summarize_aut(harmonized_school$value[[6]], "pisa2015")
 
   # Merge all and plot
   sum_sc <- bind_rows(sum_sc2000,
@@ -581,21 +603,7 @@ plot_autonomy_trends <- function(list_school_waves, cntrys) {
 
 }
 
-read_escs <- function(raw_data_dir, recode_cntrys) {
-  escs_path <- file.path(raw_data_dir, "escs_data")
-  escs_files <- list.files(escs_path, pattern = ".sav", full.names = TRUE)
-  escs_trend <- map(escs_files, haven::read_spss)
-
-  escs_trend <-
-    map(escs_trend, ~ {
-      .x$country <- car::recode(.x$cnt, recode_cntrys)
-      .x
-    })
-
-  escs_trend
-}
-
-merge_student_escs <- function(selected_cols_student, escs_data) {
+merge_student_escs <- function(selected_cols_student, loaded_escs) {
 
   # Next we'll merge the ESCS data with the PISA data. As explained above, the
   # 6th data (PISA 2015) does not need to be merged so I exclude it with this
@@ -607,7 +615,7 @@ merge_student_escs <- function(selected_cols_student, escs_data) {
   # Loop in parallel to the PISA data, the ESCS data and the year vector
   # (which is seq(2012, 2015, 3))
   selected_cols_student$value[exclude] <-
-    pmap(list(selected_cols_student$value[exclude], escs_data, years[exclude]),
+    pmap(list(selected_cols_student$value[exclude], loaded_escs$value, years[exclude]),
          function(.x, .y, .z) {
 
       # The escs data needs to have the key variables the same class as the
@@ -639,7 +647,7 @@ merge_student_escs <- function(selected_cols_student, escs_data) {
     rename(escs_trend = ESCS) %>%
     mutate(stu_id = as.numeric(stu_id))
 
-  adapted_year_data <-
+  selected_cols_student$value <-
     map(selected_cols_student$value, ~ {
       if (unique(.x$wave) == "pisa2000") {
         # pisa2000 has a different coding so here I recode 6 to 7 so that in all
@@ -654,13 +662,13 @@ merge_student_escs <- function(selected_cols_student, escs_data) {
       .x
     })
 
-  adapted_year_data
+  selected_cols_student
 }
 
 merge_student_school <- function(merged_student_escs, harmonized_school) {
   merged_student_school <-
-    map2_dfr(merged_student_escs,
-             harmonized_school,
+    map2_dfr(merged_student_escs$value,
+             harmonized_school$value,
              inner_join,
              by = c("country" = "COUNTRY", "SCHOOLID")) %>%
     mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
@@ -677,7 +685,7 @@ merge_student_school <- function(merged_student_escs, harmonized_school) {
   merged_student_school
 }
 
-escs_dummy_creator <- function(merged_student_school, probs) {
+create_escs_dummy <- function(merged_student_school, probs) {
 
   separate_waves <- split(merged_student_school, merged_student_school$wave)
 
@@ -718,14 +726,17 @@ escs_dummy_creator <- function(merged_student_school, probs) {
       .x
     })
 
+  merged_student_school <- bind_rows(merged_student_school)
   merged_student_school
 }
 
-calc_adj_pv <- function(df, reliability) {
+create_scores <- function(created_escs_dummy, reliability) {
   test <- c("MATH", "READ")
 
+  separate_waves <- split(created_escs_dummy, created_escs_dummy$wave)
+
   # Look over each wave
-  all_waves <- map2(df, reliability, function(.x, .y) {
+  all_waves <- map2(separate_waves, reliability, function(.x, .y) {
 
     conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
     weights_var <- conf$variables$weightFinal
@@ -1516,11 +1527,9 @@ mod3_cumulative_change <- function(complete_gaps,
   all_gaps_models_cum
 }
 
-autonomy_corr <- function(school_data) {
-  school_data %>%
-    enframe() %>%
-    unnest(value) %>% 
-    bind_rows() %>% 
+calculate_corr_aut <- function(harmonized_school) {
+  harmonized_school %>%
+    unnest(cols = value) %>% 
     group_by(name, COUNTRY) %>%
     summarize_at(vars(ends_with("aut")), mean, na.rm = TRUE) %>%
     filter(name == 6) %>%
@@ -1539,11 +1548,9 @@ autonomy_corr <- function(school_data) {
 
 }
 
-autonomy_overtime_corr <- function(school_data) {
-  school_data %>%
-    enframe() %>%
-    unnest(value) %>% 
-    bind_rows() %>% 
+calculate_corr_aut_change <- function(harmonized_school) {
+  harmonized_school %>%
+    unnest(cols = value) %>% 
     group_by(name, COUNTRY) %>%
     summarize_at(vars(ends_with("aut")), mean, na.rm = TRUE) %>%
     filter(name %in% c(1, 6)) %>%

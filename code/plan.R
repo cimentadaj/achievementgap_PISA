@@ -617,16 +617,16 @@ autonomy_measures <- c("academic_content_aut", "personnel_aut", "budget_aut")
 
 plan <-
   drake_plan(
-    ############################# Reading data #################################
+    ############################# Loading data #################################
     ############################################################################
     # The really big list with all raw pisa dataset is in /code/read_raw_data.R
     # which is read in _drake.R because it's too heavy to have within the plan.
     # See the notes in /code/read_raw_data.R. It's called raw_data.
 
     # All read_* functions return a list with the data for each wave
-    school_data = read_school(raw_data_dir),
+    loaded_school = load_school(raw_data_dir),
     # This is the socio-economic index harmonized to be used across all waves
-    escs_data = read_escs(raw_data_dir, recode_cntrys),
+    loaded_escs = load_escs(raw_data_dir, recode_cntrys),
 
     ############################# Harmonize data ###############################
     ############################################################################
@@ -639,7 +639,7 @@ plan <-
     rm_raw = delete_raw_data(), # Delete the student raw data after harmonized
     # Check how we're doing with memory
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
-    harmonized_school = harmonize_school(school_data),
+    harmonized_school = harmonize_school(loaded_school),
 
     # select_cols_student contains the only variables used in the analysis
     # if you want to add new variable, put them here.
@@ -648,29 +648,38 @@ plan <-
     ############################# Merge data ###################################
     ############################################################################
 
-    # Merge the student data with the harmonized escs_data (NOT the school data)
-    merged_student_escs = merge_student_escs(selected_cols_student, escs_data),
+    # Merge the student data with the harmonized loaded_escs (NOT the school data)
+    merged_student_escs = merge_student_escs(selected_cols_student, loaded_escs),
+
+    # This is the step when the tibble with a list column becomes an entire
+    # data frame with over 1M students for all waves with the stuent and
+    # school data.
     merged_student_school = merge_student_school(merged_student_escs,
                                                  harmonized_school),
 
     ############################# Descriptives #################################
     ############################################################################
-    plot_autonomy = plot_autonomy_trends(harmonized_school, countries),
-    autonomy_corr = autonomy_corr(harmonized_school),
-    autonomy_corr_overtime = autonomy_overtime_corr(harmonized_school),
+
+    plotted_autonomy = plot_autonomy(harmonized_school, countries),
+    calculated_corr_aut = calculate_corr_aut(harmonized_school),
+    # Calculate the correlation between autonomy measures in their change
+    # from 2000 to 2015
+    calculated_corr_aut_change = calculate_corr_aut_change(harmonized_school),
 
     ############################# Wrangling for modelling ######################
     ############################################################################
 
     ## escs_dummy_data now contains the dummy column for the 90th/10th
-    escs_dummy_data = escs_dummy_creator(merged_student_school, c(0.1, 0.9)),
+    created_escs_dummy = create_escs_dummy(merged_student_school, c(0.1, 0.9)),
+
+    # This function adjusts and standardizes the test scores
+    created_scores = create_scores(created_escs_dummy, reliability_pisa),
 
     # These two below are the final datasets for the modelling.
 
     ## data_modelling now contains the adjusted math/read column for all students
     ## tests scores
-    test_scores = calc_adj_pv(escs_dummy_data, reliability_pisa),
-    data_modelling = select(test_scores,
+    data_modelling = select(created_scores,
                             wave,
                             country,
                             adj_pvnum_MATH,
@@ -707,16 +716,16 @@ plan <-
     # with the unimputed dataset. These will all be named like
     # aut_math_0_academic_content_aut, aut_read_0_academic_content_aut,
     # aut_math_1_academic_content_aut, ...
-    ## aut = target(
-    ##   generate_models(data_modelling,
-    ##                   dv = math_read,
-    ##                   group = group_vals,
-    ##                   aut_var = aut_val
-    ##                   ),
-    ##   transform = cross(math_read = c("math", "read"),
-    ##                     group_vals = c(0, 1),
-    ##                     aut_val = !!autonomy_measures)
-    ## ),
+    aut = target(
+      generate_models(data_modelling,
+                      dv = math_read,
+                      group = group_vals,
+                      aut_var = aut_val
+                      ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures)
+    ),
     # Run all combinations of tests/90th-10th/autonomy measure models
     # with the imputed dataset. These will all be named lik
     # impute_aut_math_0_academic_content_aut, impute_aut_read_0_academic_content_aut,
@@ -839,8 +848,8 @@ plan <-
     ##     setNames(c(" ", gsub(" SES gap", "", gaps)))
     )
 
-## loadd(starts_with("aut_"))
-## all_mods <- ls(pattern = "^aut_")
+## loadd(starts_with("impute_aut_"))
+## all_mods <- ls(pattern = "^impute_aut_")
 
 ## academic_content_mods <- all_mods[grepl("academic_", all_mods)]
 ## personnel_aut_mods <- all_mods[grepl("personnel_", all_mods)]
