@@ -676,7 +676,7 @@ plan <-
     created_scores = create_scores(created_escs_dummy, reliability_pisa),
 
     # Only keep countries with more than 50% of data for all years
-    filtered_data = filter(created_scores, country %in% final_countries) %>% sample_frac(10),
+    filtered_data = filter(created_scores, country %in% final_countries),
 
     # These two below are the final datasets for the modelling.
 
@@ -774,7 +774,8 @@ plan <-
                                    num_stu,
                                    government_fund,
                                    hisei,
-                                   SCHLTYPE),
+                                   SCHLTYPE,
+                                   stu_weight),
     aut_allcnt = target(
       generate_models(data_modelling_allcnt,
                       dv = math_read,
@@ -807,12 +808,10 @@ plan <-
     aut_interact = target(
       generate_models_interaction(filtered_data,
                                   dv = math_read,
-                                  group = group_vals,
                                   aut_var = aut_val,
                                   interact = type_interact
                                   ),
       transform = cross(math_read = c("math", "read"),
-                        group_vals = c(0, 1),
                         aut_val = !!autonomy_measures,
                         type_interact = c("quantiles_escs", "quantiles_escs_chr"))
     ),

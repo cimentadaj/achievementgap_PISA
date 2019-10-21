@@ -1649,7 +1649,7 @@ impute_missing <- function(all_data) {
   all_data_imput$imputations[[1]]
 }
 
-generate_models <- function(all_data, dv, group, aut_var) {
+generate_models <- function(data_modelling, dv, group, aut_var) {
 
   model_formula <-
     as.formula(
@@ -1674,18 +1674,15 @@ generate_models <- function(all_data, dv, group, aut_var) {
                        "hisei",
                        "native")
 
-  mod_df <-
-    all_data %>%
-    filter(escs_dummy == group)
-
-  mod_df <-
-    mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
+  data_modelling <-
+    data_modelling %>%
+    filter(escs_dummy == group) %>% 
+    mutate_at(vars(ends_with("aut")), center) %>%
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE) %>%
-    select(all.vars(model_formula), fixed_variables) %>%
-    filter(complete.cases(.))
-  ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
-  ## high_edu_broad = as.character(high_edu_broad))
+    select(all.vars(model_formula), fixed_variables, stu_weight) %>%
+    filter(complete.cases(.)) %>%
+    mutate(num_stu = num_stu / 100)
 
   all_formulas <- formula_gen(model_formula)
 
@@ -1698,10 +1695,13 @@ generate_models <- function(all_data, dv, group, aut_var) {
   len <- length(all_formulas)
   all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
 
-  all_mods <- map(all_formulas,
-                  ~ lmer(.x, data = mod_df,
-                         weights = mod_df[["stu_weight"]],
-                         control = lmerControl(optimizer = "Nelder_Mead")))
+  all_mods <- map(all_formulas, ~ {
+    lmer(.x,
+         data = data_modelling,
+         weights = stu_weight,
+         control = lmerControl(optimizer = "Nelder_Mead"))
+  })
+  
   all_mods
 }
 
@@ -1761,7 +1761,7 @@ create_school_dummy <- function(filtered_data, probs) {
   filtered_data
 }
 
-generate_models_schools <- function(all_data, dv, group, aut_var) {
+generate_models_schools <- function(data_modelling, dv, group, aut_var) {
 
   model_formula <-
     as.formula(
@@ -1788,18 +1788,17 @@ generate_models_schools <- function(all_data, dv, group, aut_var) {
 
   school_var <- sym(paste0("good_school_", dv))
 
-  mod_df <-
-    all_data %>%
+  data_modelling <-
+    data_modelling %>%
     filter(!!school_var == group)
 
-  mod_df <-
-    mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
+  data_modelling <-
+    data_modelling %>% mutate_at(vars(ends_with("aut")), center) %>%
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE) %>%
-    select(all.vars(model_formula), fixed_variables) %>%
-    filter(complete.cases(.))
-  ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
-  ## high_edu_broad = as.character(high_edu_broad))
+    select(all.vars(model_formula), fixed_variables, stu_weight) %>%
+    filter(complete.cases(.)) %>%
+    mutate(num_stu = num_stu / 100)
 
   all_formulas <- formula_gen(model_formula)
 
@@ -1813,8 +1812,8 @@ generate_models_schools <- function(all_data, dv, group, aut_var) {
   all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
 
   all_mods <- map(all_formulas,
-                  ~ lmer(.x, data = mod_df,
-                         weights = mod_df[["stu_weight"]],                         
+                  ~ lmer(.x, data = data_modelling,
+                         weights = stu_weight,
                          control = lmerControl(optimizer = "Nelder_Mead")))
   all_mods
 }
@@ -1855,12 +1854,13 @@ generate_models_interaction <- function(filtered_data,
     filtered_data %>% mutate_at(vars(ends_with("aut")), center) %>%
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE) %>%
-    select(all.vars(all_formulas[[1]]), fixed_variables) %>%
+    select(all.vars(all_formulas[[1]]), fixed_variables, stu_weight) %>%
     filter(complete.cases(.)) %>%
     mutate(quantiles_escs_chr = factor(case_when(quantiles_escs %in% 1:3 ~ "Low",
                                                  quantiles_escs %in% 4:7 ~ "Mid",
                                                  quantiles_escs %in% 8:10 ~ "High"),
-                                       levels = c("Low", "Mid", "High")))
+                                       levels = c("Low", "Mid", "High")),
+           num_stu = num_stu / 100)
 
   # Final model which has all control variables
   for_fixed <-
@@ -1872,8 +1872,9 @@ generate_models_interaction <- function(filtered_data,
   all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
 
   all_mods <- map(all_formulas,
-                  ~ lmer(.x, data = filtered_data,
-                         weights = mod_df[["stu_weight"]],                         
+                  ~ lmer(.x,
+                         data = filtered_data,
+                         weights = stu_weight,
                          control = lmerControl(optimizer = "Nelder_Mead")))
 
   all_mods
