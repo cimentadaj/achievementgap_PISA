@@ -59,7 +59,7 @@ load_escs <- function(raw_data_dir, recode_cntrys) {
     mutate(name = seq(2000, 2012, 3))
 }
 
-harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
+harmonize_student <- function(raw_student, recode_cntrys) {
 
   # PISA 2000
   raw_student$value[[1]] <-
@@ -288,10 +288,9 @@ harmonize_student <- function(raw_student, recode_cntrys, final_countries) {
 
       .x <-
         .x %>%
-        mutate(SCHOOLID = as.character(SCHOOLID)) %>% 
-        filter(country %in% final_countries)
+        mutate(SCHOOLID = as.character(SCHOOLID))
         
-        .x
+      .x
     })
 
   raw_student
@@ -711,8 +710,19 @@ create_escs_dummy <- function(merged_student_school, probs) {
           with(country, case_when(escs_trend >= quan[2] ~ 1,
                                   escs_trend <= quan[1] ~ 0))
 
+
+        quan_all <- quantile_missing(country, weights_var, seq(0, 1, .1))
+
+        if (all(is.na(quan_all))) {
+          country$quantiles_escs <- NA_real_
+        } else {
+          country$quantiles_escs <-
+            as.numeric(cut(country$escs_trend, quan_all, labels = 1:10))
+        }
+
         country
       })
+
       rm(country_split)
 
       .x <-
@@ -769,7 +779,7 @@ create_scores <- function(created_escs_dummy, reliability) {
 
         # Take residuals of model and divide by rmse. Multiply that by
         # 1 / sqrt(reliability of each survey), which is .y in the loop.
-        test_name <- paste0("adj_pvnum_", test_score)
+        test_name <- tolower(test_score)
         .x[[test_name]] <- resid(mod1) / modelr::rmse(mod1, .x) * 1 / sqrt(.y)
 
         .x[, test_name]
@@ -1602,35 +1612,6 @@ select_cols_student <- function(harmonized_student) {
 
 }
 
-select_cols_student <- function(harmonized_student) {
-
-  harmonized_student$value <-
-    map(harmonized_student$value, ~ {
-
-      escs_col <- if (unique(.x$wave) == "pisa2015") "ESCS" else " "
-
-      .x %>%
-        select(country,
-               wave,
-               SCHOOLID,
-               stu_id,
-               ## escs_dummy,
-               starts_with("PV"),
-               contains(escs_col),
-               contains("W_FSTUWT"),
-               AGE,
-               gender,
-               high_edu_broad,
-               books_hh,
-               hisei,
-               native)
-
-    })
-
-  harmonized_student
-
-}
-
 impute_missing <- function(all_data) {
 
   all_data_imput <-
@@ -1699,9 +1680,119 @@ generate_models <- function(all_data, dv, group, aut_var) {
   mod_df <-
     mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
     rename(prop_cert = PROPCERT,
-           private = SCHLTYPE,
-           math = adj_pvnum_MATH,
-           read = adj_pvnum_READ) %>%
+           private = SCHLTYPE) %>%
+    select(all.vars(model_formula), fixed_variables) %>%
+    filter(complete.cases(.))
+  ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
+  ## high_edu_broad = as.character(high_edu_broad))
+
+  all_formulas <- formula_gen(model_formula)
+
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
+    )
+
+  len <- length(all_formulas)
+  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
+
+  all_mods <- map(all_formulas,
+                  ~ lmer(.x, data = mod_df,
+                         control = lmerControl(optimizer = "Nelder_Mead")))
+  all_mods
+}
+
+create_school_dummy <- function(filtered_data, probs) {
+
+  separate_waves <- split(filtered_data, filtered_data$wave)
+
+  filtered_data <-
+    map(separate_waves, function(.x) {
+
+
+      country_split <- split(.x, .x$country)
+      
+      country_list <- map(country_split, function(country) {
+        print(unique(country$country))
+
+        school_avgs <-
+          country %>%
+          group_by(SCHOOLID) %>%
+          summarize(math = mean(math, na.rm = TRUE),
+                    read = mean(read, na.rm = TRUE))
+
+        quan_math <- quantile_missing(school_avgs, weights_var, probs, "math")
+        quan_read <- quantile_missing(school_avgs, weights_var, probs, "read")
+
+        school_avgs[["good_school_math"]] <-
+          with(school_avgs, case_when(math >= quan_math[2] ~ 1,
+                                      math <= quan_math[1] ~ 0,
+                                      TRUE ~ NA_real_)
+               )
+
+        school_avgs[["good_school_read"]] <-
+          with(school_avgs, case_when(math >= quan_read[2] ~ 1,
+                                      math <= quan_read[1] ~ 0,
+                                      TRUE ~ NA_real_)
+               )
+
+        country <-
+          country %>% 
+          left_join(select(school_avgs, SCHOOLID, starts_with("good")),
+                    by = "SCHOOLID")
+
+      })
+
+      row_binded_wave <-
+        bind_rows(country_list)
+      
+      rm(country_list)
+
+      message(paste(unique(.x$wave), "data ready"))
+
+      row_binded_wave
+    })
+
+  filtered_data <- bind_rows(filtered_data)
+  filtered_data
+}
+
+generate_models_schools <- function(all_data, dv, group, aut_var) {
+
+  model_formula <-
+    as.formula(
+      paste0(
+        dv,
+        " ~ ",
+        aut_var,
+        " + ",
+        "(1 | country) +
+         (1 | wave)"
+      )
+    )
+
+  fixed_variables <- c("gender",
+                       "high_edu_broad",
+                       "location",
+                       "prop_cert",
+                       "private",
+                       "num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native")
+
+  school_var <- sym(paste0("good_school_", dv))
+
+  mod_df <-
+    all_data %>%
+    filter(!!school_var == group)
+
+  mod_df <-
+    mod_df %>% mutate_at(vars(ends_with("aut")), center) %>%
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE) %>%
     select(all.vars(model_formula), fixed_variables) %>%
     filter(complete.cases(.))
   ## mutate(high_edu_broad = recode(high_edu_broad, `2` = 3))
