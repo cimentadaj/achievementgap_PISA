@@ -113,18 +113,18 @@ recode_cntrys <-
 
 # Function calculates the bottom 30th quantile for the bottom educated and the 70th quantile
 # for the top educated. If the quantiles cannot be estimated, it returns two NA's instead
-quantile_missing <- function(df, weights, probs) {
+quantile_missing <- function(df, weights, probs, ch_var = "escs_trend") {
 
   quan <- try(Hmisc::wtd.quantile(
-    df$escs_trend,
+    df[[ch_var]],
     weights = df[[weights]],
     probs = probs
   ))
 
   if (any("try-error" %in% class(quan))) {
-    return(c(NA, NA))
+    return(rep(NA, times = length(probs)))
   } else {
-    return(c(quan[1], quan[2]))
+    return(quan)
   }
 }
 
@@ -633,8 +633,7 @@ plan <-
 
     harmonized_student = harmonize_student(
       raw_student,
-      recode_cntrys,
-      final_countries
+      recode_cntrys
     ),
     rm_raw = delete_raw_data(), # Delete the student raw data after harmonized
     # Check how we're doing with memory
@@ -652,7 +651,7 @@ plan <-
     merged_student_escs = merge_student_escs(selected_cols_student, loaded_escs),
 
     # This is the step when the tibble with a list column becomes an entire
-    # data frame with over 1M students for all waves with the stuent and
+    # data frame with over 1M students for all waves with the student and
     # school data.
     merged_student_school = merge_student_school(merged_student_escs,
                                                  harmonized_school),
@@ -670,20 +669,24 @@ plan <-
     ############################################################################
 
     ## escs_dummy_data now contains the dummy column for the 90th/10th
+    ## and the quantile_cuts with 10% quantile groups for the escs variable
     created_escs_dummy = create_escs_dummy(merged_student_school, c(0.1, 0.9)),
 
     # This function adjusts and standardizes the test scores
     created_scores = create_scores(created_escs_dummy, reliability_pisa),
 
+    # Only keep countries with more than 50% of data for all years
+    filtered_data = filter(created_scores, country %in% final_countries) %>% sample_frac(10),
+
     # These two below are the final datasets for the modelling.
 
     ## data_modelling now contains the adjusted math/read column for all students
     ## tests scores
-    data_modelling = select(created_scores,
+    data_modelling = select(filtered_data,
                             wave,
                             country,
-                            adj_pvnum_MATH,
-                            adj_pvnum_READ,
+                            math,
+                            read,
                             SCHOOLID,
                             escs_dummy,
                             academic_content_aut,
@@ -704,7 +707,8 @@ plan <-
                             num_stu,
                             government_fund,
                             hisei,
-                            SCHLTYPE),
+                            SCHLTYPE,
+                            stu_weight),
 
     # Create another version of the data with imputed missing values
     imputed_data_modelling = impute_missing(data_modelling),
@@ -712,10 +716,10 @@ plan <-
     ############################# Modelling ####################################
     ############################################################################
 
-    # Run all combinations of tests/90th-10th/autonomy measure models
-    # with the unimputed dataset. These will all be named like
-    # aut_math_0_academic_content_aut, aut_read_0_academic_content_aut,
-    # aut_math_1_academic_content_aut, ...
+    ## # Run all combinations of tests/90th-10th/autonomy measure models
+    ## # with the unimputed dataset. These will all be named like
+    ## # aut_math_0_academic_content_aut, aut_read_0_academic_content_aut,
+    ## # aut_math_1_academic_content_aut, ...
     aut = target(
       generate_models(data_modelling,
                       dv = math_read,
@@ -740,6 +744,79 @@ plan <-
                         group_vals = c(0, 1),
                         aut_val = !!autonomy_measures)
     ),
+
+    ############################# Robustness ###################################
+    ############################################################################
+    # Re run the above models but for all countries (not only the chosen)
+    # 30
+    data_modelling_allcnt = select(created_scores,
+                                   wave,
+                                   country,
+                                   math,
+                                   read,
+                                   SCHOOLID,
+                                   escs_dummy,
+                                   academic_content_aut,
+                                   personnel_aut,
+                                   budget_aut,
+                                   hiring_aut,
+                                   salary_aut,
+                                   admittance_aut,
+                                   textbook_aut,
+                                   content_aut,
+                                   course_aut,
+                                   high_edu_broad,
+                                   books_hh,
+                                   native,
+                                   location,
+                                   gender,
+                                   PROPCERT,
+                                   num_stu,
+                                   government_fund,
+                                   hisei,
+                                   SCHLTYPE),
+    aut_allcnt = target(
+      generate_models(data_modelling_allcnt,
+                      dv = math_read,
+                      group = group_vals,
+                      aut_var = aut_val
+                      ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures)
+    ),
+
+    # Run the same models but for the 90th/10th good/worst schools
+    # to see whether this is related to schools
+    created_school_dummy = create_school_dummy(filtered_data,
+                                               probs = c(.1, .9)),
+    aut_schools = target(
+      generate_models_schools(created_school_dummy,
+                              dv = math_read,
+                              group = group_vals,
+                              aut_var = aut_val
+                              ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures)
+    ),
+
+    # Run the same models but add an interaction between the full
+    # quantiles (instead of only 90th/10th, the 10th, 20th, etc...)
+    # to see whether the slope changes from negative to positive
+    aut_interact = target(
+      generate_models_interaction(filtered_data,
+                                  dv = math_read,
+                                  group = group_vals,
+                                  aut_var = aut_val,
+                                  interact = type_interact
+                                  ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures,
+                        type_interact = c("quantiles_escs", "quantiles_escs_chr"))
+    ),
+
     ## ## res_math = target(
     ##   test_diff(merged_data, "MATH"),
     ##   # Because it's a list
@@ -848,8 +925,8 @@ plan <-
     ##     setNames(c(" ", gsub(" SES gap", "", gaps)))
     )
 
-## loadd(starts_with("impute_aut_"))
-## all_mods <- ls(pattern = "^impute_aut_")
+## loadd(starts_with("aut_schools_"))
+## all_mods <- ls(pattern = "aut_schools_")
 
 ## academic_content_mods <- all_mods[grepl("academic_", all_mods)]
 ## personnel_aut_mods <- all_mods[grepl("personnel_", all_mods)]
@@ -857,7 +934,8 @@ plan <-
 
 ## stargazer(
 ##   unlist(lapply(academic_content_mods, get)),
-##   type = "text"
+##   type = "text",
+##   digits = 2
 ## )
 
 ## stargazer(
@@ -923,3 +1001,34 @@ plan <-
 # different from 0
 ## sig_vs_sig(0.03, 0.01, 0.01, 0.01)
 
+
+############################# Playing around ##################################
+###############################################################################
+
+## filtered_data <- readd(filtered_data)
+## dv <- "math"
+## aut_var <- "academic_content_aut"
+
+## all_mods <- read_rds("test_allmods.rds")
+## stargazer(all_mods, type = "text")
+
+## library(emmeans)
+
+## all_slopes <-
+##   emtrends(
+##     all_mods[[2]],
+##     "quantiles_escs",
+##     "academic_content_aut",
+##   )
+
+
+## visreg::visreg(all_mods[[2]],
+##                "academic_content_aut",
+##                "quantiles_escs",
+##                breaks = 5,
+##                layout = c(10, 1),
+##                gg = TRUE,
+##                type = "contrast") +
+##   ylim(c(0, 0.02))
+
+## ggpredict(all_mods[[2]], c("academic_content_aut", "quantiles_escs")) %>% plot()

@@ -279,12 +279,18 @@ harmonize_student <- function(raw_student, recode_cntrys) {
                matches("ISCEDO"),
                # The ESCS index from pisa 2015
                matches("ESCS"),
-               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"))
+               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"),
+               # Weight column
+               matches("W_FSTUWT"),
+               )
 
       # Harmonize SCHOOLID variable for all waves
       if (unique(.x$wave) == "pisa2015") {
-        .x <- rename(.x, SCHOOLID = CNTSCHID)
+        .x <- rename(.x,
+                     SCHOOLID = CNTSCHID)
       }
+
+      .x <- rename(.x, stu_weight = W_FSTUWT)
 
       .x <-
         .x %>%
@@ -691,13 +697,7 @@ create_escs_dummy <- function(merged_student_school, probs) {
   merged_student_school <-
     map(separate_waves, function(.x) {
 
-      conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
-      weights_var <- conf$variables$weightFinal
-
-      ## # Harmonize education variable
-      ## if (unique(.x$wave) == "pisa2000") {
-      ##   .x$high_edu_broad <- dplyr::recode(.x$high_edu_broad, `6` = 7)
-      ## }
+      weights_var <- "stu_weight"
 
       country_split <- split(.x, .x$country)
 
@@ -749,7 +749,7 @@ create_scores <- function(created_escs_dummy, reliability) {
   all_waves <- map2(separate_waves, reliability, function(.x, .y) {
 
     conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
-    weights_var <- conf$variables$weightFinal
+    weights_var <- "stu_weight"
 
     # Look over each test and create an adjusted version of it and
     # then cbind them together to the original dataset
@@ -805,8 +805,7 @@ sample_size_calc <- function(df, probs, selected = FALSE, cnts = NULL) {
   cnt_to_bind <-
     map(df, function(df) {
 
-      conf <- if (unique(df$wave) == "pisa2015") pisa2015_conf else pisa_conf
-      weights_var <- conf$variables$weightFinal
+      weights_var <- "stu_weight"
 
       print(unique(df$wave))
 
@@ -1604,7 +1603,8 @@ select_cols_student <- function(harmonized_student) {
                high_edu_broad,
                books_hh,
                hisei,
-               native)
+               native,
+               stu_weight)
 
     })
 
@@ -1632,7 +1632,8 @@ impute_missing <- function(all_data) {
                       "admittance_aut",
                       "textbook_aut",
                       "content_aut",
-                      "course_aut"),
+                      "course_aut",
+                      "stu_weight"),
            cs = "country",
            ts = "wave",
            noms = c("high_edu_broad",
@@ -1699,6 +1700,7 @@ generate_models <- function(all_data, dv, group, aut_var) {
 
   all_mods <- map(all_formulas,
                   ~ lmer(.x, data = mod_df,
+                         weights = mod_df[["stu_weight"]],
                          control = lmerControl(optimizer = "Nelder_Mead")))
   all_mods
 }
@@ -1710,6 +1712,7 @@ create_school_dummy <- function(filtered_data, probs) {
   filtered_data <-
     map(separate_waves, function(.x) {
 
+      weights_var <- "stu_weight"
 
       country_split <- split(.x, .x$country)
       
@@ -1811,6 +1814,67 @@ generate_models_schools <- function(all_data, dv, group, aut_var) {
 
   all_mods <- map(all_formulas,
                   ~ lmer(.x, data = mod_df,
-                         control = lmerControl(optimizer ="Nelder_Mead")))
+                         weights = mod_df[["stu_weight"]],                         
+                         control = lmerControl(optimizer = "Nelder_Mead")))
+  all_mods
+}
+
+generate_models_interaction <- function(filtered_data,
+                                        dv,
+                                        aut_var,
+                                        interact = "quantiles_escs") {
+
+  all_formulas <-
+    list(
+      as.formula(
+        paste0(
+          dv,
+          " ~ ",
+          aut_var,
+          "*",
+          interact,
+          " + ",
+          "(1 | country) +
+         (1 | wave)"
+        )
+      )
+    )
+
+  fixed_variables <- c("gender",
+                       "high_edu_broad",
+                       "location",
+                       "prop_cert",
+                       "private",
+                       "num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native")
+
+  filtered_data <-
+    filtered_data %>% mutate_at(vars(ends_with("aut")), center) %>%
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE) %>%
+    select(all.vars(all_formulas[[1]]), fixed_variables) %>%
+    filter(complete.cases(.)) %>%
+    mutate(quantiles_escs_chr = factor(case_when(quantiles_escs %in% 1:3 ~ "Low",
+                                                 quantiles_escs %in% 4:7 ~ "Mid",
+                                                 quantiles_escs %in% 8:10 ~ "High"),
+                                       levels = c("Low", "Mid", "High")))
+
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
+    )
+
+  len <- length(all_formulas)
+  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
+
+  all_mods <- map(all_formulas,
+                  ~ lmer(.x, data = filtered_data,
+                         weights = mod_df[["stu_weight"]],                         
+                         control = lmerControl(optimizer = "Nelder_Mead")))
+
   all_mods
 }
