@@ -1195,7 +1195,6 @@ plot_evolution_gaps <- function(complete_data_topbottom) {
     complete_data_topbottom %>%
     filter(type_test == "math") %>%
     dplyr::select(wave, country, difference) %>%
-    filter(country %in% countries) %>%
     split(.$country) %>%
     map(lm_data) %>%
     enframer("country") %>%
@@ -1285,7 +1284,7 @@ perc_increase_fun <- function(df) {
   data_ready
 }
 
-perc_graph <- function(df, test, title, subtitle = NULL, ordered_cnt) {
+plot_perc_change <- function(df, test, title, subtitle = NULL, ordered_cnt) {
   df %>%
     enframe(name = "country") %>%
     mutate(value = map(value, ~ dplyr::select(.x, -country))) %>% 
@@ -1316,10 +1315,28 @@ perc_graph <- function(df, test, title, subtitle = NULL, ordered_cnt) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-evolution_ses_groups <- function(complete_data_topbottom, ordered_cnt) {
-  # You left off here. Plot the gap for 1 and 0 for all countries in the graph before.
+plot_evolution_ses <- function(complete_data_topbottom) {
+
+  lm_data <- function(df) {
+    lm(log(difference) ~ wave, data = df) %>%
+      broom::tidy() %>%
+      mutate(estimate = exp(estimate))
+  }
+
+
+  ordered_cnt <-
+    complete_data_topbottom %>%
+    filter(type_test == "math") %>%
+    dplyr::select(wave, country, difference) %>%
+    split(.$country) %>%
+    map(lm_data) %>%
+    enframer("country") %>%
+    filter(term == "wave") %>%
+    arrange(-estimate) %>%
+    pull(country)
+
+
   complete_data_topbottom %>%
-    filter(country %in% ordered_cnt) %>%
     mutate(country = factor(country, levels = ordered_cnt, ordered = TRUE)) %>%
     dplyr::select(wave, country, matches("*._math$")) %>%
     gather(ses, gap_size, matches("^\\d_mean_math$")) %>%
@@ -1332,17 +1349,20 @@ evolution_ses_groups <- function(complete_data_topbottom, ordered_cnt) {
     geom_line(stat = "smooth", method = "lm", aes(group = 1),
               formula = y ~ splines::ns(x, 1), linetype = "longdash",
               colour = "black") +
-    geom_errorbar(aes(ymin = `0_lower_math`, ymax = `0_upper_math`), width = 0.3, alpha = 0.4, color = "#F8766D") +
-    geom_errorbar(aes(ymin = `1_lower_math`, ymax = `1_upper_math`), width = 0.3, alpha = 0.4, color = "#00BFC4") +
+    geom_errorbar(aes(ymin = `0_lower_math`, ymax = `0_upper_math`), width = 0.1, alpha = 0.4, color = "#F8766D") +
+    geom_errorbar(aes(ymin = `1_lower_math`, ymax = `1_upper_math`), width = 0.2, alpha = 0.4, color = "#00BFC4") +
     scale_y_continuous(name = "Standardized test scores (mean 0)") +
-    scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
+    scale_x_discrete(name = NULL, breaks = c(2000, 2003, 2006, 2009, 2012, 2015)) +
     scale_colour_discrete(name = NULL, labels = c("Low SES", "High SES")) +
     scale_shape_discrete(name = NULL, labels = c("Low SES", "High SES")) +
     ggtitle("Evolution of the achievement gap by top/bottom groups") +
     facet_wrap(~ country, ncol = 5) +
+    coord_fixed(ratio = 0.8) +
     theme_few() +
     theme(panel.spacing = unit(1, "lines"),
-          legend.position = "bottom")
+          legend.position = "bottom",
+          axis.text.x = element_text(size = 8)
+          )
 
 }
 

@@ -28,7 +28,6 @@ final_countries <- c("Finland",
                      "Austria",
                      "Australia",
                      "Sweden",
-                     "Slovakia",
                      "Czech Republic",
                      "Canada",
                      "Hungary",
@@ -215,7 +214,7 @@ f_ind <- function(.x) .x[[1]]
 enframer <- function(df, col_name = "name") {
   df %>%
     enframe(name = col_name) %>%
-    unnest()
+    unnest(cols = value)
 }
 
 print_table <- function(x, ...) {
@@ -721,13 +720,13 @@ plan <-
     ############################################################################
 
     plotted_academic_aut = plot_autonomy_public(harmonized_school,
-                                                countries,
+                                                final_countries,
                                                 academic_content_aut),
     plotted_personnel_aut = plot_autonomy_public(harmonized_school,
-                                                 countries,
+                                                 final_countries,
                                                  personnel_aut),
     plotted_budget_aut = plot_autonomy_public(harmonized_school,
-                                              countries,
+                                              final_countries,
                                               budget_aut),
 
     calculated_corr_aut = calculate_corr_aut(harmonized_school),
@@ -737,13 +736,14 @@ plan <-
 
     p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom),
     top_bottom_perc = perc_increase_fun(complete_data_topbottom),
-    p2_perc_change = perc_graph(
+    p2_perc_change = plot_perc_change(
       top_bottom_perc,
       "math",
       "90/10 achievement gap",
       "Percentage change from 2000 to 2015",
       countries
     ),
+    p3_evolution_ses = plot_evolution_ses(complete_data_topbottom),
 
     ############################# Modelling ####################################
     ############################################################################
