@@ -299,6 +299,30 @@ harmonize_student <- function(raw_student, recode_cntrys) {
       .x
     })
 
+  raw_student$value <-
+    map(raw_student$value, ~ {
+
+      escs_col <- if (unique(.x$wave) == "pisa2015") "ESCS" else " "
+
+      .x %>%
+        select(country,
+               wave,
+               SCHOOLID,
+               stu_id,
+               ## escs_dummy,
+               starts_with("PV"),
+               contains(escs_col),
+               contains("W_FSTUWT"),
+               AGE,
+               gender,
+               high_edu_broad,
+               books_hh,
+               hisei,
+               native,
+               stu_weight)
+
+    })
+
   raw_student
 }
 
@@ -379,7 +403,7 @@ harmonize_school <- function(loaded_school) {
       mutate(SCHOOLID = as.character(SCHOOLID))
   }
 
-  # PISA 20000
+  # PISA 2000
   loaded_school$value[[1]] <-
     loaded_school$value[[1]] %>%
     as_tibble() %>%
@@ -540,7 +564,12 @@ harmonize_school <- function(loaded_school) {
 
   loaded_school$value <- map(loaded_school$value, ~ {
     .x %>%
-      mutate(SCHLTYPE = as.character(SCHLTYPE),
+      mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
+             SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "Private",
+                                  SCHLTYPE %in% "3" ~ "Public",
+                                  SCHLTYPE %in% c("Government", "Public") ~ "Public",
+                                  str_detect(SCHLTYPE, "^Private") ~ "Private",
+                                  TRUE ~ NA_character_),
              academic_content_aut = rowMeans(select(., course_aut, content_aut, textbook_aut)),
              personnel_aut = rowMeans(select(., hiring_aut, salary_aut))) %>% 
       mutate_all(unclass) %>%
@@ -568,16 +597,16 @@ harmonize_school <- function(loaded_school) {
   loaded_school
 }
 
-plot_autonomy <- function(harmonized_school, cntrys) {
+plot_autonomy_public <- function(harmonized_school, cntrys, autonomy_var) {
+  autonomy_var <- enquo(autonomy_var)
 
   summarize_aut <- function(df_pisa, wave) {
     df_pisa %>%
-      group_by(COUNTRY) %>%
+      filter(SCHLTYPE == "Public",
+             !is.na(location)) %>% 
+      group_by(COUNTRY, location) %>%
       summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>%
-      mutate(wave = wave) %>%
-      pivot_longer(ends_with("aut"),
-                   names_to = "aut",
-                   values_to = "vals")
+      mutate(wave = wave)
   }
 
 
@@ -597,14 +626,16 @@ plot_autonomy <- function(harmonized_school, cntrys) {
                       sum_sc2015)
 
   sum_sc %>%
+    filter(!is.na(location)) %>% 
     mutate(wave = factor(wave, levels = paste0("pisa", seq(2000, 2015, by = 3)),
                          ordered = TRUE)) %>%
     filter(COUNTRY %in% cntrys) %>% 
-    ggplot(aes(wave, vals, group = aut, linetype = aut, color = aut)) +
+    ggplot(aes(wave, !!autonomy_var, color = location, group = location)) +
     geom_point() +
     geom_line() +
     ## scale_color_manual(values = c("black", "grey60")) +
-    facet_wrap(~ COUNTRY)
+    facet_wrap(~ COUNTRY) +
+    theme_minimal()
 
 }
 
@@ -676,13 +707,7 @@ merge_student_school <- function(merged_student_escs, harmonized_school) {
              harmonized_school$value,
              inner_join,
              by = c("country" = "COUNTRY", "SCHOOLID")) %>%
-    mutate(PROPCERT = ifelse(PROPCERT > 9000, NA_real_, PROPCERT),
-           SCHLTYPE = case_when(SCHLTYPE %in% c("1", "2") ~ "Private",
-                                SCHLTYPE %in% "3" ~ "Public",
-                                SCHLTYPE %in% c("Government", "Public") ~ "Public",
-                                str_detect(SCHLTYPE, "^Private") ~ "Private",
-                                TRUE ~ NA_character_),
-           gender = case_when(gender %in% c("1", "Female") ~ "Female",
+    mutate(gender = case_when(gender %in% c("1", "Female") ~ "Female",
                               gender %in% c("2", "Male") ~ "Male",
                               TRUE ~ NA_character_)
            )
@@ -690,7 +715,7 @@ merge_student_school <- function(merged_student_escs, harmonized_school) {
   merged_student_school
 }
 
-create_escs_dummy <- function(merged_student_school, probs) {
+create_escs_dummy <- function(merged_student_school, probs, reliability) {
 
   separate_waves <- split(merged_student_school, merged_student_school$wave)
 
@@ -737,7 +762,47 @@ create_escs_dummy <- function(merged_student_school, probs) {
     })
 
   merged_student_school <- bind_rows(merged_student_school)
-  merged_student_school
+
+  ## This function adjusts and standardizes the test scores
+  merged_student_school_scores <- create_scores(merged_student_school,
+                                                reliability)
+  ## data_modelling now contains the adjusted math/read column for all students
+  ## tests scores
+
+  selected_cols  <- select(merged_student_school_scores,
+                           wave,
+                           country,
+                           math,
+                           read,
+                           SCHOOLID,
+                           escs_dummy,
+                           academic_content_aut,
+                           personnel_aut,
+                           budget_aut,
+                           hiring_aut,
+                           salary_aut,
+                           admittance_aut,
+                           textbook_aut,
+                           content_aut,
+                           course_aut,
+                           high_edu_broad,
+                           books_hh,
+                           native,
+                           location,
+                           gender,
+                           PROPCERT,
+                           num_stu,
+                           government_fund,
+                           hisei,
+                           SCHLTYPE,
+                           quantiles_escs,
+                           stu_weight)
+
+  # Adds 90th/10th school dummy
+  schools_dummy <- create_school_dummy(selected_cols,
+                                       probs = c(.1, .9))
+  
+  schools_dummy
 }
 
 create_scores <- function(created_escs_dummy, reliability) {
@@ -1116,7 +1181,9 @@ diff_increase_fun <- function(df) {
   data_ready
 }
 
-order_cnt <- function(complete_data_topbottom, countries) {
+
+plot_evolution_gaps <- function(complete_data_topbottom) {
+
   lm_data <- function(df) {
     lm(log(difference) ~ wave, data = df) %>%
       broom::tidy() %>%
@@ -1135,13 +1202,6 @@ order_cnt <- function(complete_data_topbottom, countries) {
     filter(term == "wave") %>%
     arrange(-estimate) %>%
     pull(country)
-
-  ordered_cnt
-}
-
-
-plot_evolution_gaps <- function(complete_data_topbottom,
-                                ordered_cnt) {
 
   diff_data <-
     diff_increase_fun(complete_data_topbottom) %>%
@@ -1582,36 +1642,6 @@ calculate_corr_aut_change <- function(harmonized_school) {
 
 }
 
-select_cols_student <- function(harmonized_student) {
-
-  harmonized_student$value <-
-    map(harmonized_student$value, ~ {
-
-      escs_col <- if (unique(.x$wave) == "pisa2015") "ESCS" else " "
-
-      .x %>%
-        select(country,
-               wave,
-               SCHOOLID,
-               stu_id,
-               ## escs_dummy,
-               starts_with("PV"),
-               contains(escs_col),
-               contains("W_FSTUWT"),
-               AGE,
-               gender,
-               high_edu_broad,
-               books_hh,
-               hisei,
-               native,
-               stu_weight)
-
-    })
-
-  harmonized_student
-
-}
-
 impute_missing <- function(all_data) {
 
   all_data_imput <-
@@ -1705,11 +1735,11 @@ generate_models <- function(data_modelling, dv, group, aut_var) {
   all_mods
 }
 
-create_school_dummy <- function(filtered_data, probs) {
+create_school_dummy <- function(selected_cols, probs) {
 
-  separate_waves <- split(filtered_data, filtered_data$wave)
+  separate_waves <- split(selected_cols, selected_cols$wave)
 
-  filtered_data <-
+  selected_cols <-
     map(separate_waves, function(.x) {
 
       weights_var <- "stu_weight"
@@ -1744,7 +1774,6 @@ create_school_dummy <- function(filtered_data, probs) {
           country %>% 
           left_join(select(school_avgs, SCHOOLID, starts_with("good")),
                     by = "SCHOOLID")
-
       })
 
       row_binded_wave <-
@@ -1757,8 +1786,8 @@ create_school_dummy <- function(filtered_data, probs) {
       row_binded_wave
     })
 
-  filtered_data <- bind_rows(filtered_data)
-  filtered_data
+  selected_cols <- bind_rows(selected_cols)
+  selected_cols
 }
 
 generate_models_schools <- function(data_modelling, dv, group, aut_var) {
@@ -1813,7 +1842,6 @@ generate_models_schools <- function(data_modelling, dv, group, aut_var) {
 
   all_mods <- map(all_formulas,
                   ~ lmer(.x, data = data_modelling,
-                         weights = stu_weight,
                          control = lmerControl(optimizer = "Nelder_Mead")))
   all_mods
 }
@@ -1851,16 +1879,17 @@ generate_models_interaction <- function(filtered_data,
                        "native")
 
   filtered_data <-
-    filtered_data %>% mutate_at(vars(ends_with("aut")), center) %>%
+    filtered_data %>%
+    mutate_at(vars(ends_with("aut")), center) %>%
+    mutate(quantiles_escs_chr = factor(case_when(quantiles_escs %in% 1 ~ "Low",
+                                                 quantiles_escs %in% 4:5 ~ "Mid",
+                                                 quantiles_escs %in% 10 ~ "High"),
+                                       levels = c("Low", "Mid", "High"))) %>% 
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE) %>%
     select(all.vars(all_formulas[[1]]), fixed_variables, stu_weight) %>%
     filter(complete.cases(.)) %>%
-    mutate(quantiles_escs_chr = factor(case_when(quantiles_escs %in% 1:3 ~ "Low",
-                                                 quantiles_escs %in% 4:7 ~ "Mid",
-                                                 quantiles_escs %in% 8:10 ~ "High"),
-                                       levels = c("Low", "Mid", "High")),
-           num_stu = num_stu / 100)
+    mutate(num_stu = num_stu / 100)
 
   # Final model which has all control variables
   for_fixed <-
@@ -1878,4 +1907,60 @@ generate_models_interaction <- function(filtered_data,
                          control = lmerControl(optimizer = "Nelder_Mead")))
 
   all_mods
+}
+
+generate_models_allaut <- function(data_modelling, dv, group) {
+
+  model_formula <-
+    as.formula(
+      paste0(
+        dv,
+        " ~ academic_content_aut + personnel_aut + budget_aut",
+        " + ",
+        "(1 | country) +
+         (1 | wave)"
+      )
+    )
+
+  fixed_variables <- c("gender",
+                       "high_edu_broad",
+                       "location",
+                       "prop_cert",
+                       "private",
+                       "num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native")
+
+  data_modelling <-
+    data_modelling %>%
+    filter(escs_dummy == group) %>% 
+    mutate_at(vars(ends_with("aut")), center) %>%
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE) %>%
+    select(all.vars(model_formula), fixed_variables, stu_weight) %>%
+    filter(complete.cases(.)) %>%
+    mutate(num_stu = num_stu / 100)
+
+  all_formulas <- formula_gen(model_formula)
+
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
+    )
+
+  len <- length(all_formulas)
+  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
+
+  all_mods <- map(all_formulas, ~ {
+    lmer(.x,
+         data = data_modelling,
+         weights = stu_weight,
+         control = lmerControl(optimizer = "Nelder_Mead"))
+  })
+  
+  all_mods
+  
 }

@@ -25,7 +25,6 @@ pisa2015_conf <- list(
 # Final countries used in the analysis (30)
 # which have at least 50% of all years available (6 years)
 final_countries <- c("Finland",
-                     "France",
                      "Austria",
                      "Australia",
                      "Sweden",
@@ -61,7 +60,7 @@ final_countries <- c("Finland",
 
 # Selected countries for plotting
 countries <- c("Finland",
-               "France",
+               # "France",
                # "New Zealand",
                "Austria",
                "Australia",
@@ -140,23 +139,24 @@ quantile_missing <- function(df, weights, probs, ch_var = "escs_trend") {
 
 # It returns a dataframe for each survey with all countries and respective coefficients and
 # standard errors.
-test_diff <- function(df, test) {
+calculate_gap <- function(data_modelling, test) {
+  separate_waves <- split(data_modelling, data_modelling$wave)
 
-  map(df, function(.x) {
-    conf <- if (unique(.x$wave) == "pisa2015") pisa2015_conf else pisa_conf
-    weights_var <- conf$variables$weightFinal
+  separate_gaps <- map(separate_waves, function(.x) {
+    weights_var <- "stu_weight"
 
     mod_formula <-
       as.formula(
         paste0(
-          paste0("adj_pvnum_", test), " ~ escs_dummy + (1 + escs_dummy | country)"
+          test, " ~ escs_dummy + (1 + escs_dummy | country)"
         )
       )
 
     mod2 <-
       lmer(mod_formula,
            data = .x,
-           weights = .x[[weights_var]])
+           weights = .x[[weights_var]],
+           control = lmerControl(optimizer = "Nelder_Mead"))
 
     # Take the country coefficients (absolute coefficients)
     country_coef <-
@@ -185,6 +185,8 @@ test_diff <- function(df, test) {
     message(paste0(unique(.x$wave), " modeling done"))
     list(results, mod2)
   })
+
+  separate_gaps
 }
 
 
@@ -624,94 +626,124 @@ plan <-
     # See the notes in /code/read_raw_data.R. It's called raw_data.
 
     # All read_* functions return a list with the data for each wave
-    loaded_school = load_school(raw_data_dir),
+    loaded_school = target(
+      load_school(raw_data_dir),
+      format = "fst"
+     ),
     # This is the socio-economic index harmonized to be used across all waves
-    loaded_escs = load_escs(raw_data_dir, recode_cntrys),
+    loaded_escs = target(
+      load_escs(raw_data_dir, recode_cntrys),
+      format = "fst"      
+     ),
 
     ############################# Harmonize data ###############################
     ############################################################################
 
-    harmonized_student = harmonize_student(
-      raw_student,
-      recode_cntrys
+    harmonized_student = target(
+      harmonize_student(
+        raw_student,
+        recode_cntrys
+      ),
+      format = "fst"      
     ),
     rm_raw = delete_raw_data(), # Delete the student raw data after harmonized
     # Check how we're doing with memory
     test = target(print_memory(), trigger = trigger(change = sample(1000))),
-    harmonized_school = harmonize_school(loaded_school),
-
-    # select_cols_student contains the only variables used in the analysis
-    # if you want to add new variable, put them here.
-    selected_cols_student = select_cols_student(harmonized_student),
+    harmonized_school = target(
+      harmonize_school(loaded_school),
+      format = "fst"
+    ),
 
     ############################# Merge data ###################################
     ############################################################################
 
     # Merge the student data with the harmonized loaded_escs (NOT the school data)
-    merged_student_escs = merge_student_escs(selected_cols_student, loaded_escs),
+    merged_student_escs = target(
+      merge_student_escs(harmonized_student, loaded_escs),
+      format = "fst"      
+    ),
 
     # This is the step when the tibble with a list column becomes an entire
     # data frame with over 1M students for all waves with the student and
     # school data.
-    merged_student_school = merge_student_school(merged_student_escs,
-                                                 harmonized_school),
-
-    ############################# Descriptives #################################
-    ############################################################################
-
-    plotted_autonomy = plot_autonomy(harmonized_school, countries),
-    calculated_corr_aut = calculate_corr_aut(harmonized_school),
-    # Calculate the correlation between autonomy measures in their change
-    # from 2000 to 2015
-    calculated_corr_aut_change = calculate_corr_aut_change(harmonized_school),
+    merged_student_school = target(
+      merge_student_school(merged_student_escs,
+                           harmonized_school),
+      format = "fst"
+    ),
 
     ############################# Wrangling for modelling ######################
     ############################################################################
 
     ## escs_dummy_data now contains the dummy column for the 90th/10th
     ## and the quantile_cuts with 10% quantile groups for the escs variable
-    created_escs_dummy = create_escs_dummy(merged_student_school, c(0.1, 0.9)),
+    ## This function also adjusts and standardizes the test scores    
+    ## It also only keep countries with more than 50% of data for all years
+    created_escs_dummy = target(
+      create_escs_dummy(merged_student_school,
+                        c(0.1, 0.9),
+                        reliability_pisa),
+      format = "fst"
+    ),
 
-    # This function adjusts and standardizes the test scores
-    created_scores = create_scores(created_escs_dummy, reliability_pisa),
-
-    # Only keep countries with more than 50% of data for all years
-    filtered_data = filter(created_scores, country %in% final_countries),
-
-    # These two below are the final datasets for the modelling.
-
-    ## data_modelling now contains the adjusted math/read column for all students
-    ## tests scores
-    data_modelling = select(filtered_data,
-                            wave,
-                            country,
-                            math,
-                            read,
-                            SCHOOLID,
-                            escs_dummy,
-                            academic_content_aut,
-                            personnel_aut,
-                            budget_aut,
-                            hiring_aut,
-                            salary_aut,
-                            admittance_aut,
-                            textbook_aut,
-                            content_aut,
-                            course_aut,
-                            high_edu_broad,
-                            books_hh,
-                            native,
-                            location,
-                            gender,
-                            PROPCERT,
-                            num_stu,
-                            government_fund,
-                            hisei,
-                            SCHLTYPE,
-                            stu_weight),
+    ## Keeps countries with more than 50% of data for all years
+    data_modelling = target(
+      filter(created_escs_dummy,
+             country %in% final_countries),
+      format = "fst"
+    ),
 
     # Create another version of the data with imputed missing values
-    imputed_data_modelling = impute_missing(data_modelling),
+    imputed_data_modelling = target(
+      impute_missing(data_modelling),
+      format = "fst"
+    ),
+
+    #### Create all data to visualize the achievement gap ####
+    res_math = target(
+      calculate_gap(data_modelling, "math"),
+      # Because it's a list
+      format = "rds"
+    ),
+
+    res_read = target(
+      calculate_gap(data_modelling, "read"),
+      # Because it's a list
+      format = "rds"
+    ),
+    results_math = map(res_math, f_ind),
+    results_read = map(res_read, f_ind),
+    complete_data_topbottom = pisa_preparer(results_math,
+                                            results_read,
+                                            type_txt = "90th/10th SES gap"),
+
+    ############################# Descriptives #################################
+    ############################################################################
+
+    plotted_academic_aut = plot_autonomy_public(harmonized_school,
+                                                countries,
+                                                academic_content_aut),
+    plotted_personnel_aut = plot_autonomy_public(harmonized_school,
+                                                 countries,
+                                                 personnel_aut),
+    plotted_budget_aut = plot_autonomy_public(harmonized_school,
+                                              countries,
+                                              budget_aut),
+
+    calculated_corr_aut = calculate_corr_aut(harmonized_school),
+    # Calculate the correlation between autonomy measures in their change
+    # from 2000 to 2015
+    calculated_corr_aut_change = calculate_corr_aut_change(harmonized_school),
+
+    p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom),
+    top_bottom_perc = perc_increase_fun(complete_data_topbottom),
+    p2_perc_change = perc_graph(
+      top_bottom_perc,
+      "math",
+      "90/10 achievement gap",
+      "Percentage change from 2000 to 2015",
+      countries
+    ),
 
     ############################# Modelling ####################################
     ############################################################################
@@ -749,35 +781,8 @@ plan <-
     ############################################################################
     # Re run the above models but for all countries (not only the chosen)
     # 30
-    data_modelling_allcnt = select(created_scores,
-                                   wave,
-                                   country,
-                                   math,
-                                   read,
-                                   SCHOOLID,
-                                   escs_dummy,
-                                   academic_content_aut,
-                                   personnel_aut,
-                                   budget_aut,
-                                   hiring_aut,
-                                   salary_aut,
-                                   admittance_aut,
-                                   textbook_aut,
-                                   content_aut,
-                                   course_aut,
-                                   high_edu_broad,
-                                   books_hh,
-                                   native,
-                                   location,
-                                   gender,
-                                   PROPCERT,
-                                   num_stu,
-                                   government_fund,
-                                   hisei,
-                                   SCHLTYPE,
-                                   stu_weight),
     aut_allcnt = target(
-      generate_models(data_modelling_allcnt,
+      generate_models(created_escs_dummy,
                       dv = math_read,
                       group = group_vals,
                       aut_var = aut_val
@@ -787,12 +792,9 @@ plan <-
                         aut_val = !!autonomy_measures)
     ),
 
-    # Run the same models but for the 90th/10th good/worst schools
-    # to see whether this is related to schools
-    created_school_dummy = create_school_dummy(filtered_data,
-                                               probs = c(.1, .9)),
+    # Rerun using the school 90/10 dummy
     aut_schools = target(
-      generate_models_schools(created_school_dummy,
+      generate_models_schools(data_modelling,
                               dv = math_read,
                               group = group_vals,
                               aut_var = aut_val
@@ -803,10 +805,10 @@ plan <-
     ),
 
     # Run the same models but add an interaction between the full
-    # quantiles (instead of only 90th/10th, the 10th, 20th, etc...)
+    # quantiles (instead of only 90th/10th, the Low, Mid, High)
     # to see whether the slope changes from negative to positive
     aut_interact = target(
-      generate_models_interaction(filtered_data,
+      generate_models_interaction(data_modelling,
                                   dv = math_read,
                                   aut_var = aut_val,
                                   interact = type_interact
@@ -816,21 +818,17 @@ plan <-
                         type_interact = c("quantiles_escs", "quantiles_escs_chr"))
     ),
 
-    ## ## res_math = target(
-    ##   test_diff(merged_data, "MATH"),
-    ##   # Because it's a list
-    ##   format = "rds"
-    ## ),
-    ## res_read = target(
-    ##   test_diff(merged_data, "READ"),
-    ##   # Because it's a list
-    ##   format = "rds"
-    ## ),
-    ## results_math = map(res_math, f_ind),
-    ## results_read = map(res_read, f_ind),
-    ## complete_data_topbottom = pisa_preparer(results_math,
-    ##                                         results_read,
-    ##                                         type_txt = "90th/10th SES gap"),
+    # Run the same models but with the three autonomy
+    # measures pooled.
+    aut_allpooled = target(
+      generate_models_allaut(data_modelling,
+                             dv = math_read,
+                             group = group_vals
+                             ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1))
+    )
+
     ##   sample_tables_topbottom = sample_size_calc(
     ##     merged_data,
     ##     c(.1, .9),
@@ -843,17 +841,6 @@ plan <-
     ##     complete_data_topbottom
     ##   ),
     ##   descriptives_tracking = tracking_descriptives(tracking_data, countries),
-    ## ordered_cnt = order_cnt(complete_data_topbottom, countries),
-    ## p1_evolution_gaps = plot_evolution_gaps(complete_data_topbottom,
-    ##                                         ordered_cnt),
-    ##   top_bottom_perc = perc_increase_fun(complete_data_topbottom),
-    ##   p2_perc_change = perc_graph(
-    ##     top_bottom_perc,
-    ##     "math",
-    ##     "90/10 achievement gap",
-    ##     "Percentage change from 2000 to 2015",
-    ##     countries
-    ##   ),
     ##   p3_evolution_ses = evolution_ses_groups(complete_data_topbottom, countries),
     ##   avg_sd_increase_high = avg_increase_fun(complete_data_topbottom, 1),
     ##   avg_sd_increase_low = avg_increase_fun(complete_data_topbottom, 0),
@@ -1000,7 +987,6 @@ plan <-
 # different from 0
 ## sig_vs_sig(0.03, 0.01, 0.01, 0.01)
 
-
 ############################# Playing around ##################################
 ###############################################################################
 
@@ -1008,17 +994,28 @@ plan <-
 ## dv <- "math"
 ## aut_var <- "academic_content_aut"
 
-## all_mods <- read_rds("test_allmods.rds")
-## stargazer(all_mods, type = "text")
+## filtered_data <- readd(filtered_data)
+## filtered_data %>% select(escs_dummy, quantiles_escs)
+
+## filtered_data %>%
+##   select(escs_dummy, quantiles_escs) %>%
+##   filter(!is.na(escs_dummy)) %>%
+##   count(escs_dummy, quantiles_escs)
+
+## all_mods <- readd(aut_math_1_academic_content_aut)
+## all_mods <- readd(aut_allpooled_read_1)
+## stargazer::stargazer(all_mods, type = "text")
 
 ## library(emmeans)
 
 ## all_slopes <-
 ##   emtrends(
 ##     all_mods[[2]],
-##     "quantiles_escs",
+##     "quantiles_escs_chr",
 ##     "academic_content_aut",
 ##   )
+
+## plot(all_slopes)
 
 
 ## visreg::visreg(all_mods[[2]],

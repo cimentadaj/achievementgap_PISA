@@ -200,6 +200,12 @@ Version=1.77
 Source=CRAN
 Hash=8cfc3b9a39a1f80b83962e66ddc9daa9
 
+[R/Package/StanHeaders]
+Package=StanHeaders
+Version=2.19.0
+Source=CRAN
+Hash=bd3f90129c512c1d54183293c25dd9b1
+
 [R/Package/TMB]
 Package=TMB
 Version=1.7.15
@@ -765,6 +771,12 @@ RemotePkgType=source
 RemoteSha=0.3.1
 Hash=4a15d8cfc931554fb2e71d66c1313b45
 
+[R/Package/inline]
+Package=inline
+Version=0.3.15
+Source=CRAN
+Hash=23b8ec1bdea91c914af35b2c21dff286
+
 [R/Package/insight]
 Package=insight
 Version=0.6.0.9000
@@ -880,6 +892,12 @@ RemotePkgType=source
 RemoteSha=0.9-37
 Hash=6b16ba7499ae5dffd8e751864d59b4e9
 
+[R/Package/loo]
+Package=loo
+Version=2.1.0
+Source=CRAN
+Hash=74d62fb96be363e317bdc53a45fcd4e7
+
 [R/Package/lubridate]
 Package=lubridate
 Version=1.7.4
@@ -908,6 +926,12 @@ Package=markdown
 Version=1.1
 Source=CRAN
 Hash=80e1f73841614fa35f82a85d66fb41da
+
+[R/Package/matrixStats]
+Package=matrixStats
+Version=0.55.0
+Source=CRAN
+Hash=28f650d606e706f94858de75e7c224f3
 
 [R/Package/maxLik]
 Package=maxLik
@@ -1397,6 +1421,12 @@ Package=rsm
 Version=2.10
 Source=CRAN
 Hash=b61abca855563f19e27fa8457d0e20c3
+
+[R/Package/rstan]
+Package=rstan
+Version=2.19.2
+Source=CRAN
+Hash=6529a2e9f3c41619877c62ba930cd23b
 
 [R/Package/rstudioapi]
 Package=rstudioapi

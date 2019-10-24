@@ -16,7 +16,8 @@ dconf <- drake_config(
   ## See https://github.com/ropensci/drake/issues/960
   env = new.env(parent = globalenv()),
   ## lock_envir = TRUE,
-  memory_strategy = "memory"
+  memory_strategy = "memory",
+  garbage_collection = TRUE
 )
 
 source(here("code/read_raw_data.R"))
