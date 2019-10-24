@@ -827,6 +827,11 @@ plan <-
                              ),
       transform = cross(math_read = c("math", "read"),
                         group_vals = c(0, 1))
+    ),
+    paper = render(
+      knitr_in(here("paper/achievement_gap.Rmd")),
+      output_file = file_out(here("paper/achievement_gap.pdf")),
+      quiet = TRUE
     )
 
     ##   sample_tables_topbottom = sample_size_calc(

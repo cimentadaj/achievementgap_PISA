@@ -1190,7 +1190,6 @@ plot_evolution_gaps <- function(complete_data_topbottom) {
       mutate(estimate = exp(estimate))
   }
 
-
   ordered_cnt <-
     complete_data_topbottom %>%
     filter(type_test == "math") %>%
@@ -1204,6 +1203,7 @@ plot_evolution_gaps <- function(complete_data_topbottom) {
 
   diff_data <-
     diff_increase_fun(complete_data_topbottom) %>%
+    map(select, -country) %>% 
     enframer("country") %>%
     filter(country %in% ordered_cnt) %>%
     dplyr::select(country, type_test, diff, contains("math")) %>%
@@ -1218,20 +1218,21 @@ plot_evolution_gaps <- function(complete_data_topbottom) {
   pooled_trendline %>%
     filter(type_test == "math") %>%
     ggplot(aes(as.character(wave), difference)) +
-    geom_point() +
-    geom_linerange(aes(ymin = 0, ymax = difference)) +
-    geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.3) +
+    ## geom_point(size = 20) +
+    ## geom_linerange(aes(ymin = 0, ymax = difference)) +
+    ## geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.3) +
     geom_line(data = pooled_trendline, stat = "smooth", method = "lm", aes(group = 1),
               formula = y ~ splines::ns(x, 2), size = 0.7,
-              colour = "red") +
+              colour = "red",
+              size = 8) +
     facet_wrap(~ country, ncol = 5) +
-    scale_y_continuous(name = "90/10 gap in SD", expand = c(0, 0), lim = c(0, 3)) +
-    scale_x_discrete(name = NULL, breaks = c(2000, 2009, 2015)) +
+    scale_y_continuous(name = "Average Difference in Standardized Test Scores \n Between the 90th/10th Percentiles in Mathematics", expand = c(0, 0), lim = c(0, 3)) +
+    scale_x_discrete(name = NULL, breaks = seq(2000, 2015, 3)) +
     theme_few() +
-    theme(panel.spacing = unit(1, "lines"),
-          panel.grid.major.y = element_line(colour = "grey")) +
-    ggtitle("Evolution of the 90/10 achievement gap")
-
+    theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
+          axis.text.x = element_text(size = rel(9), angle = 45, hjust = 1),
+          text = element_text(size = rel(13)),
+          strip.text = element_text(size = 110))
 }
 
 # Show the rates at which is increasing/decreasing

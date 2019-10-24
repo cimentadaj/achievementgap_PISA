@@ -1,5 +1,6 @@
 library(car)
 library(drake)
+library(rmarkdown)
 library(here)
 library(xtable)
 library(patchwork) # devtools::install_github("thomasp85/patchwork")
