@@ -2,9 +2,9 @@
 # If you use supporting scripts like the ones below,
 # you will need to supply them yourself. Examples:
 # https://github.com/wlandau/drake-examples/tree/master/main/R
-source("code/01-packages.R")  # Load your packages, e.g. library(drake).
-source("code/02-analysis.R") # Define your custom code as a bunch of functions.
-source("code/plan.R")      # Create your drake plan.
+source(here::here("code/01-packages.R"))  # Load your packages, e.g. library(drake).
+source(here::here("code/02-analysis.R")) # Define your custom code as a bunch of functions.
+source(here::here("code/plan.R"))      # Create your drake plan.
 
 # options(clustermq.scheduler = "multicore")
 # _drake.R must end with a call to drake_config().

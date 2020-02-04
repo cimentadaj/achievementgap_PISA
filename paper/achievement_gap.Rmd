@@ -1,32 +1,47 @@
 ---
-title: Fake title
-runninghead: Cimentada
-author:
-- name: Jorge Cimentada
-  num: 1
-address:
-- num: 1
-  org: Laboratory of Digital and Computational Demography, Max Planck Institute of Demographic Research
-corrauth: "Konrad-Zuse-Str. 1. Rostock, Germany"
-email: cimentada@demogr.mpg.de
-abstract: "The literature on achievement inequality has recently started to focus on the dynamics of the socio-economic achievement gap in cognitive abilities. The main findings come from research in the U.S. revealing that the 90th/10th income achievement gap has widened 50% in the last 30 years. This chapter aims to investigate whether there are patterns in the evolution of the achievement gap from a comparative perspective. Using 15 years of data in 32 countries from the Program for International Student Assessment (PISA), I find that there is considerable variation in the way in which the gap between the average score of students above (and at) the 90th percentile and below (and) the 10th percentile is evolving. The prime examples come from the U.S. and Germany closing at about 50% and 30% in the last 15 years while France is widening at a similar rate. I find that curricular tracking and vocational enrollment explain 40% of the variance in the achievement gap between countries and show that the relationship is conditioned by a strong interaction. Low curricular tracking is associated with a small achievement gap, whereas high levels of curricular tracking is associated with wide achievement gaps. However, once tracking is coupled with high vocational enrollment this can remedy the potential adverse effects and reduce the gap by .6 standard deviation. I use simulations to show that switching to less curricular tracking can help decrease a country’s SES gap by about 10% while switching to more tracking would increase the achievement gap by about 51% percent."
-keywords: academic achievement, education inequality, school autonomy, international comparison
-classoption:
-  - Royal
-  - times
-bibliography: bibfile
-bibliographystyle: sageh
+title: 'A New Perspective On The International Achievement Gap: Is Academic Autonomy Good For Everyone?'
+author: Jorge Cimentada
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+header-includes:
+  - \usepackage{pdflscape}
+  - \newcommand{\blandscape}{\begin{landscape}}
+  - \newcommand{\elandscape}{\end{landscape}}
+bibliography: bibfile.bib
 output:
-  rticles::sage_article:
-    keep_tex: yes
+  pdf_document:
+    number_sections: true
+abstract: There is a growing literature and interest on the study of the cognitive achievement gap between the top and bottom SES groups. Amidst public concern for this distancing between social classes, researchers have been unable to find an adequate explanation for the increasing cross-country inequality. In this paper, I argue that we need to refocus our efforts towards understanding better what correlates with the academic performance of both SES groups separately. By shifting attention to the amount of school autonomy that different schools have, I show that school autonomy over academic content, courses and text books is associated with a decrease of test scores of nearly .4 standard deviations for the bottom 10% performers in mathematics and literacy -- a whole grade's worth of knowledge. I show that this relationship holds under several specifications, including fixed effect models. In contrast, the same relationship turns positive when relating to the top 10% of students but it's much weaker than for the bottom performers. These results point out that perhaps an explanation to the changing gaps is not symmetrical between groups but rather group specific. The importance of understanding what affects separate SES groups is paramount to understanding the achievement gap and these preliminary results can have important implications in policy making as they speak directly to education policy makers trying to fine tune the autonomy measures of their country.
 ---
 
-```{r }
+<!-- --- -->
+<!-- title: Fake title -->
+<!-- runninghead: Cimentada -->
+<!-- author: -->
+<!-- - name: Jorge Cimentada -->
+<!--   num: 1 -->
+<!-- address: -->
+<!-- - num: 1 -->
+<!--   org: Laboratory of Digital and Computational Demography, Max Planck Institute of Demographic Research -->
+<!-- corrauth: "Konrad-Zuse-Str. 1. Rostock, Germany" -->
+<!-- email: cimentada@demogr.mpg.de -->
+<!-- abstract: "The literature on achievement inequality has recently started to focus on the dynamics of the socio-economic achievement gap in cognitive abilities. The main findings come from research in the U.S. revealing that the 90th/10th income achievement gap has widened 50% in the last 30 years. This chapter aims to investigate whether there are patterns in the evolution of the achievement gap from a comparative perspective. Using 15 years of data in 32 countries from the Program for International Student Assessment (PISA), I find that there is considerable variation in the way in which the gap between the average score of students above (and at) the 90th percentile and below (and) the 10th percentile is evolving. The prime examples come from the U.S. and Germany closing at about 50% and 30% in the last 15 years while France is widening at a similar rate. I find that curricular tracking and vocational enrollment explain 40% of the variance in the achievement gap between countries and show that the relationship is conditioned by a strong interaction. Low curricular tracking is associated with a small achievement gap, whereas high levels of curricular tracking is associated with wide achievement gaps. However, once tracking is coupled with high vocational enrollment this can remedy the potential adverse effects and reduce the gap by .6 standard deviation. I use simulations to show that switching to less curricular tracking can help decrease a country’s SES gap by about 10% while switching to more tracking would increase the achievement gap by about 51% percent." -->
+<!-- keywords: academic achievement, education inequality, school autonomy, international comparison -->
+<!-- classoption: -->
+<!--   - Royal -->
+<!--   - times -->
+<!-- bibliography: bibfile -->
+<!-- bibliographystyle: sageh -->
+<!-- output: -->
+<!--   rticles::sage_article: -->
+<!--     keep_tex: yes -->
+<!-- --- -->
+
+```{r, echo = FALSE}
 knitr::opts_chunk$set(
   warning = FALSE,
   message = FALSE,
   echo = FALSE,
-  ## fig.width = 6,
+  fig.width = 6,
   ## fig.asp = 0.618,
   out.width = "70%",
   fig.align = "center",
@@ -34,23 +49,696 @@ knitr::opts_chunk$set(
   verbose = FALSE,
   results = "asis"
 )
+
 ```
 
-# The Body of the Article
 
-# Bibliography
 
-Link a `.bib` document via the YAML header, and bibliography will be printed at the very end (as usual). The default bibliography style is provided by Wiley as in `WileyNJD-AMA.bst`, do not delete that file.
+# Background
+## The National And International SES Achievement Gap
 
-Use the Rmarkdown equivalent of the \LaTeX citation system using `[@<name>]`. Example: [@Taylor1937], [@Knupp1999; @Kamm2000].
+The cognitive achievement gap between the most and least advantaged children is growing steeply over time [@chmielewskiglobal2019]. This pattern of increasing inequality between SES groups has already been investigated in countries such as the United States [@reardon2011] and other developed countries [@bradbury2015] but there is still much that is not known on the causes and correlates of the evolution of the SES achievement gap. This relationship is of particular importance for policy making as it can help understand the mechanisms under which different SES groups are faring better or worse under increasing economic and social inequality.
 
-To include all citation from the `.bib` file, add `\nocite{*}` before the end of the document.
+Most of the literature on achievement gaps has concentrated on comparing the magnitude of the differences between and within countries on the cognitive achievement gap [@micklewright2006; @reardon2011; @vandenberge2006]. This literature has shown that, similarly to the income distribution gap [@alvaredo2017; @milanovic2016], the SES cognitive achievement gap is also drastically different between countries. For example, evidence points out that the United States has the biggest achievement gap of all countries with a total of 1.25 standard deviations and Iceland has the narrowest gap with a gap centered at around 0.75 standard deviations [@reardon2016]. Amidst this growing concern, researchers have tried to focus on trying to explain why this gap is so different between countries. In particular, many have payed attention to inequality indicators as there seems to be some relationship with income inequality [@chmielewski2016] as well as with social inequality [@duru2005]. Others have discarded explanations such as the curricular setup of a country and the level of segregation given the weak correlations to the cross-country differences [@duru2005].
 
-```{r, fig.height = 90, fig.width = 60, out.width = "95%"}
-p1_plot <- readd(p1_evolution_gaps)
+However, nearly all of the previous studies focus on the cross-national comparison of the achievement gap. In recent years attention has shifted to studying the trends in achievement gap rather than solely focusing on the static SES gaps. The first attempts to study the *evolution* of the achievement gap was done in the United States and it documented that the gap in cognitive abilities between high-SES and low-SES children has been widening over the years [@reardon2011]. Using over 60 years of data on educational testing surveys, @reardon2011 found that not only has the cognitive gap between the 90th income percentile and the 10th income percentile grown over time, but it has grown faster and to be wider than the highly contested white-black achievement gap [@magnuson2008]. According to his findings, these gaps have actually reversed and we find that the income achievement gap is nearly twice as large as the black-white achievement gap (quite the opposite to 20 years back). Interestingly, the widening of the achievement gap has been paralleled by a growth of income inequality, which may be telling. @reardon2011 offers several possible links, with the most reasonable being that family investment patterns have changed so that high income families now invest more resources on their children. The explanation lies in the fact that increasing income became more strongly correlated with other positive family traits related to time allocation and welfare services.
+
+In a follow-up study, @reardon2016 uncovered a reversal of the trend. The follow-up study concentrated solely on kindergarten children in the U.S. for the years 1998, 2006 and 2010. They found that the 90th/10th income gap in readiness closed modestly. Furthermore, using data from fall and spring in the same kindergarten year, they calculated that the gap narrowed at a rate of 0.01 and 0.008 SD per year for mathematics and literacy between 1998 and 2010. They also calculated the same changes for a number of personality traits such as self-control and externalizing behavior and found similar results. In contrast, @reardon2011 finds that in a 30-year span the gap was systematically increasing at a rate of 0.02, something reasonably close to the previous estimates. Their results not only hold for the income achievement gap, but they also found a decline in the white-hispanic gap (although not for the white-black gap). The reasons why the authors find a reversal in the trend could be numerous and should be studied closely. They discuss a number of country-level indicators to explain this change and suggest that the reversal is likely due to the high increase of preschool enrollment from the low SES group. They build on their previous argument by suggesting that in this same period (1998 - 2010) the income achievement gap in early schooling enrollment decreased substantially. Their conclusions, although suggestive, are speculative and have no \emph{empirical support} which is why this is still an open question.
+
+There have been other attempts to explain the achievement gaps with indicators such as economic inequality [@dupriez2006], the difference in schooling hours and the tracking system [@duru2005; @dupriez2006], home and family factors [@marks2006] and expanding school access [@chmielewskiglobal2019]. The work of @dupriez2006 explored the relationship between achievement gaps and economic inequality but without factoring in the multilevel structure of the students nested into schools. Moreover, it merely correlated achievement gaps with economic inequality. The work of @duru2005]is more comprehensive as it explores several indicators of the school system, among which is the differentiation structure of the secondary school system (tracking). However, as noted by @reardon2008, \emph{'our understanding of the causes and patterns of these achievement gaps is far from complete'}. For this reason, the review by @werfhorst_mijs gains particular relevance because it documents many instances in which tracking explains inequality between schools (one notable example is the work of @dupriez2006 which finds a strong correlation between tracking and achievement gaps).
+
+Motivated by these recent results, other authors have taken this analysis to an international context in order to discover between-country trends. The work of @bradbury2015 employs a unique comparative analysis of the achievement gap between Australia, United Kingdom, United States and Canada. Their research design is distinctive in that they use longitudinal data from children as early as age 2 and study the evolution of the achievement gap up until age 14 \footnote{To the best of my knowledge this is not only the first study that uses panel data to study achievement gaps, but to also do it between countries}. The core finding of their study is that the American achievement gap is much wider than the gaps in Australia and Canada. They find that once the achievement gap is present in early school entry, it does not seem to narrow or widen much over the life course. In fact, they estimate that the quality of early childhood education can only explain about 30-40\% of the high school SES gap. This suggests that once the achievement gap is present before entering school, it carries a social-scar effect ^[However, schooling could be preventing the gap from widening even more, and rigorous Randomized Controlled Trials (RCT) show that high quality schooling can indeed help ease the gap, in some instances even close it [@campbell2002]]. One exception is the UK, which they found to be a country that helps close the gap in early primary years. This can likely be due to the comprehensive schooling and also the public support by the welfare state in dimensions like health and income support.
+
+In a similar line but using data on more than 80 countries, @chmielewskiglobal2019 compares data from 30 international large-scale assessments over 50 years of data to study the global evolution of the achievement gap. Despite big cross-national variation in the evolution of the achievement gap, there is a widespread trend of increasing achievement gaps for the three SES proxies used in the study: parent's education, parent's occupation and books in the household. In fact, the hard numbers point out that the achievement gap between the three indicators increased at a rate of 0.007-0.008 standard deviations per year. These increases add up to a total of .4 standard deviations in the time span of the study, a sizable increase in the gap. It's also reassuring as the average yearly increase of @chmielewskiglobal2019 matches the magnitude of the point estimates from @reardon2011 and @reardon2016 which are around 0.01 and 0.02.
+
+However, one drawback of these over time cross-country analysis is that they adjust for age as most of the studies they use come from children at different stages in their school trajectory. However, there is evidence which suggests that achievement gaps are indeed exarcebated differently at different time points in the school trajectory [@hanushek_woesmann_tracking; @werfhorst_mijs; @bradbury2015]. This means that most of these studies mask age-specific gaps in exchange for overall yearly gaps for each country separately. Among the few studies which concentrate on age-specific gaps, there are already quite different results from the main ones discussed in @chmielewskiglobal2019 and @broer2019. For example, @reardon2016 and @hanushek2019 find a decrease in the gap and a static gap when focusing in a narrow set of ages^[@hanushek2019 use the Long-Term Trend National Assessment of Educational Progress, the Main National Assessment of Educational Progress and the Programme for International Student Assessment but focus almost exclusively on children between ages 13 and 15].
+
+Age-specific gaps are indeed quite different as they reflect the overall distance between SES groups at the same point in time in different years (achievement gap for 15 year olds in many different years). These age-specific gaps has at least one benefit relative to age pooled trend analysis. It allows to compare students at the same time point, holding constant any differences which come about with age (in pooled analysis, age is controlled for but not all of the associated differences to inequality across the lifespan, such as for example, the stronger effect of inequality at earlier ages [@kulic2019]). By focusing on one age gap, students are at a point where the intensity of inequality is absored similarly by everyone due to the same age in the life-cycle skill formation [@cunha2006].
+
+As can be seen from the evidence here, there is no clear consensus on what might be driving these within country changes. But even more, we're far from establishing some general explanations for the between country differences in the gap. Instead of focusing on a single or joint explanation for the evolution of the achievement gap, this paper is interested in exploring the relationship between school level indicators and their relationship to the achievement gap separately by SES achievement groups. More concretely, what is the role of school autonomy in influencing the achievement gap?
+
+## School Autonomy And The Widening Of The Achievement Gap
+
+The concept of school autonomy and it's relationship to increasing equality has been a predominant topic in policy research. Most rigorous studies performed on autonomy interventions document a positive increase in test scores, a decrease in school dropouts and a decrease in grade repetitions among other things [@bruns2011]. However, most of this evidence is concentrated on small-scale pilots and interventions in particular areas of interest (low SES areas in developing countries, for example) [@gropello2006].
+
+The work of @hanushek2013 is among the first to document internationally that autonomy seems to be negative for low income countries and positive for high income countries. Focusing on three different types of school autonomy (curricular, personnel, budget), they find consistent evidence that curricular and personnel autonomy seems to be associated with increasing test scores in high income countries and decreasing test scores for low income countries. They argue that the mechanism under which autonomy can have negative effects is when decision makers are opportunistic in their behaviors but also when decision makers are not well prepared to make these decisions. @ammermuller2005 actually found that the more autonomy the school has, the more relevance the parent's education and cultural resources gain importance. This means that autonomy is associated with a somewhat negative influence on student's performance as they have to rely more on the input from resources outside of school than on their teacher's and school's resources.
+
+However, the mechanism under which @hanushek2013 suggests that autonomy can have negative impact can also be present in developed countries. For example, if the worst performing schools have on average lower quality of teaching, then autonomy can theoretically have negative affects as lower performing teachers could deviate from the validated national curriculum and affect the learning experience. Similarly, teachers could be lowering the academic standards of lower performing students reinforcing their already poor performance through lower goals. In particular, this last mechanism has been discussed in detail in @gamoran1987 and @hattie2002. Conversely, having greater academic autonomy for the good performing students can increase their performance by altering the teaching methods to increase the learning rate of these students.
+
+Most school autonomy related research focuses on between country relationships and the average country performance [@hanushek2013; @ammermuller2005; @letendre2003; @stevenson1991] without paying attention whether autonomy can have varying effects within a country at the extremes of the achievement gap. School autonomy as a means of school differentiation can have either positive or negative results based on the capacity of the school/teachers to make these decision and on the composition of the students at each school. That is why @werfhorst_mijs discuss evidence that standardization in autonomy is often associated with increasing equality in Europe. However, there is no clear evidence on whether autonomy is good for all \emph{within} countries. Moreover, the argument from @hanushek2013 is that autonomy is beneficial for high income countries without disaggregating whether it's good for some and bad for others. 
+
+This study will focus on studying the relationship between academic autonomy, personnel autonomy and budget autonomy and it's relationship to the highly contested SES achievement gap. In particular, this paper will investigate whether different types of autonomy can have negative associations with the bottom 10% of students (the bottom group of the SES gap) and whether this same relationship is reversed for the top 10% of students (the top group of the SES gap). However, I focus almost exclusively on high income countries to test whether autonomy can also have negative effects within developed economies.
+
+# Empirical Strategy
+
+## Data
+
+To investigate the above mentioned questions, I will use the Programme for International Student Assessment (PISA). PISA is a survey carried out every three years that aims to evaluate education systems by testing the skills and knowledge of 15-year-old students. Currently, PISA has six waves starting in 2000 up until 2015, where recently, over half a million students were tested in mathematics, literacy and science in over 70 developed/developing countries.
+
+PISA collects data through a two-stage stratified sampling design. With the help of governments, PISA randomly chooses 150 schools in each country, where they then randomly pick thirty 15 year olds to undertake the two hour tests. Together with the subject tests, PISA collects personal information from students, their families and their school environment, that serves as relevant background information that can be matched to the students performance. With the recent inclusion of PISA 2015, these six waves make up a time-series analysis of 15 years, enough to visualize changes in the structure of an educational system. None of the studies cited so far has used the last PISA wave, which was released in December 2016. This chapter takes advantage of these six waves to build a country pseudo-panel, making it possible to study changes in nearly 15 years for 29 countries. In order to maximize country variation, I have included countries which have at least participated in 50\% of all waves.
+
+To identify a student's socio economic status I use the composite SES index created by the PISA team. The index of economic, social and cultural status (ESCS) was created on the basis of the following variables: the International Socio-Economic Index of Occupational Status (ISEI), the highest level of education of the student’s parents, the PISA index of family wealth (which measures the material wealth of the family), the PISA index of home educational resources; and the PISA index of possessions related to "classical" culture in the family home (mainly about books in the household) [@oecd_glance_2002]. The variable, aside from capturing all relevant dimensions of SES, such as education, occupation, and material resources, takes care of transforming all mentioned variables into comparable metrics across waves. The ESCS index was derived from a principal component analysis of standardized variables, taking the factor scores for the first principal component as measures of the PISA index of economic, social and cultural status. All countries and economies (both OECD and partner countries/economies) were assigned the same weight in the principal component analysis, while in previous cycles, the principal component analysis was based only on OECD countries. However, for the purpose of reporting, the ESCS scale has been transformed with zero being the score of an average OECD student and one being the standard deviation across equally weighted OECD countries [@pisa_2015_results]. To the best of my knowledge this is the first piece of research that uses the newly-released ESCS index [@pisa_2015_results],  which was rescaled so that all ESCS indexes are suitable for over-time analysis \footnote{These rescaled indexes can be found at \href{http://www.oecd.org/pisa/data/2015database/}{http://www.oecd.org/pisa/data/2015database/} under \emph{Rescaled indices for Trend Analyses}.}. In other words, the ESCS index does not need any transformation or coding updates as it is ready for comparison over time.
+
+Aside from SES, the other relevant variables are test scores for mathematics and literacy \footnote{The analysis in this paper is mainly concentrated on Mathematics to be able to compare some of the findings with the existent literature which has predominantly focused on this subject. Literacy is used as a second test to check if the results hold. PISA also tests students in Science but since very little research has been done on this subject related to achievement gaps, it was not included in the analysis}. PISA does not provide a single test result for each respondent. Instead, it provides a \emph{series} of 'plausible values' that the child could actually score. As explained in the PISA manual [@pisa2012_technical], these are imputed values that resemble individual test scores and have approximately the same distribution as the latent trait being measured (the true distribution of the possible scores a student can achieve) \footnote{It should be noted that PISA has rotating modules for the main subject of that year. This means that the quality of data might be different for the same subject over time}.
+
+A more intuitive explanation is this: suppose we have \(\mu_i\), the average student test score in mathematics for student \(i\). Instead of estimating \(\mu_i\) alone, plausible values estimate a distribution of possible \(\mu\text{'s}\) for student \(i\), together with the likelihood of each \(\mu_i\) based on the respondents answers on the test. This is defined as the posterior distributions of \(\mu\text{'s}\) for student \(i\). The reason why PISA uses this procedure is because estimating a single number \(\mu_i\) is plagued with measurement error, among other types of bias [see @wu2005]. The number of plausible values for PISA waves are usually five (although ten for PISA 2015) random draws from this distribution. In practice, each student has 5 scores for each test, which resembles their distribution. Those values are continuous, ranging from 0 to 500, with a mean of 250. However, PISA test scores were scaled to have a mean of 500 and a standard deviation of 100 over students in all OECD countries in the first year of focal testing (e.g. 2000 for mathematics and reading).
+
+As per the independent variables, I will include both student level variable and school level variables. For the student level variables, I will include the gender of each student, their parent's level of education (to control for residual variation within each group of the SES index), the occupation index of their parents (centered at 0), whether they're native students or immigrants, the number of books in their household and the specific school programme they belong to (general, pre-vocational or vocational tracks). At the school level, I include the location of the school (small town, town, large town, city or large city), whether it's a public or private school, the size of the school in number of students (center with a mean of 0) and the percentage of funding that comes from government funding (centered with a mean of 0). In the next section I describe the definition of autonomy measures.
+
+## Methodology And Variables
+
+### Definition Of Autonomy
+
+Each school principal in PISA was asked the question of who has the main responsibility for the certain areas in the school. These areas are (1) autonomy over which courses are offered, (2) over the content of the courses, (3) over choosing textbooks, (4) over hiring teachers, (5) over setting their salaries and (6) over budget allocationfor the school. For each of these questions, the principal can answer whether this is the responsibility of the teacher's, the principal's, the school's governing board, a regional or local education authority or a national education authority. Similarly to @hanushek2013, I define that a school has autonomy over an area if neither a regional or local authority nor the national education authority has any responsibility in setting these areas. That is, the decision is taken either by a teacher, a principal, or the school's governing board. This definition mimics the already established definition by @hanushek2013 and tackles specifically whether the decision is solely responsibility of the school. Table \ref{tab:corr_aut} shows the correlation between these autonomy meaures.
+
+Given that course autonomy, content autonomy and text book autonomy are highly correlated, I also include an 'academic content autonomy' index which is just the average between these three. Moreover, I do the same for autonomy over hiring teacher's and setting teacher's salary into the index 'personnel autonomy'. Since school budget autonomy does not correlate with any other variables, I leave it as is.
+
+```{r corr_aut}
+corr_aut <- readd(calculated_corr_aut)
+
+aut_names <- c(" ",
+               "Course",
+               "Content",
+               "Textbook",
+               "Hiring",
+               "Salary",
+               "School Budget",
+               "Academic content",
+               "Personnel")
+
+names(corr_aut) <- aut_names
+corr_aut$` ` <- aut_names[-1]
+stargazer(corr_aut,
+          type = "latex",
+          summary = FALSE,
+          header = FALSE,
+          font.size = "small",
+          title = "Correlation coefficients between school autonomy measures",
+          column.sep.width = "1pt",
+          rownames = FALSE,
+          label = paste0("tab:", knitr::opts_current$get("label")),
+          no.space = TRUE)
+```
+
+Table \ref{tab:corr_aut} shows that the index of academic content is highly correlated to autonomy over which courses are offered, which content is offered and autonomy over choosing textbooks (.90, .92 and .88, respectively), which suggests that it represents the concept of academic content autonomy well. Similarly, personnel autonomy has correlations of .93 and .80 with autonomy over teacher hiring and teacher salary, which also validates the index of personnel autonomy. From now on, the main unit of analysis for the autonomy variables will be the index on academic content autonomy, personnel autonomy and budget autonomy. Figure \ref{fig:autonomy_evolution} plots the evolution of academic content autonomy and personnel autonomy for all countries over the 6 pisa waves.
+
+```{r autonomy_evolution, fig.asp = 1.7, fig.cap = "Evolution of school autonomy by country"}
+p1_plot <- readd(plotted_autonomies)
 p1_plot
 ```
 
-# Further information
+There are indeed starking differences between countries. For example, the United States is experiencing a decrease in autonomy over the past 15 years whereas Denmark is witnessing an increase in autonomy in recent years. @hanushek2013 discusses in detail some decentralization reforms happening in some of these countries and how they match the currents trends we see in this plot. For example, the increase in autonomy for Germany and the decline in autonomy from the United States reflects underlying reforms to decentralize and centralize decision making respectively. For Germany, the increasing autonomy matches the reforms implemented in North Rhine-Westphalia which give more autonomy to schools over hiring teachers [@hanushek2013]. Whereas in the United the decreasing trend also reflects the expansion of national level standards from the 'No Child Left Behind' reform. All in all, the evidence points out to  some important differences in autonomy between countries accompanied with over time dynamics in decision making.
+ 
+```{r, fig.asp = 2, fig.width = 6.3, eval = FALSE}
+p2_plot <- readd(plotted_academic_aut)
+p2_plot
+```
 
-All \LaTeX enviroments supported by the main template are supported here as well; see the `.tex` sample file [here](http://onlinelibrary.wiley.com/journal/10.1002/(ISSN)1097-0258/homepage/la_tex_class_file.htm) for more details and example.
+### Model
+
+The model that I will use in the analysis is a cross-classified multilevel model where I allow the country-wave intercepts to vary randomly to account for the clustering of students into each country-year combination. Note that the multilevel approach is just a strategy to account for for the clustering as it adjusts the standard errors appropriately. Yet the specification of a multilevel model is not of particular interest for it's random component as the objective is not to explain cross-country or cross-wave differences in autonomy but rather test whether the relationship between autonomy hold across a sample of countries which are repeated over time, accounting for their nested structure.
+
+The main model can be formally defined as:
+
+\begin{equation}
+y_{icy} = \alpha_{cy} + b_1 * autonomy_{cj} + b_n * x_{icj} + \epsilon_{icy}
+\end{equation}
+
+Where $y_{icy}$ is the mathematics test score for student $i$ in country $c$ and year $y$. $\alpha_{cy}$ is the random intercept for each country/year, $b_1$ is the beta coefficient for each autonomy measure (models are run separately) and $x_{icj}$ is the vector of covariates used as controls in all models. All models presented are run using the student sample weights to have representative estimates of the populations.
+
+The dependent variable of the analysis will be the standardized mathematics test scores for each student^[I also report results for literacy in the appendix]. As mentioned before, PISA does not provide a single achievement indicator. Instead, I calculate the median of all plausible values for each student \footnote{Since each plausible value is a random draw from a theoretical latent normal distribution of possible student achievement scores, the median should be precise in getting a central measure of the latent distribution.}, resulting in one single score.
+
+To standardize the test scores I fit a linear model for each wave, where test scores is regressed on age measured in months (following the same strategy as @reardon2011 \footnote{This does not mess up the analysis by masking age-specific gaps as all students in the sample are 15 year olds. controlling for age is simply to adjust for monthly differences in ages.}) weighted by the student sample weights from PISA. With the residuals of this adjusted test score, I standardized the metric to solve the problem of comparability over time ^[PISA 2000 has a slightly different metric over time] for all PISA waves. However, another concern is whether test scores measured at different waves have different amounts of measurement error. If that is the case, then the amount of bias will not be the same in each measure of the gap. This can be misleading and suggest erroneous interpretations regarding trends of the gaps over time [@reardon2011]. PISA has tried to make sure the tests are comparable across waves but it is still necessary to adjust for this imprecision [@pisa2012_technical]. Accordingly, each PISA survey provides a reliability indicator for each of the tests which can be used to adjust for the reliability of the scores.
+
+In order to correct for this I calculate $\lambda_i$ which is just the standardized test score \begin{math}  \hat{\gamma_i} \end{math} adjusted by the reliability indicator of each wave. More formally, I calculate it through
+
+\begin{equation}
+\hat{\lambda_i} = \hat{\gamma_i} * \frac{1}{\sqrt{r}}
+\end{equation}
+
+Where \begin{math}r\end{math} is the reliability score of the test score in that PISA wave \footnote{Other procedures multiply each country by their own reliability measure for each year-subject pair [@chmielewskiglobal2019]. With this standardized and adjusted test score I define a dummy for those in the top 10% of the SES distribution and those at the bottom 10% of the SES distribution. I develop this standardization and estimation proceedure more in detail in the appendix. All models below are run separately for the bottom and top 10% of the SES distribution to test whether the autonomy measures have different dynamics for the two groups.
+
+The model defined above is the standard model presented in the paper. However, I run a battery of different models to show the robustness of the results. Aside from the standard model, I run the same specification only on public schools, as the results of autonomy and test scores are certainly endogenous to the type of school. I also run a model for all available PISA countries (not only the developed subset of countries), a variant of the standard model that uses a linear model with country-year fixed effects (similarly to @hanushek2013), a model which exchanges the top and bottom 10% of students for the top and bottom 10% of schools, a model which runs all autonomy measures together (not separate models by autonomy measure, as was defined above) and a model with all students pooled and a formal interaction term between the SES groups and each autonomy measure. These models are presented in detail in the appendix and can be identified by their title. However, I also summarize their results in the results section.
+
+## Results
+
+To begin, we visualize the highly contested SES achievement gap to understand the different dynamics between and within countries. Figure \ref{fig:evolution_gaps} shows the evolution of the achievement gap for developed countries.
+
+```{r evolution_gaps, fig.asp = 1.7, fig.cap = "evolution of achievement gaps by countries"}
+p3_plot <- readd(p1_evolution_gaps)
+p3_plot
+```
+
+As we can see from the results, some countries have increased their achievement strongly. For example, France, Austria and surprisingly Sweden have very steep slopes. France experienced an increase in inequality by roughly 0.9 SD, Austria by 0.6 and Sweden by 0.6. For such a short period of time, the magnitude of these increases are reasonably big.
+
+Given that no one has estimated the evolution of the gap I cannot cross-check how other empirical estimations put France at. However, the work of @micklewright2006 is the closest reference available which also finds that France was a low dispersion country in 2000; there is no evidence on what happened over time. Fortunately, the work of @bernardi2016 did study social origin inequalities (broadly speaking, not in terms of achievement gaps) in France and found that they increased since the 2000's.
+
+Other countries have reasonable increases such as Finland and Hungary, with increases of nearly 0.6 and 0.4 standard deviations respectively. Aside from these countries, there are other countries which experience no changes at all, specifically, Canada, Netherlands and Spain. Canada excels here not only because the gap has been stable over time, but because it has the smallest gap of all countries presented here. It is nearly 0.5 SD in 2000 and it increased only by 0.2 in 2015.
+
+On the other hand, there are other countries which experience a decrease in the SES achievement gap. Poland decreased by about -0.4 and Denmark by -0.2. However, the most notable cases are the United States and Germany. These two countries show high levels of dispersion in the year 2000 with SES gaps of over 2 SD. But in the 15-year time trend both countries reduced the gaps by -0.6 and -0.9 respectively. Their distinctively large gaps in 2000 also show up in the work of @micklewright2006. This finding is similar to the one in @reardon2016, in which they found a decreasing gap for kindergartners. It is important to highlight that the cohorts in their analysis are different from the ones in this study but also reassures that evidence close to the cohorts in this study also found a decline.
+
+Analyzing figure \ref{fig:evolution_gaps} the reader may get the impression that these trends are not very steep and they should not be relevant in practical terms. However, note that the Y axis is measured in standard deviations. Small changes are actually large in practical terms. For example, evidence from PIRLS shows that the predicted growth of a student for a year of school is of around 0.30 standard deviations [@beaton1996]. PISA has also documented this type of metric in their annual reports [@oecd2009_sd]. Take the case of Sweden. The slope does not look that steep but in reality it increased the gap from 1 SD in 2000 to around 1.5 SD in 2015. With that information in mind, the trends of Poland, United States, France and Germany gain particular relevance.
+
+Table \ref{standard_bottom_math} contains the main models for the bottom 10% of all students and table \ref{standard_top_math} contains the main models for the top 10% of all students. Both tables have 2 models per autonomy measure corresponding to models for the index of academic autonomy, personnel autonomy and budget autonomy.
+
+\blandscape
+
+```{r standard_bottom_math, results = "asis"}
+
+# name_models <- "^aut_allcnt_math_1"
+# test <- "Mathematics"
+# student_school <- "students"
+# tit = "Multilevel model with varying intercepts for top 10\\% of students in Mathematics for all countries (not only developed)"
+
+print_models <-
+  function(name_models,
+           test,
+           student_school = "students",
+           tit = "") {
+    
+    labs_covart <- c(
+      "Academic autonomy",
+      "Personnel autonomy",
+      "Budget autonomy",
+      "- Gender: Male",
+      "- Edu: Primary",
+      "- Edu: Lower sec",
+      "- Edu: Upper sec I",
+      "- Edu: Upper sec II",
+      "- Edu: University",
+      "- Books in HH: 11-100",
+      "- Books in HH: 101-500",
+      "- Books in HH: >500",
+      "- Occupation index",
+      "- Native student",
+      "- Voc track: Vocational",
+      "- Voc track: General",
+      "- Location: Town",
+      "- Location: Large town",
+      "- Location: City",
+      "- Location: Large city",
+      "- % certified teachers",
+      "- Public (ref: private)",
+      "- Size of school",
+      "- % government funding"
+    )
+    
+    labs_covart <-
+      if (grepl("1", name_models)) setdiff(labs_covart, c("Edu: Primary", "Edu: Lower sec")) else labs_covart
+    
+    model_names <- cached()[grepl(name_models, cached())]
+    model_names <- determine_aut_order(model_names)
+    all_mods <-
+      map(model_names, ~ readd(.x, character_only = TRUE)[2:3])
+    
+    type_mod <- if (grepl("0", name_models)) "bottom" else "top"
+      
+    stargazer(
+        all_mods,
+        type = "latex",
+        title = tit,
+        header = FALSE,
+        order = c(
+          "academic_content_aut",
+          "personnel_aut",
+          "budget_aut",
+          "genderMale",
+          "high_edu_broadPrimary",
+          "high_edu_broadLower secondary",
+          "high_edu_broadUpper secondary I",
+          "high_edu_broadUpper secondary II",
+          "high_edu_broadUniversity",
+          "books_hh11-100",
+          "books_hh101-500",
+          "books_hh> 500",
+          "hisei",
+          "nativeNative",
+          "ISCEDOVocational",
+          "ISCEDOGeneral"
+        ),
+        covariate.labels = labs_covart,
+        add.lines = create_lmer_stats(all_mods),
+        dep.var.caption = paste0(test, " test score"),
+        dep.var.labels = paste0("Models restricted to ", type_mod, " 10\\% of ", student_school),
+        font.size = "small",
+        column.sep.width = "1pt",
+        label = knitr::opts_current$get("label"),
+        single.row = TRUE,
+        no.space = TRUE
+      )
+    
+    # student_level_pos <- which(grepl("Budget autonomy", mod_table))
+    # school_level_pos <- which(grepl("Voc track: General", mod_table))
+    # 
+    # cat(
+    #   starpolishr::star_insert_row(
+    #   mod_table,
+    #   c("Student-level variables", "School-level variables"),
+    #   insert.after = c(student_level_pos, school_level_pos)
+    # ))
+    
+}
+
+print_models("^aut_math_0", "Mathematics", tit = "Multilevel model with varying intercepts for bottom 10\\% of students in Mathematics")
+
+```
+
+\elandscape
+
+Results for the first two models in table \ref{standard_bottom_math} shows that academic autonomy is associated with a decrease in test scores in Mathematics of about -0.06 standard deviations in test scores for students in the bottom 10%. These results hold even after controlling for the type of tracking programme that the child is enrolled in, the location of the school, the size of the school, the percentage of funding by the government, the percentage of certified teachers and whether the school is public or private. These results speak directly to the work of @stevenson1991 which found that autonomy was detrimental in many cases but was criticized saying that these differences in autonomy was due to within country differences in school types. These results show that even after adjusting for different types of schools (private/public) and type of programme (different curricular tracks), the magnitude of the relationship is still big. These results seem to be as strong for personnel autonomy (model 4) with a decrease of nearly -0.07 points in the standardized mathematics test score on average for each country in every year. 
+
+Finally, the last two models for budget autonomy do not seem to be related to decreasing test scores, as the effect size is only -0.01 with a great deal of uncertainty. It is important to highlight that these effect size (-0.06 and -0.07) represent the average increase for the average year. If we multiply them to represent the actual time span of PISA (6 waves), it sums up to nearly 0.4 standard deviations. These results match very closely the results of @chmielewskiglobal2019 in the evolution of the achievement gap and are quite big considering that magnitudes of over 0.3 standard deviations reflect a gap of about one grade's worth of knowledge. To put it simply, greater autonomy towards low performing students seems to be associated with a decrease of .4 standard deviations in test scores over the 15 years of data available.
+
+Having said that, it can be the case that certain students self-select into schools with greater autonomy and that in itself is correlated with poorer performance. That is certainly playing a role in this estimation. However, it's not totally clear that it is the case given that within countries there is no particular evidence suggesting that public schools within a country have different levels of autonomy depending on performance.
+
+Moving on to table \ref{standard_top_math}, we can explore the results for the top 10% of students. The first two models show that academic autonomy seems to be positively associated with increasing student test scores by about .05 standard deviations for the top 10% of students. This amounts to a total of .3 standard deviations over the whole PISA waves. However, for the personnel and budget autonomy indexes both associations seem to be much weaker (effect sizes of about .01 for both) suggesting that academic autonomy seems to be an important autonomy component over both the good and bad performers yet autonomy over hiring teachers and setting their salaries is only detrimental in the context of bad performers.
+
+\blandscape
+
+```{r standard_top_math, results = "asis"}
+print_models("^aut_math_1", "Mathematics",
+             tit = "Multilevel model with varying intercepts for top 10\\% of students in Mathematics")
+```
+
+\elandscape
+
+Table \ref{standard_bottom_reading} and \ref{standard_top_reading} replicate the results for literacy and show similar magnitudes and associations. In table 3 I find that academic autonomy is associated with a decrease in test scores of about -.09 standard deviations and personnel autonomy is associated with a decrease of -.04 standard deviations for the bottom 10% of students. Similarly, budget autonomy is unrelated to decreasing of increasing performance. However, in table 4 I find exactly the same results as for reading: for the top 10% of students, academic autonomy seems to be related to increasing test scores by about 0.05 standard deviations but not for personnel autonomy. However, budget autonomy seems to be associated with an increase in performance of about 0.02 standard deviations. The magnitude of this effect size is much lower than in the other models, so it is still relatively weak.
+
+\blandscape
+
+```{r standard_bottom_reading}
+print_models("^aut_read_0",
+             "Reading",
+             tit = "Multilevel model with varying intercepts for bottom 10\\% of students in Literacy")
+```
+
+\elandscape
+
+\blandscape
+
+```{r standard_top_reading}
+print_models("^aut_read_1",
+             "Reading",
+             tit = "Multilevel model with varying intercepts for top 10\\% of students in Literacy")
+```
+
+\elandscape
+
+As robustness, I've ran the previous model under several different specifications which I've compiled in figure \ref{fig:plot_combined_models}.
+
+\newpage
+
+```{r plot_combined_models, fig.asp = 1, fig.cap = "Comparison of autonomy measures under different model variations"}
+p4_plot <- readd(all_mods_plot)
+p4_plot
+```
+
+On the right panel (red) we have all estimates related to the bottom 10% of students whereas on the left panel (blue) we have all estimates related to the top 10% of students. The x axis shows all different model specifications: "Public schools" refers to the same model but only restricted to public schools, "Standard model" refers to the previously shown models, "All countries" refers to models with all countries (including low income countries) and "Fixed effects" is an additional specification which uses a linear model with country-year fixed effects (to match @hanushek2013). The top left panel shows that the size of the effect sizes is very similar in all model specifications for academic autonomy. In contrast, the positive associations for the top 10% of students seem to dissapear once we add country-year fixed effects. In the middle panel, we see that for the personnel autonomy index, all models have negative relationships with the bottom 10% of students carrying sizable and robust associations. In contrast, for the top 10% of performers the relationship is quite sizable when restricted only to public schools and to all countries (increases of about 0.06-0.10 in standardized test scores) but dissapear when adding country-year fixed effects. Moving on to the bottom panel, results show that the effect sizes for the budget autonomy seem to be very small for both the top and bottom 10% of students. In summary, the evidence suggests that academic autonomy and personnel autonomy seem to have a somewhat sizable negative relationship with test scores yet this evidence is not symmetrical for the top 10% of students: the coefficients are somewhat sizable under certain specifications but the evidence is mixed. The models that estimated all of these changes are present in the appendix section. In addition, there are 4 tables concentrated not on the top/bottom 10% of students but on the top/bottom 10% of schools, to tackle directly whethere these results are similar when focusing only on the worst/best schools. Results are very similar.
+
+```{r, eval = FALSE}
+p5_plot <- readd(interact_plot)
+p5_plot
+```
+
+# Appendix
+
+\blandscape
+```{r, results = "asis"}
+print_models("^aut_schools_math_0", "Mathematics", "schools",
+             tit = "Multilevel model with varying intercepts for bottom 10\\% of schools in Mathematics")
+```
+\elandscape
+
+\blandscape
+```{r, results = "asis"}
+print_models("^aut_schools_read_0", "Reading", "schools",
+             tit = "Multilevel model with varying intercepts for bottom 10\\% of schools in Literacy")
+```
+\elandscape
+
+\blandscape
+```{r, results = "asis"}
+print_models("^aut_schools_math_1", "Mathematics", "schools",
+             tit = "Multilevel model with varying intercepts for top 10\\% of schools in Mathematics")
+```
+\elandscape
+
+\blandscape
+```{r, results = "asis"}
+print_models("^aut_schools_read_1", "Reading", "schools",
+             tit = "Multilevel model with varying intercepts for top 10\\% of schools in Literacy")
+```
+\elandscape
+
+\blandscape
+```{r standard_allcnt_bottom_math, results = "asis"}
+print_models("^aut_allcnt_math_0",
+             "Mathematics",
+             tit = "Multilevel model with varying intercepts for bottom 10\\% of students in Mathematics for all countries (not only developed)")
+```
+\elandscape
+
+<!-- \blandscape -->
+<!-- ```{r standard_allcnt_top_math, results = "asis"} -->
+<!-- print_models("^aut_allcnt_math_1", -->
+<!--              "Mathematics", -->
+<!--              tit = "Multilevel model with varying intercepts for top 10\\% of students in Mathematics for all countries (not only developed)" -->
+<!--              ) -->
+<!-- ``` -->
+<!-- \elandscape -->
+
+\blandscape
+```{r fixedeff_bottom_math, results = "asis"}
+
+print_models_fixedeff <- function(name_models, test, student_school = "students", tit) {
+
+    labs_covart <- c("Academic autonomy",
+                   "Personnel autonomy",
+                   "Budget autonomy",
+                   "- Gender: Male",
+                   "- Edu: Primary",
+                   "- Edu: Lower sec",
+                   "- Edu: Upper sec I",
+                   "- Edu: Upper sec II",
+                   "- Edu: University",
+                   "- Books in HH: 11-100",
+                   "- Books in HH: 101-500",
+                   "- Books in HH: >500",
+                   "- Occupation index",
+                   "- Native student",
+                   "- Voc track: Vocational",
+                   "- Voc track: General",
+                   "- Location: Town",
+                   "- Location: Large town",
+                   "- Location: City",
+                   "- Location: Large city",
+                   "- % certified teachers",
+                   "- Public (ref: private)",
+                   "- Size of school",
+                   "- % government funding")
+
+  model_names <- cached()[grepl(name_models, cached())]
+  model_names <- determine_aut_order(model_names)
+  all_mods <- map(model_names, ~ readd(.x, character_only = TRUE))
+
+  type_mod <- if (grepl("0", name_models)) "bottom" else "top"
+
+  stargazer(all_mods,
+            type = "latex",
+            title = tit,
+            header = FALSE,
+            order = c("academic_content_aut",
+                      "personnel_aut",
+                      "budget_aut",
+                      "genderMale",
+                      "high_edu_broadPrimary",
+                      "high_edu_broadLower secondary",
+                      "high_edu_broadUpper secondary I",
+                      "high_edu_broadUpper secondary II",
+                      "high_edu_broadUniversity",
+                      "books_hh11-100",
+                      "books_hh101-500",
+                      "books_hh> 500",
+                      "hisei",
+                      "nativeNative",
+                      "ISCEDOVocational",
+                      "ISCEDOGeneral"),
+            covariate.labels = labs_covart,
+            omit = "^as.factor",
+            omit.stat = "f",
+            add.lines = list(c("Country-Year fixed effects", rep("yes", length(flatten(all_mods))))),
+            dep.var.caption = paste0(test, " test score"),
+            dep.var.labels = paste0("Models restricted to ", type_mod, " 10\\% of ", student_school),
+            font.size = "small",
+            column.sep.width = "1pt",
+            label = knitr::opts_current$get("label"),
+            single.row = TRUE,
+            no.space = TRUE)
+
+  # student_level_pos <- which(grepl("Budget autonomy", mod_table))
+  #
+  # mod_table <- starpolishr::star_insert_row(mod_table, "Student-level variables", insert.after = student_level_pos)
+  #
+  # school_level_pos <- which(grepl("Voc track: General", mod_table))
+  #
+  #
+  # mod_table <- starpolishr::star_insert_row(mod_table, "School-level variables", insert.after = school_level_pos)
+  #
+  # mod_table
+
+}
+
+print_models_fixedeff("^aut_fixedeff_math_0",
+             "Mathematics",
+             tit = "Country-wave fixed effect models for bottom 10\\% of students in Mathematics")
+
+```
+\elandscape
+
+\blandscape
+```{r fixedeff_top_math, results = "asis"}
+print_models_fixedeff(
+  "^aut_fixedeff_math_1",
+  "Mathematics",
+  tit = "Country-wave fixed effect models for top 10\\% of students in Mathematics"
+  )
+```
+\elandscape
+
+\blandscape
+```{r standard_autpooled_bottom, results = "asis"}
+
+print_models_pooled <- function(name_models, test, student_school = "students", tit) {
+
+    labs_covart <- c("Academic autonomy",
+                   "Personnel autonomy",
+                   "Budget autonomy",
+                   "- Gender: Male",
+                   "- Edu: Primary",
+                   "- Edu: Lower sec",
+                   "- Edu: Upper sec I",
+                   "- Edu: Upper sec II",
+                   "- Edu: University",
+                   "- Books in HH: 11-100",
+                   "- Books in HH: 101-500",
+                   "- Books in HH: >500",
+                   "- Occupation index",
+                   "- Native student",
+                   "- Voc track: Vocational",
+                   "- Voc track: General",
+                   "- Location: Town",
+                   "- Location: Large town",
+                   "- Location: City",
+                   "- Location: Large city",
+                   "- % certified teachers",
+                   "- Public (ref: private)",
+                   "- Size of school",
+                   "- % government funding")
+
+  model_names <- cached()[grepl(name_models, cached())]
+  model_names <- determine_aut_order(model_names)
+  all_mods <- map(model_names, ~ readd(.x, character_only = TRUE)[4:5])
+
+  type_mod <- if (grepl("0", name_models)) "bottom" else "top"
+
+  labs_covart <- if (grepl("1", name_models)) setdiff(labs_covart, c("Edu: Primary", "Edu: Lower sec")) else labs_covart
+
+  stargazer(all_mods,
+            type = "latex",
+            title = tit,
+            header = FALSE,
+            order = c("academic_content_aut",
+                      "personnel_aut",
+                      "budget_aut",
+                      "genderMale",
+                      "high_edu_broadPrimary",
+                      "high_edu_broadLower secondary",
+                      "high_edu_broadUpper secondary I",
+                      "high_edu_broadUpper secondary II",
+                      "high_edu_broadUniversity",
+                      "books_hh11-100",
+                      "books_hh101-500",
+                      "books_hh> 500",
+                      "hisei",
+                      "nativeNative",
+                      "ISCEDOVocational",
+                      "ISCEDOGeneral"),
+            covariate.labels = labs_covart,
+            add.lines = create_lmer_stats(all_mods),
+            dep.var.caption = paste0(test, " test score"),
+            dep.var.labels = paste0("Models restricted to ", type_mod, " 10\\% of ", student_school),
+            font.size = "small",
+            column.sep.width = "1pt",
+            label = knitr::opts_current$get("label"),
+            single.row = TRUE,
+            no.space = TRUE)
+
+  #   student_level_pos <- which(grepl("Budget autonomy", mod_table))
+  #
+  # mod_table <- starpolishr::star_insert_row(mod_table, "Student-level variables", insert.after = student_level_pos)
+  #
+  # school_level_pos <- which(grepl("Voc track: General", mod_table))
+  #
+  #
+  # mod_table <- starpolishr::star_insert_row(mod_table, "School-level variables", insert.after = school_level_pos)
+  #
+  # mod_table
+
+}
+
+print_models_pooled("aut_allpooled_math_0",
+                    "Mathematics",
+                    tit = "Multilevel model with varying intercepts for bottom 10\\% of students in Mathematics with all autonomy measures pooled")
+
+```
+\elandscape
+
+\blandscape
+```{r standard_autpooled_top, results = "asis"}
+print_models_pooled("aut_allpooled_math_1",
+                    "Mathematics",
+                    tit = "Multilevel model with varying intercepts for top 10\\% of students in Mathematics with all autonomy measures pooled")
+```
+\elandscape
+
+\blandscape
+```{r, results = "asis", eval = FALSE}
+
+print_models_interaction <- function(name_models, test, student_school = "students", tit) {
+
+  labs_covart <- c("Academic autonomy",
+                   "Academic aut * Mid students",
+                   "Academic aut * High students",
+                   "Personnel autonomy",
+                   "Personnel aut * Mid students",
+                   "Personnel aut * High students",
+                   "Budget autonomy",
+                   "Budget aut * Mid students",
+                   "Budget aut * High students",
+                   "- ESCS group: Mid students",
+                   "- ESCS group: High students",
+                   "- Gender: Male",
+                   "- Edu: Primary",
+                   "- Edu: Lower sec",
+                   "- Edu: Upper sec I",
+                   "- Edu: Upper sec II",
+                   "- Edu: University",
+                   "- Books in HH: 11-100",
+                   "- Books in HH: 101-500",
+                   "- Books in HH: >500",
+                   "- Occupation index",
+                   "- Native student",
+                   "- Voc track: Vocational",
+                   "- Voc track: General",
+                   "- Location: Town",
+                   "- Location: Large town",
+                   "- Location: City",
+                   "- Location: Large city",
+                   "- % certified teachers",
+                   "- Public (ref: private)",
+                   "- Size of school",
+                   "- % government funding")
+
+  model_names <- cached()[grepl(name_models, cached())]
+  model_names <- determine_aut_order(model_names)
+  all_mods <- map(model_names, ~ readd(.x, character_only = TRUE))
+
+  type_mod <- if (grepl("0", name_models)) "bottom" else "top"
+
+  stargazer(all_mods,
+            type = "latex",
+            title = tit,
+            header = FALSE,
+            order = c("academic_content_aut",
+                      "academic_content_aut:quantiles_escs_chrMid",
+                      "academic_content_aut:quantiles_escs_chrHigh",
+                      "personnel_aut",
+                      "personnel_content_aut:quantiles_escs_chrMid",
+                      "personnel_content_aut:quantiles_escs_chrHigh",
+                      "budget_aut",
+                      "budget_content_aut:quantiles_escs_chrMid",
+                      "budget_content_aut:quantiles_escs_chrHigh",
+                      "quantiles_escs_chrMid",
+                      "quantiles_escs_chrHigh",
+                      "genderMale",
+                      "high_edu_broadPrimary",
+                      "high_edu_broadLower secondary",
+                      "high_edu_broadUpper secondary I",
+                      "high_edu_broadUpper secondary II",
+                      "high_edu_broadUniversity",
+                      "books_hh11-100",
+                      "books_hh101-500",
+                      "books_hh> 500",
+                      "hisei",
+                      "nativeNative",
+                      "ISCEDOVocational",
+                      "ISCEDOGeneral"),
+            covariate.labels = labs_covart,
+            add.lines = create_lmer_stats(all_mods),
+            dep.var.caption = paste0(test, " test score"),
+            dep.var.labels = "Models applied to all students",
+            font.size = "small",
+            column.sep.width = "1pt",
+            label = knitr::opts_current$get("label"),
+            single.row = TRUE,
+            no.space = TRUE)
+
+  # student_level_pos <- which(grepl("Budget aut \\* High students", mod_table))
+  #
+  # mod_table <- starpolishr::star_insert_row(mod_table, "Student-level variables", insert.after = student_level_pos)
+  #
+  # school_level_pos <- which(grepl("Voc track: General", mod_table))
+  #
+  #
+  # mod_table <- starpolishr::star_insert_row(mod_table, "School-level variables", insert.after = school_level_pos)
+  #
+  # mod_table
+
+}
+
+print_models_interaction("aut_interact_math_.+",
+                         "Mathematics",
+                         tit = "Multilevel model with varying intercepts for all students of students in Mathematics with interaction between student quantiles and autonomy measures")
+
+```
+\elandscape
+
+## Calculating Achievement Gaps {#achievement_appendix}
+
+To \emph{standardize} the test score I fit a linear model
+
+\begin{equation}
+y_i = \alpha + \beta_1 * AGE_i + \epsilon_i, \quad \epsilon_i ~ N(0, \sigma^2)
+\end{equation}
+
+for each wave, where \begin{math}y_i\end{math} is the median student test score for student \begin{math}i\end{math} and \begin{math}AGE_i\end{math} is their age measured in months (following the same strategy as @reardon2011 \footnote{This does not mess up the analysis by masking age-specific gaps as all students in the sample are 15 year olds. Controlling for age is simply to adjust for monthly differences in ages.}) weighted by the student sample weights from PISA \footnote{I also tried to run the model for each country-wave separately but the results were very similar and it was more computationally expensive}.
+
+I then calculate \begin{math} \hat{\gamma_i} \end{math} by
+
+\begin{equation}
+\hat{\gamma_i} = \frac{\hat{\epsilon_i}}{\sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y_i})^2}}
+\end{equation}
+
+where \begin{math}\hat{\epsilon_i}\end{math} is the residual for student \begin{math}i\end{math}, $\hat{y_i}$ is the predicted test score for student $i$ and the denominator is the root mean square error of the model.
+
+This new standardized variable has a mean of zero. Standardizing the median test score solves the problem of comparability between different tests and across waves as the test scores have now the same metric across time. Another concern is whether test scores measured at different waves have different amounts of measurement error. If that is the case, then the amount of bias will not be the same in each measure of the gap. This can be misleading and suggest erroneous interpretations regarding trends of the gaps over time [@reardon2011]. PISA has tried to make sure the tests are comparable across waves but it is still necessary to adjust for this imprecision [@pisa2012_technical]. Accordingly, each PISA survey provides a reliability indicator for each of the tests which can be used to adjust for the reliability of the scores.
+
+In order to correct for this I calculate $\lambda_i$ which is just \begin{math} \hat{\gamma_i} \end{math} adjusted by the reliability indicator of each wave. More formally, I calculate it through
+
+\begin{equation} \label{eq:adjust_eq}
+\hat{\lambda_i} = \hat{\gamma_i} * \frac{1}{\sqrt{r}}
+\end{equation}
+
+where \begin{math}r\end{math} is the reliability score of the test score in that PISA wave ^[Other procedures multiply each country by their own reliability measure for each year-subject pair [@chmielewskiglobal2019]. The reliability estimates are calculated using Item Response Theory (IRT) analogues of traditional estimates of person separation reliability such as internal consistency. Unfortunately, PISA 2000 did not provide any reliability measure separately for each country and at the moment of the writing of this paper, PISA 2015 has yet to release their own. For these reasons, I implement the analysis following the original work of [@reardon2011]]. Note that I implement equation $\eqref{eq:adjust_eq}$ separately by test scores and waves because there is a separate reliability indicator for each one. Once that is adjusted, the test scores should be roughly free of any bias in the trend that may arise from differential reliability of the tests.
+
+In order to calculate the SES gaps it is necessary to estimate the thresholds for the 90th and 10th percentile. I calculate the thresholds using the SES index separately for each country-wave combination using the specific student sample weights of each one. I then generate a dummy of 1 for those above (including) the 90th percentile and 0 for those below (including) the 10th percentile for each country-wave pair.
+
+I then fit a multilevel model:
+
+\begin{equation}
+\lambda_{ij} = \alpha_{j} + \beta_{j} * SES_i + \epsilon_{ij},\ \text{for} \ i \ \text{= 1, 2, ...,} \ n \ \text{for each country} \ j
+\end{equation}
+
+where \(SES_i\) is whether the student is at or above the 90th percentile (coded as 1) or whether it is at or below the 10th percentile (coded as 0). I allow \(\alpha\) and \(\beta\) to vary by country \(j\) in order to obtain gaps for each country. I implement this model separately for each wave and weight by the wave-specific student sample weights. The previous model allows to calculate the achievement gap for each country by extracting the \(\beta\)'s and \(\alpha\)'s for each country. I also calculate the standard error of this difference and generate uncertainty intervals.
+
+# Bibliography

@@ -228,6 +228,46 @@ print_table <- function(x, ...) {
 }
 
 
+determine_aut_order <- function(x) {
+  academic_pos <- which(grepl("academic_content", x))
+  personnel_pos <- which(grepl("personnel_", x))
+  budget_pos <- setdiff(seq_along(x), c(academic_pos, personnel_pos))
+  correct_order <- c(academic_pos, personnel_pos, budget_pos)
+
+  x[correct_order]
+}
+
+
+create_lmer_stats <- function(tst_mods) {
+  tst_mods <- flatten(tst_mods)
+
+  all_groups <- lapply(tst_mods, function(.x) {
+    res <- ngrps(.x)
+    res
+  })
+
+  ngrps_mixed <- lapply(transpose(all_groups), as.numeric)
+
+  ngrps_final <- lapply(seq_along(ngrps_mixed), function(.x) {
+    name <- paste0("N. ", tools::toTitleCase(names(ngrps_mixed)[.x]))
+    ngrps_mixed[[.x]] <- c(name, ngrps_mixed[[.x]])
+    ngrps_mixed[[.x]]
+  })
+
+
+  all_iccs <- vapply(tst_mods,
+                     function(.x) round(performance::icc(.x)$ICC_adjusted, 4),
+                     FUN.VALUE = numeric(1)
+                     )
+
+  all_iccs <- list(c("ICC", all_iccs))
+
+  all_stats <- c(ngrps_final, all_iccs)
+
+  all_stats
+}
+
+
 formula_sequence <- function(dv, ivs, random_effect) {
   formula_seq <-
     lapply(1:length(ivs), function(x) {
@@ -608,6 +648,152 @@ sig_vs_sig <- function(coef1, se1, coef2, se2) {
   round(c(coef_diff, se_diff), 2)
 }
 
+model_converter <- function(name_models, model_type) {
+  model_names <- cached()[grepl(name_models, cached())]
+
+  # Because for the fixed effect models we only run 2 models
+  # but for all multilevel models we run 3 (1st is empty model
+  # to record variance). -->
+  if (grepl("fixed", name_models)) index <- 2 else index <- 3
+  raw_math <-
+    set_names(
+      map(model_names, ~ readd(.x, character_only = TRUE)[[index]]),
+      model_names
+    )
+
+  lower <- raw_math[grepl("0", names(raw_math))]
+  upper <- raw_math[grepl("1", names(raw_math))]
+  lower <-
+    map(lower, ~ {
+      .x %>%
+        tidy(conf.int = TRUE) %>%
+        filter(grepl("_aut", term)) %>% 
+        select(term, estimate, starts_with("conf"))
+    }) %>%
+    bind_rows() %>%
+    mutate(group = "Bottom 10% students",
+           model = model_type)
+  upper <-
+    map(upper, ~ {
+      .x %>%
+        tidy(conf.int = TRUE) %>%
+        filter(grepl("_aut", term)) %>%
+        select(term, estimate, starts_with("conf"))
+    }) %>%
+    bind_rows() %>%
+    mutate(group = "Top 10% students",
+           model = model_type)
+  combined_dt <-
+    bind_rows(upper, lower) %>%
+    mutate(term = recode(term,
+                         `academic_content_aut` = "Academic content",
+                         `budget_aut` = "Budget",
+                         `personnel_aut` = "Personnel"),
+           term = factor(term, levels = c("Academic content",
+                                          "Personnel",
+                                          "Budget")))
+
+  combined_dt
+}
+
+# You should delete this when emmeans includes a fix for
+# https://github.com/rvlenth/emmeans/issues/153
+# Just install the latest version and delete this.
+emtrends_dev <- function (object, specs, var, delta.var = 0.001 * rng, max.degree = 1,
+          ...) {
+  estName = paste(var, "trend", sep = ".")
+  cl = match.call()
+  cl[[1]] = quote(ref_grid)
+  cl$var = cl$specs = NULL
+  if (is.null(cl$options))
+    cl$options = list()
+  if (missing(object) && ("model" %in% names(cl))) {
+    names(cl)[names(cl) == "model"] = "object"
+    object = eval(cl$object)
+  }
+  cl$options$just.data = TRUE
+  # Adds the quoted model in the matched call
+  # and evaluate it in the current function environment
+  cl$object <- quote(object)
+  data = eval(cl, envir = environment())
+  cl$options$just.data = NULL
+  x = data[[var]]
+  fcn = NULL
+  if (is.null(x)) {
+    fcn = var
+    var = .all.vars(as.formula(paste("~", var)))
+    if (length(var) > 1)
+      stop("Can only support a function of one variable")
+    else {
+      x = data[[var]]
+      if (is.null(x))
+        stop("Variable '", var, "' is not in the dataset")
+    }
+  }
+  rng = diff(range(x))
+  if (delta.var == 0)
+    stop("Provide a nonzero value of 'delta.var'")
+  max.degree = max(1, min(5, as.integer(max.degree + 0.1)))
+  delts = delta.var * (0:max.degree)
+  idx.base = as.integer((2 + max.degree)/2)
+  delts = delts - delts[idx.base]
+  cl$data = quote(data)
+  cl$options$var = var
+  cl$options$delts = delts
+
+  bigRG = eval(cl, envir = environment())
+  var.subs = as.list(as.data.frame(matrix(seq_len(nrow(bigRG@grid)),
+                                          ncol = length(delts))))
+  RG = orig.rg = bigRG[var.subs[[idx.base]]]
+  row.names(RG@grid) = seq_along(RG@grid[[1]])
+  linfct = lapply(seq_along(delts), function(i) bigRG@linfct[var.subs[[i]],
+                                                           , drop = FALSE])
+  if (!is.null(fcn)) {
+    tmp = sapply(seq_along(delts), function(i) eval(parse(text = fcn),
+                                                    envir = bigRG@grid[var.subs[[i]], , drop = FALSE]))
+    delta.var = apply(tmp, 1, function(.) mean(diff(.)))
+  }
+  newlf = numeric(0)
+  h = 1
+  for (i in 1:max.degree) {
+    linfct = lapply(seq_along(linfct)[-1], function(j) linfct[[j]] -
+                                                         linfct[[j - 1]])
+    h = h * delta.var * i
+    what = as.integer((length(linfct) + 1)/2)
+    newlf = rbind(newlf, linfct[[what]]/h)
+  }
+  RG@linfct = newlf
+  RG@roles$trend = var
+  if (max.degree > 1) {
+    degnms = c("linear", "quadratic", "cubic", "quartic",
+               "quintic")
+    RG@grid$degree = degnms[1]
+    g = RG@grid
+    for (j in 2:max.degree) {
+      g$degree = degnms[j]
+      RG@grid = rbind(RG@grid, g)
+    }
+    RG@roles$predictors = c(RG@roles$predictors, "degree")
+    RG@levels$degree = degnms[1:max.degree]
+  }
+  RG@grid$.offset. = NULL
+  RG@misc$tran = RG@misc$tran.mult = NULL
+  RG@misc$estName = estName
+  RG@misc$methDesc = "emtrends"
+  emmeans:::.save.ref_grid(RG)
+  if (missing(specs) || is.null(specs))
+    return(RG)
+  args = list(object = NULL, specs = specs, ...)
+  args$at = args$cov.reduce = args$mult.levs = args$vcov. = args$data = args$trend = args$transform = NULL
+  if (max.degree > 1) {
+    chk = union(all.vars(specs), args$by)
+    if (!("degree" %in% chk))
+      args$by = c("degree", args$by)
+  }
+  args$object = RG
+  do.call("emmeans", args)
+}
+
 gaps <- c("90th/10th SES gap", "80th/20th SES gap", "70th/30th SES gap")
 
 ############################# Drake plan ######################################
@@ -624,11 +810,11 @@ plan <-
     # which is read in _drake.R because it's too heavy to have within the plan.
     # See the notes in /code/read_raw_data.R. It's called raw_data.
 
-    # All read_* functions return a list with the data for each wave
     loaded_school = target(
       load_school(raw_data_dir),
       format = "fst"
      ),
+
     # This is the socio-economic index harmonized to be used across all waves
     loaded_escs = target(
       load_escs(raw_data_dir, recode_cntrys),
@@ -729,6 +915,9 @@ plan <-
                                               final_countries,
                                               budget_aut),
 
+    plotted_autonomies = plot_all_autonomies(harmonized_school,
+                                              final_countries),
+
     calculated_corr_aut = calculate_corr_aut(harmonized_school),
     # Calculate the correlation between autonomy measures in their change
     # from 2000 to 2015
@@ -762,6 +951,7 @@ plan <-
                         group_vals = c(0, 1),
                         aut_val = !!autonomy_measures)
     ),
+    
     # Run all combinations of tests/90th-10th/autonomy measure models
     # with the imputed dataset. These will all be named lik
     # impute_aut_math_0_academic_content_aut, impute_aut_read_0_academic_content_aut,
@@ -792,6 +982,17 @@ plan <-
                         aut_val = !!autonomy_measures)
     ),
 
+    aut_schools_public = target(
+      generate_models_public(data_modelling,
+                             dv = math_read,
+                             group = group_vals,
+                             aut_var = aut_val
+                             ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures)
+    ),
+
     # Rerun using the school 90/10 dummy
     aut_schools = target(
       generate_models_schools(data_modelling,
@@ -811,11 +1012,22 @@ plan <-
       generate_models_interaction(data_modelling,
                                   dv = math_read,
                                   aut_var = aut_val,
-                                  interact = type_interact
+                                  interact = "quantiles_escs_chr"
                                   ),
       transform = cross(math_read = c("math", "read"),
-                        aut_val = !!autonomy_measures,
-                        type_interact = c("quantiles_escs", "quantiles_escs_chr"))
+                        aut_val = !!autonomy_measures)
+    ),
+
+    # Run the same models as the interaction but only
+    # for public schools
+    aut_interact_public = target(
+      generate_models_interact_publ(data_modelling,
+                                    dv = math_read,
+                                    aut_var = aut_val,
+                                    interact = "quantiles_escs_chr"
+                                    ),
+      transform = cross(math_read = c("math", "read"),
+                        aut_val = !!autonomy_measures)
     ),
 
     # Run the same models but with the three autonomy
@@ -828,11 +1040,32 @@ plan <-
       transform = cross(math_read = c("math", "read"),
                         group_vals = c(0, 1))
     ),
+
+    aut_fixedeff = target(
+      generate_models_fe(data_modelling,
+                         dv = math_read,
+                         group = group_vals,
+                         aut_var = aut_val
+                         ),
+      transform = cross(math_read = c("math", "read"),
+                        group_vals = c(0, 1),
+                        aut_val = !!autonomy_measures)
+    ),
+
+    all_mods_plot = plot_all_models(aut_math,
+                                    aut_allcnt_math,
+                                    aut_schools_public_math,
+                                    aut_fixedeff_math,
+                                    aut_schools_math),
+
+    interact_plot = plot_interaction(name_models = "^aut_interact_math_.+$",
+                                     aut_interact),
+
     paper = render(
       knitr_in(here("paper/achievement_gap.Rmd")),
       output_file = file_out(here("paper/achievement_gap.pdf")),
       quiet = TRUE
-    )
+    ),
 
     ##   sample_tables_topbottom = sample_size_calc(
     ##     merged_data,
@@ -991,45 +1224,3 @@ plan <-
 # Difference between 1-0 coefficients in math is NOT significantly
 # different from 0
 ## sig_vs_sig(0.03, 0.01, 0.01, 0.01)
-
-############################# Playing around ##################################
-###############################################################################
-
-## filtered_data <- readd(filtered_data)
-## dv <- "math"
-## aut_var <- "academic_content_aut"
-
-## filtered_data <- readd(filtered_data)
-## filtered_data %>% select(escs_dummy, quantiles_escs)
-
-## filtered_data %>%
-##   select(escs_dummy, quantiles_escs) %>%
-##   filter(!is.na(escs_dummy)) %>%
-##   count(escs_dummy, quantiles_escs)
-
-## all_mods <- readd(aut_math_1_academic_content_aut)
-## all_mods <- readd(aut_allpooled_read_1)
-## stargazer::stargazer(all_mods, type = "text")
-
-## library(emmeans)
-
-## all_slopes <-
-##   emtrends(
-##     all_mods[[2]],
-##     "quantiles_escs_chr",
-##     "academic_content_aut",
-##   )
-
-## plot(all_slopes)
-
-
-## visreg::visreg(all_mods[[2]],
-##                "academic_content_aut",
-##                "quantiles_escs",
-##                breaks = 5,
-##                layout = c(10, 1),
-##                gg = TRUE,
-##                type = "contrast") +
-##   ylim(c(0, 0.02))
-
-## ggpredict(all_mods[[2]], c("academic_content_aut", "quantiles_escs")) %>% plot()

@@ -8,11 +8,17 @@ Repositories=
 
 [Bioconductor]
 Repositories=
-	BioCsoft=https://bioconductor.org/packages/3.9/bioc
-	BioCann=https://bioconductor.org/packages/3.9/data/annotation
-	BioCexp=https://bioconductor.org/packages/3.9/data/experiment
-	BioCworkflows=https://bioconductor.org/packages/3.9/workflows
+	BioCsoft=https://bioconductor.org/packages/3.10/bioc
+	BioCann=https://bioconductor.org/packages/3.10/data/annotation
+	BioCexp=https://bioconductor.org/packages/3.10/data/experiment
+	BioCworkflows=https://bioconductor.org/packages/3.10/workflows
 	CRAN=https://cran.rstudio.com/
+
+[R/Package/AER]
+Package=AER
+Version=1.2-7
+Source=CRAN
+Hash=97fdd97e0f45a46a72a1dae4b426d9ff
 
 [R/Package/Amelia]
 Package=Amelia
@@ -415,6 +421,12 @@ Version=3.3.2
 Source=CRAN
 Hash=1d82e0a7d7c413c607619004f96b9e3f
 
+[R/Package/cowplot]
+Package=cowplot
+Version=1.0.0
+Source=CRAN
+Hash=bae8bf4011199676a147077514a8a5c8
+
 [R/Package/crayon]
 Package=crayon
 Version=1.3.4
@@ -464,26 +476,15 @@ Hash=0311cbb64e0ddee9790d8c9922dcbef1
 
 [R/Package/digest]
 Package=digest
-Version=0.6.21
+Version=0.6.22
 Source=CRAN
-Hash=5082df7219d58e35b4613c9c687216de
+Hash=7ef357c9b4684d2183f105c27925e1d8
 
 [R/Package/dplyr]
 Package=dplyr
 Version=0.8.3
 Source=CRAN
 Hash=17783831e1e918ab250dcae5dd9c6e03
-
-[R/Package/drake]
-Package=drake
-Version=7.4.0
-Source=CRAN
-RemoteType=standard
-RemoteRef=drake
-RemoteRepos=https://cran.rstudio.com/
-RemotePkgType=source
-RemoteSha=7.4.0
-Hash=780736668e60f27ca078778546eaaa06
 
 [R/Package/effectsize]
 Package=effectsize
@@ -507,15 +508,15 @@ Hash=d9e858795a1a4ebfe6960e4514449d40
 
 [R/Package/emmeans]
 Package=emmeans
-Version=1.4.1.009009
+Version=1.4.1.009010
 Source=GitHub
 RemoteType=github
 RemoteHost=api.github.com
 RemoteRepo=emmeans
 RemoteUsername=rvlenth
 RemoteRef=master
-RemoteSha=03f1b8f2ed0f10438e91332dd03f7db76cad8b76
-Hash=f9a421097c343fbcf4fae2d8ed6009e8
+RemoteSha=040bf727824347aa18a36cd297e095b08985d0db
+Hash=185de2be52c3ca78cb16439621a465f1
 
 [R/Package/estimability]
 Package=estimability
@@ -559,6 +560,12 @@ Version=1.0.1
 Source=CRAN
 Hash=7a0d4ec0aa0299e3907f8f4f982e33b4
 
+[R/Package/filelock]
+Package=filelock
+Version=1.0.2
+Source=CRAN
+Hash=784db550445dfa0f28cacd1e07fed4c8
+
 [R/Package/forcats]
 Package=forcats
 Version=0.4.0
@@ -589,9 +596,15 @@ Hash=dba7e43c4103d978cb7c95b97987cc68
 
 [R/Package/fst]
 Package=fst
-Version=0.9.0
-Source=CRAN
-Hash=903ec1881f12fffaa268eb9b405747f6
+Version=0.9.1
+Source=GitHub
+RemoteType=github
+RemoteHost=api.github.com
+RemoteRepo=fst
+RemoteUsername=fstPackage
+RemoteRef=develop
+RemoteSha=8e53ca137815debf53aea43800172a2271db7624
+Hash=32e3fd4457778ec95c3c3ce9f2a4966b
 
 [R/Package/gbRd]
 Package=gbRd
@@ -622,6 +635,12 @@ Version=3.2.1
 Source=CRAN
 Hash=635db021d29f3523c4f88e82d0c01c5e
 
+[R/Package/ggpubr]
+Package=ggpubr
+Version=0.2.3
+Source=CRAN
+Hash=5ef8f49b551629233160fe8165f0dadd
+
 [R/Package/ggrepel]
 Package=ggrepel
 Version=0.8.1
@@ -632,6 +651,18 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=0.8.1
 Hash=61257084e976294d3c97de988469d019
+
+[R/Package/ggsci]
+Package=ggsci
+Version=2.9
+Source=CRAN
+Hash=f42bc4b0ee6da5125eb1268985121ad6
+
+[R/Package/ggsignif]
+Package=ggsignif
+Version=0.6.0
+Source=CRAN
+Hash=9e277d8d9d16fae2a45b90395961036a
 
 [R/Package/ggthemes]
 Package=ggthemes
@@ -671,8 +702,8 @@ RemoteHost=api.github.com
 RemoteRepo=glue
 RemoteUsername=tidyverse
 RemoteRef=master
-RemoteSha=71eeddfa43763880ccc6afd9021553fd728b1821
-Hash=6e2845c5f2b1399a0a080f6b2ce66ad9
+RemoteSha=995e13f324aa41289382c9a4ccb7eb292631c1d3
+Hash=d7e92ca495f5c06dd18124c15e15b57a
 
 [R/Package/gridExtra]
 Package=gridExtra
@@ -1154,15 +1185,9 @@ Hash=188d51e37526d3a5525daab0c6a92c3a
 
 [R/Package/performance]
 Package=performance
-Version=0.3.0.9000
-Source=GitHub
-RemoteType=github
-RemoteHost=api.github.com
-RemoteRepo=performance
-RemoteUsername=easystats
-RemoteRef=master
-RemoteSha=fc1a19f415e3cf888cff22143f76c238b8705fd6
-Hash=bd63fb2a87244b40999c4371ce31b780
+Version=0.4.0
+Source=CRAN
+Hash=071c703a3583b32e41db1a4fe7476d76
 
 [R/Package/pillar]
 Package=pillar
@@ -1220,6 +1245,12 @@ RemoteRepos=https://cloud.r-project.org
 RemotePkgType=source
 RemoteSha=1.8.4
 Hash=37dd0f3aadee2ac99e47168f4bffddb7
+
+[R/Package/polynom]
+Package=polynom
+Version=1.4-0
+Source=CRAN
+Hash=b6d95b8b8c64321e838d3c18b6ebff65
 
 [R/Package/praise]
 Package=praise
@@ -1383,9 +1414,9 @@ Hash=da7bb885000eb8cb231ee4141466ecdb
 
 [R/Package/rlang]
 Package=rlang
-Version=0.4.0
+Version=0.4.1
 Source=CRAN
-Hash=8f1bf3a54c8844dc254baabba61cb6a9
+Hash=3be3097a603e8a51dae89c372b920f97
 
 [R/Package/rmarkdown]
 Package=rmarkdown
@@ -1549,6 +1580,29 @@ Version=1.3-1
 Source=CRAN
 Hash=a8e1d618f252db052d85391d528c256f
 
+[R/Package/stargazer]
+Package=stargazer
+Version=5.2.2
+Source=CRAN
+RemoteType=standard
+RemoteRef=stargazer
+RemoteRepos=https://cloud.r-project.org
+RemotePkgType=source
+RemoteSha=5.2.2
+Hash=a6029ceea7b141dc61bbf50131d676ff
+
+[R/Package/starpolishr]
+Package=starpolishr
+Version=0.0.0.9004
+Source=GitHub
+RemoteType=github
+RemoteHost=api.github.com
+RemoteRepo=starpolishr
+RemoteUsername=ChandlerLutz
+RemoteRef=master
+RemoteSha=b53c6f2481b9eb50a20bbb1451e9f28400bfb165
+Hash=a1dceaa19bb09a3aeba9b92340ecc012
+
 [R/Package/storr]
 Package=storr
 Version=1.2.1
@@ -1646,6 +1700,12 @@ Package=tinytex
 Version=0.16
 Source=CRAN
 Hash=9349f30ae6ddce61d7fa26f7b6228a73
+
+[R/Package/txtq]
+Package=txtq
+Version=0.2.0
+Source=CRAN
+Hash=54b89beafbcc28084da55e8724ade2ef
 
 [R/Package/ucminf]
 Package=ucminf

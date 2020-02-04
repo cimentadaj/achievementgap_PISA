@@ -19,7 +19,6 @@ load_school <- function(raw_data_dir) {
 
   colnames(school2012) <- dic_school$varname
 
-
   # PISA 2015
   pisa2015_path <- file.path(raw_data_dir, "pisa2015", "CY6_MS_CMB_SCH_QQQ.sav")
   pisa_countrynames <- c(cimentadaj::pisa_countrynames, "United States" = "USA")
@@ -76,8 +75,17 @@ harmonize_student <- function(raw_student, recode_cntrys) {
            native = as.numeric(ST16Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
            native = factor(native, levels = c("Non-native", "Native")),
-           stu_id = as.character(STIDSTD)
+           stu_id = as.character(STIDSTD),
+           ISCEDO = as.character(ST25Q01),
+           ISCEDO = case_when(ISCEDO == "<ISCED 2A>" ~ "General",
+                              ISCEDO == "<ISCED 2B>" ~ "Pre-Vocational",
+                              ISCEDO == "<ISCED 2C>" ~ "Pre-Vocational",
+                              ISCEDO == "<ISCED 3A>" ~ "General",
+                              ISCEDO == "<ISCED 3B>" ~ "Vocational",
+                              ISCEDO == "<ISCED 3C>" ~ "Vocational",
+                              TRUE ~ ISCEDO)
            )
+
 
   # PISA 2003
   raw_student$value[[2]] <-
@@ -94,7 +102,8 @@ harmonize_student <- function(raw_student, recode_cntrys) {
            native = as.numeric(ST15Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
            native = factor(native, levels = c("Non-native", "Native")),
-           stu_id = as.character(STIDSTD)
+           stu_id = as.character(STIDSTD),
+           ISCEDO = as.character(ISCEDO)
            )
 
   # PISA 2006
@@ -112,7 +121,8 @@ harmonize_student <- function(raw_student, recode_cntrys) {
            native = as.numeric(ST11Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
            native = factor(native, levels = c("Non-native", "Native")),
-           stu_id = as.character(STIDSTD)
+           stu_id = as.character(STIDSTD),
+           ISCEDO = recode(as.character(ISCEDO), `N/A` = NA_character_)
            )
 
   # PISA 2009
@@ -130,7 +140,8 @@ harmonize_student <- function(raw_student, recode_cntrys) {
            native = as.numeric(ST17Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
            native = factor(native, levels = c("Non-native", "Native")),
-           stu_id = as.character(STIDSTD)
+           stu_id = as.character(STIDSTD),
+           ISCEDO = recode(as.character(ISCEDO), `Modular` = "Pre-Vocational")
            )
 
   # PISA 2012
@@ -149,7 +160,11 @@ harmonize_student <- function(raw_student, recode_cntrys) {
            native = as.numeric(ST20Q01),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
            native = factor(native, levels = c("Non-native", "Native")),
-           stu_id = as.character(STIDSTD)
+           stu_id = as.character(STIDSTD),
+           ISCEDO = case_when(ISCEDO == 1 ~ "General",
+                              ISCEDO == 2 ~ "Pre-Vocational",
+                              ISCEDO == 3 ~ "Vocational",
+                              ISCEDO == 4 ~ "Pre-Vocational")
            )
 
   # PISA 2015
@@ -167,7 +182,11 @@ harmonize_student <- function(raw_student, recode_cntrys) {
            native = as.numeric(ST019AQ01T),
            native = ifelse(native == 1, "Native", ifelse(native == 2, "Non-native", NA_character_)),
            native = factor(native, levels = c("Non-native", "Native")),
-           stu_id = as.character(CNTSTUID)
+           stu_id = as.character(CNTSTUID),
+           ISCEDO = case_when(ISCEDO == 1 ~ "General",
+                              ISCEDO == 2 ~ "Pre-Vocational",
+                              ISCEDO == 3 ~ "Vocational",
+                              ISCEDO == 4 ~ "Pre-Vocational")
            )
   
   raw_student$value <- map(raw_student$value, function(each_pisa) {
@@ -254,49 +273,50 @@ harmonize_student <- function(raw_student, recode_cntrys) {
                                                   "Lower secondary",
                                                   "Upper secondary I",
                                                   "Upper secondary II",
-                                                  "University"))
+                                                  "University")),
+               ISCEDO = factor(ISCEDO, levels = c("Pre-Vocational", "Vocational", "General"))
                )
 
-      .x <-
-        select(.x,
-               wave,
-               country,
-               matches("SCHOOLID"),
-               # This is the PISA 2015 school ID
-               matches("CNTSCHID"),
-               stu_id,
-               AGE,
-               matches("PV[0-9]{1,2}[MATH|READ]"),
-               W_FSTUWT,
-               high_edu_broad,
-               gender,
-               books_hh,
-               hisei,
-               native,
-               # Wasn't asked in pisa 2000
-               # Which program the student is at
-               matches("PROGN"),
-               matches("ISCEDO"),
-               # The ESCS index from pisa 2015
-               matches("ESCS"),
-               matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"),
-               # Weight column
-               matches("W_FSTUWT"),
-               )
+        .x <-
+          select(.x,
+                 wave,
+                 country,
+                 matches("SCHOOLID"),
+                 # This is the PISA 2015 school ID
+                 matches("CNTSCHID"),
+                 stu_id,
+                 AGE,
+                 matches("PV[0-9]{1,2}[MATH|READ]"),
+                 W_FSTUWT,
+                 high_edu_broad,
+                 gender,
+                 books_hh,
+                 hisei,
+                 native,
+                 # Wasn't asked in pisa 2000
+                 # Which program the student is at
+                 matches("PROGN"),
+                 ISCEDO,
+                 # The ESCS index from pisa 2015
+                 matches("ESCS"),
+                 matches("ST16Q03|ST37Q01|ST019CQ01T|ST013Q01TA"),
+                 # Weight column
+                 matches("W_FSTUWT"),
+                 )
 
-      # Harmonize SCHOOLID variable for all waves
-      if (unique(.x$wave) == "pisa2015") {
-        .x <- rename(.x,
-                     SCHOOLID = CNTSCHID)
-      }
+        # Harmonize SCHOOLID variable for all waves
+        if (unique(.x$wave) == "pisa2015") {
+          .x <- rename(.x,
+                       SCHOOLID = CNTSCHID)
+        }
 
-      .x <- rename(.x, stu_weight = W_FSTUWT)
+        .x <- rename(.x, stu_weight = W_FSTUWT)
 
-      .x <-
-        .x %>%
-        mutate(SCHOOLID = as.character(SCHOOLID))
-        
-      .x
+        .x <-
+          .x %>%
+          mutate(SCHOOLID = as.character(SCHOOLID))
+          
+          .x
     })
 
   raw_student$value <-
@@ -319,6 +339,7 @@ harmonize_student <- function(raw_student, recode_cntrys) {
                books_hh,
                hisei,
                native,
+               ISCEDO,
                stu_weight)
 
     })
@@ -579,36 +600,37 @@ harmonize_school <- function(loaded_school) {
                              location <= 5 ~ location,
                              location >= 7 ~ NA_real_,
                              ),
-        location = case_when(location == 1 ~ "Village or Rural area (< 3,000)",
-                             location == 2 ~ "Town (3,000 - 15,000)",
-                             location == 3 ~ "Large town (15,000 - 100,000)",
-                             location == 4 ~ "City (100,000 - 1,000,000)",
-                             location == 5 ~ "Large city (> 1,000,000)",
+        location = case_when(location == 1 ~ "Village or Rural area (< 3K)",
+                             location == 2 ~ "Town (3K-15K)",
+                             location == 3 ~ "Large town (15K-100K)",
+                             location == 4 ~ "City (< 1M)",
+                             location == 5 ~ "Large city (> 1M)",
                              TRUE ~ NA_character_),
-        location = factor(location, levels = c("Village or Rural area (< 3,000)",
-                                               "Town (3,000 - 15,000)",
-                                               "Large town (15,000 - 100,000)",
-                                               "City (100,000 - 1,000,000)",
-                                               "Large city (> 1,000,000)"))
+        location = factor(location, levels = c("Village or Rural area (< 3K)",
+                                               "Town (3K-15K)",
+                                               "Large town (15K-100K)",
+                                               "City (< 1M)",
+                                               "Large city (> 1M)")),
+        num_stu = center(num_stu),
+        government_fund = center(government_fund)
       )
-      
+    
   })
 
   loaded_school
 }
 
-plot_autonomy_public <- function(harmonized_school, cntrys, autonomy_var) {
-  autonomy_var <- enquo(autonomy_var)
+
+plot_all_autonomies <- function(harmonized_school, cntrys) {
 
   summarize_aut <- function(df_pisa, wave) {
     df_pisa %>%
-      filter(SCHLTYPE == "Public",
-             !is.na(location)) %>% 
-      group_by(COUNTRY, location) %>%
+      filter(SCHLTYPE == "Public") %>%
+      mutate(wave = wave) %>% 
+      group_by(wave, COUNTRY) %>%
       summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>%
-      mutate(wave = wave)
+      ungroup()
   }
-
 
   sum_sc2000 <- summarize_aut(harmonized_school$value[[1]], "pisa2000")
   sum_sc2003 <- summarize_aut(harmonized_school$value[[2]], "pisa2003")
@@ -625,19 +647,100 @@ plot_autonomy_public <- function(harmonized_school, cntrys, autonomy_var) {
                       sum_sc2012,
                       sum_sc2015)
 
-  sum_sc %>%
-    filter(!is.na(location)) %>% 
-    mutate(wave = factor(wave, levels = paste0("pisa", seq(2000, 2015, by = 3)),
-                         ordered = TRUE)) %>%
-    filter(COUNTRY %in% cntrys) %>% 
-    ggplot(aes(wave, !!autonomy_var, color = location, group = location)) +
-    geom_point() +
-    geom_line() +
-    ## scale_color_manual(values = c("black", "grey60")) +
-    facet_wrap(~ COUNTRY) +
-    theme_minimal()
+  ann_text <- data.frame(wave = factor("2006", levels = seq(2000, 2015, 3)),
+                         value = c(.89, .35),
+                         name = c("Academic", "Personnel"),
+                         COUNTRY = factor("Australia", levels = unique(sum_sc$COUNTRY)))
 
+  semi_plot <-
+    sum_sc %>%
+    mutate(wave = as.factor(as.numeric(gsub("pisa", "", wave)))) %>%
+    filter(COUNTRY %in% cntrys) %>%
+    select(wave, COUNTRY, academic_content_aut, personnel_aut, budget_aut) %>% 
+    pivot_longer(ends_with("aut")) %>%
+    filter(name %in% c("academic_content_aut", "personnel_aut")) %>% 
+    mutate(name = gsub("_", " ", name) %>% tools::toTitleCase()) %>%
+    ggplot(aes(x = wave, y = value, color = name, group = name, shape = name)) +
+    geom_line(stat = "smooth", method = "lm",
+              formula = y ~ splines::ns(x, 2),
+              size = 0.8) +
+    scale_y_continuous("Proportion of decision making made \n only by the school",
+                       labels = scales::percent,
+                       limits = c(0, 1)) +
+    scale_x_discrete(name = NULL) +
+    scale_color_manual("Type autonomy", values = c("#00AFBB", "#00AFBB", "#E7B800", "#E7B800")) +
+    scale_shape_discrete("Type autonomy") +
+    facet_wrap(~ COUNTRY) +
+    theme_few() +
+    theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") +
+    labs(caption = "Note: Academic means academic autonomy and Personnel means personnel autonomy")
+
+  semi_plot + geom_text(data = ann_text,
+                        aes(label = name),
+                        size = 3,
+                        fontface = "bold")
+  
 }
+
+plot_autonomy_public <- function(harmonized_school, cntrys, autonomy_var) {
+  autonomy_var <- enquo(autonomy_var)
+
+  summarize_aut <- function(df_pisa, wave) {
+    df_pisa %>%
+      filter(SCHLTYPE == "Public",
+             !is.na(location)) %>% 
+      group_by(COUNTRY, location) %>%
+      summarize_at(vars(ends_with("_aut")), mean, na.rm = TRUE) %>%
+      mutate(wave = wave) %>%
+      ungroup()
+  }
+
+  sum_sc2000 <- summarize_aut(harmonized_school$value[[1]], "pisa2000")
+  sum_sc2003 <- summarize_aut(harmonized_school$value[[2]], "pisa2003")
+  sum_sc2006 <- summarize_aut(harmonized_school$value[[3]], "pisa2006")
+  sum_sc2009 <- summarize_aut(harmonized_school$value[[4]], "pisa2009")
+  sum_sc2012 <- summarize_aut(harmonized_school$value[[5]], "pisa2012")
+  sum_sc2015 <- summarize_aut(harmonized_school$value[[6]], "pisa2015")
+
+  # Merge all and plot
+  sum_sc <- bind_rows(sum_sc2000,
+                      sum_sc2003,
+                      sum_sc2006,
+                      sum_sc2009,
+                      sum_sc2012,
+                      sum_sc2015)
+
+  semi_plot <-
+    sum_sc %>%
+    filter(!is.na(location),
+           COUNTRY %in% cntrys,
+           location %in% c("Village or Rural area (< 3K)",
+                           "Large city (> 1M)")) %>%
+    mutate(wave = as.factor(as.numeric(gsub("pisa", "", wave)))) %>%
+    ggplot(aes(x = wave,
+               y = academic_content_aut,
+               color = location,
+               group = location,
+               shape = location)) +
+    geom_line(stat = "smooth", method = "lm",
+              formula = y ~ splines::ns(x, 2),
+              size = 0.8) +
+    scale_color_manual("Location of school", values = c("#00AFBB", "#E7B800", "#FC4E07")) +
+    scale_y_continuous("Proportion of decision making made only by the school",
+                       labels = scales::percent,
+                       limits = c(0, 1)) +
+    scale_x_discrete(name = NULL) +
+    facet_wrap(~ COUNTRY) +
+    theme_few() +
+    theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "top")
+
+  semi_plot
+}
+
 
 merge_student_escs <- function(selected_cols_student, loaded_escs) {
 
@@ -654,29 +757,29 @@ merge_student_escs <- function(selected_cols_student, loaded_escs) {
     pmap(list(selected_cols_student$value[exclude], loaded_escs$value, years[exclude]),
          function(.x, .y, .z) {
 
-      # The escs data needs to have the key variables the same class as the
-      # same data.
-      escs <-
-        .y %>% mutate(schoolid = as.numeric(schoolid),
-                      stidstd = as.numeric(stidstd))
+           # The escs data needs to have the key variables the same class as the
+           # same data.
+           escs <-
+             .y %>% mutate(schoolid = as.numeric(schoolid),
+                           stidstd = as.numeric(stidstd))
 
-      # .z is the corresponding year that will be created as a column
-      # And perform the same transformation of the key variables as in the ESCS data
-      data_trend <-
-        .x %>%
-        mutate(
-          year = .z,
-          schoolid = as.numeric(as.character(SCHOOLID)),
-          stu_id = as.numeric(stu_id)
-        ) %>%
-        left_join(escs,
-                  by = c("country", "schoolid", "stu_id" = "stidstd"))
+           # .z is the corresponding year that will be created as a column
+           # And perform the same transformation of the key variables as in the ESCS data
+           data_trend <-
+             .x %>%
+             mutate(
+               year = .z,
+               schoolid = as.numeric(as.character(SCHOOLID)),
+               stu_id = as.numeric(stu_id)
+             ) %>%
+             left_join(escs,
+                       by = c("country", "schoolid", "stu_id" = "stidstd"))
 
 
-      message(paste(unique(.x$wave), "done"))
+           message(paste(unique(.x$wave), "done"))
 
-      data_trend
-    })
+           data_trend
+         })
 
   selected_cols_student$value[[6]] <-
     selected_cols_student$value[[6]] %>%
@@ -796,6 +899,7 @@ create_escs_dummy <- function(merged_student_school, probs, reliability) {
                            hisei,
                            SCHLTYPE,
                            quantiles_escs,
+                           ISCEDO,
                            stu_weight)
 
   # Adds 90th/10th school dummy
@@ -1230,9 +1334,7 @@ plot_evolution_gaps <- function(complete_data_topbottom) {
     scale_x_discrete(name = NULL, breaks = seq(2000, 2015, 3)) +
     theme_few() +
     theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
-          axis.text.x = element_text(size = rel(9), angle = 45, hjust = 1),
-          text = element_text(size = rel(13)),
-          strip.text = element_text(size = 110))
+          axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
 # Show the rates at which is increasing/decreasing
@@ -1663,10 +1765,10 @@ calculate_corr_aut_change <- function(harmonized_school) {
 
 }
 
-impute_missing <- function(all_data) {
+impute_missing <- function(data_modelling) {
 
-  all_data_imput <-
-    all_data %>%
+  data_modelling_imput <-
+    data_modelling %>%
     # Make pisa numeric to be able to include time polynomials
     # in the multiple imputation. As well, make all character
     # vectors as factors because amelie doesn't work well
@@ -1692,12 +1794,13 @@ impute_missing <- function(all_data) {
                     "native",
                     "location",
                     "gender",
-                    "SCHLTYPE"),
+                    "SCHLTYPE",
+                    "ISCEDO"),
            polytime = 2,
            intercts = TRUE,
            )
 
-  all_data_imput$imputations[[1]]
+  data_modelling_imput$imputations[[1]]
 }
 
 generate_models <- function(data_modelling, dv, group, aut_var) {
@@ -1723,7 +1826,8 @@ generate_models <- function(data_modelling, dv, group, aut_var) {
                        "government_fund",
                        "books_hh",
                        "hisei",
-                       "native")
+                       "native",
+                       "ISCEDO")
 
   data_modelling <-
     data_modelling %>%
@@ -1731,6 +1835,66 @@ generate_models <- function(data_modelling, dv, group, aut_var) {
     mutate_at(vars(ends_with("aut")), center) %>%
     rename(prop_cert = PROPCERT,
            private = SCHLTYPE) %>%
+    select(all.vars(model_formula), fixed_variables, stu_weight) %>%
+    filter(complete.cases(.)) %>%
+    mutate(num_stu = num_stu / 100,
+           num_stu = center(num_stu),
+           government_fund = center(government_fund),
+           ISCEDO = fct_relevel(ISCEDO, "Pre-Vocational"))
+
+  all_formulas <- formula_gen(model_formula)
+
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
+    )
+
+  len <- length(all_formulas)
+  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
+
+  all_mods <- map(all_formulas, ~ {
+    lmer(.x,
+         data = data_modelling,
+         weights = stu_weight,
+         control = lmerControl(optimizer = "Nelder_Mead"))
+  })
+  
+  all_mods
+}
+
+generate_models_public <- function(data_modelling, dv, group, aut_var) {
+
+  model_formula <-
+    as.formula(
+      paste0(
+        dv,
+        " ~ ",
+        aut_var,
+        " + ",
+        "(1 | country) +
+         (1 | wave)"
+      )
+    )
+
+  fixed_variables <- c("gender",
+                       "high_edu_broad",
+                       "location",
+                       "prop_cert",
+                       "num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native",
+                       "ISCEDO")
+
+  data_modelling <-
+    data_modelling %>%
+    filter(escs_dummy == group) %>% 
+    mutate_at(vars(ends_with("aut")), center) %>%
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE) %>%
+    filter(private == "Public") %>% 
     select(all.vars(model_formula), fixed_variables, stu_weight) %>%
     filter(complete.cases(.)) %>%
     mutate(num_stu = num_stu / 100)
@@ -1755,6 +1919,7 @@ generate_models <- function(data_modelling, dv, group, aut_var) {
   
   all_mods
 }
+
 
 create_school_dummy <- function(selected_cols, probs) {
 
@@ -1834,7 +1999,8 @@ generate_models_schools <- function(data_modelling, dv, group, aut_var) {
                        "government_fund",
                        "books_hh",
                        "hisei",
-                       "native")
+                       "native",
+                       "ISCEDO")
 
   school_var <- sym(paste0("good_school_", dv))
 
@@ -1867,10 +2033,10 @@ generate_models_schools <- function(data_modelling, dv, group, aut_var) {
   all_mods
 }
 
-generate_models_interaction <- function(filtered_data,
+generate_models_interaction <- function(data_modelling,
                                         dv,
                                         aut_var,
-                                        interact = "quantiles_escs") {
+                                        interact) {
 
   all_formulas <-
     list(
@@ -1897,10 +2063,11 @@ generate_models_interaction <- function(filtered_data,
                        "government_fund",
                        "books_hh",
                        "hisei",
-                       "native")
+                       "native",
+                       "ISCEDO")
 
-  filtered_data <-
-    filtered_data %>%
+  data_modelling <-
+    data_modelling %>%
     mutate_at(vars(ends_with("aut")), center) %>%
     mutate(quantiles_escs_chr = factor(case_when(quantiles_escs %in% 1 ~ "Low",
                                                  quantiles_escs %in% 4:5 ~ "Mid",
@@ -1923,7 +2090,7 @@ generate_models_interaction <- function(filtered_data,
 
   all_mods <- map(all_formulas,
                   ~ lmer(.x,
-                         data = filtered_data,
+                         data = data_modelling,
                          weights = stu_weight,
                          control = lmerControl(optimizer = "Nelder_Mead")))
 
@@ -1952,7 +2119,8 @@ generate_models_allaut <- function(data_modelling, dv, group) {
                        "government_fund",
                        "books_hh",
                        "hisei",
-                       "native")
+                       "native",
+                       "ISCEDO")
 
   data_modelling <-
     data_modelling %>%
@@ -1983,5 +2151,241 @@ generate_models_allaut <- function(data_modelling, dv, group) {
   })
   
   all_mods
+}
+
+generate_models_interact_publ <- function(data_modelling,
+                                          dv,
+                                          aut_var,
+                                          interact) {
+
+  all_formulas <-
+    list(
+      as.formula(
+        paste0(
+          dv,
+          " ~ ",
+          aut_var,
+          "*",
+          interact,
+          " + ",
+          "(1 | country) +
+         (1 | wave)"
+        )
+      )
+    )
+
+  fixed_variables <- c("gender",
+                       "high_edu_broad",
+                       "location",
+                       "prop_cert",
+                       "num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native",
+                       "ISCEDO")
+
+  data_modelling <-
+    data_modelling %>%
+    mutate_at(vars(ends_with("aut")), center) %>%
+    mutate(quantiles_escs_chr = factor(case_when(quantiles_escs %in% 1 ~ "Low",
+                                                 quantiles_escs %in% 4:5 ~ "Mid",
+                                                 quantiles_escs %in% 10 ~ "High"),
+                                       levels = c("Low", "Mid", "High"))) %>% 
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE) %>% 
+    filter(private == "Public") %>% 
+    select(all.vars(all_formulas[[1]]), fixed_variables, stu_weight) %>%
+    filter(complete.cases(.)) %>%
+    mutate(num_stu = num_stu / 100)
+
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "))
+    )
+
+  len <- length(all_formulas)
+  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
+
+  all_mods <- map(all_formulas,
+                  ~ lmer(.x,
+                         data = data_modelling,
+                         weights = stu_weight,
+                         control = lmerControl(optimizer = "Nelder_Mead")))
+
+  all_mods
+}
+
+generate_models_fe <- function(data_modelling, dv, group, aut_var) {
+
+  all_formulas <-
+    list(
+      as.formula(
+        paste0(
+          dv,
+          " ~ ",
+          aut_var
+        )
+      )
+    )
+
+  fixed_variables <- c("gender",
+                       "high_edu_broad",
+                       "location",
+                       "prop_cert",
+                       "private",
+                       "num_stu",
+                       "government_fund",
+                       "books_hh",
+                       "hisei",
+                       "native",
+                       "ISCEDO")
+
+  data_modelling <-
+    data_modelling %>%
+    filter(escs_dummy == group) %>% 
+    mutate_at(vars(ends_with("aut")), center) %>%
+    rename(prop_cert = PROPCERT,
+           private = SCHLTYPE) %>%
+    select(all.vars(all_formulas[[1]]),
+           fixed_variables,
+           stu_weight,
+           country,
+           wave) %>%
+    filter(complete.cases(.)) %>%
+    mutate(num_stu = num_stu / 100)
   
+  # Final model which has all control variables
+  for_fixed <-
+    as.formula(
+      paste0("~ . + ", paste0(fixed_variables, collapse = " + "),
+             " + as.factor(country)", " + as.factor(wave)")
+    )
+
+  len <- length(all_formulas)
+  all_formulas[[len + 1]] <- update(all_formulas[[len]], for_fixed)
+
+  all_mods <- map(all_formulas, ~ {
+    lm(.x,
+       data = data_modelling)
+  })
+  
+  all_mods
+}
+
+plot_all_models <- function(...) {
+  # all models in ... are ignored because I just load them all
+  # from cached with a regular expression. But I still add them in
+  # ... to allow the dependency tree to record them
+
+  unimputed_coefs <- model_converter("^aut_math", "Standard model")
+  allcnt_coefs <- model_converter("^aut_allcnt_math", "All countries")
+  schools_coefs <- model_converter("^aut_schools_public_math", "Public schools")
+  fixedeff_coefs <- model_converter("^aut_fixedeff_math", "Fixed effects")
+  topbottom_schools_coefs <- model_converter("^aut_schools_math",
+                                             "(*) 90/10 schools")
+
+  combined_dt <-
+    bind_rows(unimputed_coefs,
+              allcnt_coefs,
+              schools_coefs,
+              fixedeff_coefs) %>%
+    mutate(model = factor(model, levels = c("Public schools",
+                                            "Standard model",
+                                            ## "Imputed",
+                                            "All countries",
+                                            "Fixed effects")))
+
+  combined_dt %>%
+    ggplot(aes(model, estimate, fill = group)) +
+    geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = .05, alpha = 1/3) +
+    geom_col(alpha = 1/3) +
+    geom_hline(yintercept = 0, size = 1, color = "grey", alpha = 1/2) +
+    scale_y_continuous("Estimated change in test scores (standard deviations) \n for a 1% increase in autonomy",
+                       position = "right") +
+    scale_x_discrete(name = "Models") +
+    scale_fill_manual(values = c("red", "blue")) +
+    facet_grid(term ~ group, switch = "y") +
+    theme_few() +
+    labs(caption = "(*) This model is run for the top/bottom 10% schools instead \n of the top/bottom 10% of students") +
+    theme(legend.position = "none",
+          axis.text.x = element_text(angle = 45, hjust = 1))
+
+}
+
+plot_interaction <- function(name_models, ...) {
+  
+  model_names <- cached()[grepl(name_models, cached())]
+
+  # Because for the fixed effect models we only run 2 models
+  # but for all multilevel models we run 3 (1st is empty model
+  # to record variance).
+  if (grepl("fixed", name_models)) index <- 2 else index <- 2
+
+  raw_math <-
+    set_names(
+      map(model_names, ~ readd(.x, character_only = TRUE)[[index]]),
+      model_names
+    )
+
+  academic_pos <- which(grepl("academic_content", names(raw_math)))
+  personnel_pos <- which(grepl("personnel_", names(raw_math)))
+  budget_pos <- setdiff(1:3, c(academic_pos, personnel_pos))
+  correct_order <- c(academic_pos, personnel_pos, budget_pos)
+
+  autonomy_names <- c("academic_content_aut", "personnel_aut", "budget_aut")
+  models_order <- raw_math[correct_order]
+  plot_list <- vector(mode = "list", length = length(models_order))
+  
+  all_slopes <-
+    emtrends_dev(
+      object = models_order[[1]],
+      specs = "quantiles_escs_chr",
+      var = autonomy_names[[1]],
+      )
+
+  plot_list[[1]] <-
+    plot(all_slopes, comparisons = TRUE) +
+    scale_x_continuous(name = "Academic content autonomy slope") +
+    scale_y_discrete(name = NULL) +
+    coord_flip() +
+    theme_bw() +
+    theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
+          axis.text.x = element_text(angle = 45, hjust = 1))
+
+  all_slopes <-
+    emtrends_dev(
+      models_order[[2]],
+      "quantiles_escs_chr",
+      autonomy_names[[2]],
+      )
+  
+  plot_list[[2]] <-
+    plot(all_slopes, comparisons = TRUE) +
+    scale_x_continuous(name = "Personnel autonomy slope") +
+    scale_y_discrete(name = NULL) +
+    coord_flip() +
+    theme_bw() +
+    theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
+          axis.text.x = element_text(angle = 45, hjust = 1))
+
+  all_slopes <-
+    emtrends_dev(
+      models_order[[3]],
+      "quantiles_escs_chr",
+      autonomy_names[[3]],
+      )
+  
+  plot_list[[3]] <-
+    plot(all_slopes, comparisons = TRUE) +
+    coord_flip() +
+    scale_x_continuous(name = "Budget autonomy slope") +
+    scale_y_discrete(name = "Bottom/Middle/Top performing students (10%/30%/10%)") +
+    theme_bw() +
+    theme(panel.grid.major.y = element_line(size = 0.1, color = "grey"),
+          axis.text.x = element_text(angle = 45, hjust = 1))
+
+  
+  reduce(plot_list, `/`)
 }
